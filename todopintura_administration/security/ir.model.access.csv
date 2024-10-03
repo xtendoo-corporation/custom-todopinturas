@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+todopintura_administration.access_import_contacts_wizard,access_import_contacts_wizard,todopintura_administration.model_import_contacts_wizard,base.group_user,1,1,1,1
+todopintura_administration.access_import_suppliers_wizard,access_import_suppliers_wizard,todopintura_administration.model_import_suppliers_wizard,base.group_user,1,1,1,1
+todopintura_administration.access_import_products_wizard,access_import_products_wizard,todopintura_administration.model_import_products_wizard,base.group_user,1,1,1,1
+
