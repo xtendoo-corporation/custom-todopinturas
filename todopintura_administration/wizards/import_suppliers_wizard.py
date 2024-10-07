@@ -129,10 +129,63 @@ class ImportSuppliersWizard(models.TransientModel):
             cp2_value = sheet.cell(row, 10).value
             cp2 = str(int(cp2_value)) if cp2_value and isinstance(cp2_value, (int, float)) else ''
             cp2 = '' if all(char == '*' for char in cp2) else cp2
-
+            activo = sheet.cell(row, 15).value
+            observation1 = str(sheet.cell(row, 16).value).strip() if sheet.cell(row, 16).value is not None else ''
+            observation2 = str(sheet.cell(row, 17).value).strip() if sheet.cell(row, 17).value is not None else ''
+            observation3 = str(sheet.cell(row, 18).value).strip() if sheet.cell(row, 18).value is not None else ''
+            observation4 = str(sheet.cell(row, 19).value).strip() if sheet.cell(row, 19).value is not None else ''
+            observation5 = str(sheet.cell(row, 20).value).strip() if sheet.cell(row, 20).value is not None else ''
+            observation6 = str(sheet.cell(row, 21).value).strip() if sheet.cell(row, 21).value is not None else ''
+            observation7 = str(sheet.cell(row, 22).value).strip() if sheet.cell(row, 22).value is not None else ''
+            observation8 = str(sheet.cell(row, 23).value).strip() if sheet.cell(row, 23).value is not None else ''
+            observation9 = str(sheet.cell(row, 24).value).strip() if sheet.cell(row, 24).value is not None else ''
+            observation10 = str(sheet.cell(row, 25).value).strip() if sheet.cell(row, 25).value is not None else ''
+            observation11 = str(sheet.cell(row, 26).value).strip() if sheet.cell(row, 26).value is not None else ''
+            observation12 = str(sheet.cell(row, 27).value).strip() if sheet.cell(row, 27).value is not None else ''
+            observation13 = str(sheet.cell(row, 28).value).strip() if sheet.cell(row, 28).value is not None else ''
+            observation14 = str(sheet.cell(row, 29).value).strip() if sheet.cell(row, 29).value is not None else ''
+            observation15 = str(sheet.cell(row, 30).value).strip() if sheet.cell(row, 30).value is not None else ''
+            observation16 = str(sheet.cell(row, 31).value).strip() if sheet.cell(row, 31).value is not None else ''
+            observation17 = str(sheet.cell(row, 32).value).strip() if sheet.cell(row, 32).value is not None else ''
+            observation18 = str(sheet.cell(row, 33).value).strip() if sheet.cell(row, 33).value is not None else ''
+            observation19 = str(sheet.cell(row, 34).value).strip() if sheet.cell(row, 34).value is not None else ''
+            observation20 = str(sheet.cell(row, 35).value).strip() if sheet.cell(row, 35).value is not None else ''
+            observation21 = str(sheet.cell(row, 36).value).strip() if sheet.cell(row, 36).value is not None else ''
+            observation22 = str(sheet.cell(row, 37).value).strip() if sheet.cell(row, 37).value is not None else ''
+            observation23 = str(sheet.cell(row, 38).value).strip() if sheet.cell(row, 38).value is not None else ''
+            observation24 = str(sheet.cell(row, 39).value).strip() if sheet.cell(row, 39).value is not None else ''
 
             print("num_prov: " + str(num_prov), "name: " + name, "address: " + address, "telefono: " + telefono,
-                  "telefono2: " + telefono2, "nif: " + nif, "cp: " + cp, "address2: " + address2, "cp2: " + cp2)
+                  "telefono2: " + telefono2, "nif: " + nif, "cp: " + cp, "address2: " + address2, "cp2: " + cp2,
+                  "activo: " + activo)
+
+            observations = [
+                observation1,
+                observation2,
+                observation3,
+                observation4,
+                observation5,
+                observation6,
+                observation7,
+                observation8,
+                observation9,
+                observation10,
+                observation11,
+                observation12,
+                observation13,
+                observation14,
+                observation15,
+                observation16,
+                observation17,
+                observation18,
+                observation19,
+                observation20,
+                observation21,
+                observation22,
+                observation23,
+                observation24
+            ]
+            notes = "<br/>".join(filter(None, observations))
 
             if not (name or address or cp or telefono or nif):
                 print("Todos los datos están vacíos. Terminando la importación.")
@@ -146,6 +199,8 @@ class ImportSuppliersWizard(models.TransientModel):
                 'phone': telefono,
                 'mobile': telefono2,
                 'vat': f"ES{nif}" if nif else '',
+                'active': False if activo == 'N' else True,
+                'comment': notes,
             }
 
             if forma_pago in payment_terms:

@@ -141,7 +141,7 @@ class ImportContactsWizard(models.TransientModel):
                 str(observation3) if observation3 else '',
                 str(observation4) if observation4 else ''
             ]
-            notes = "\n".join(filter(None, observations))
+            notes = "<br/>".join(filter(None, observations))
 
             record = {
                 'ref': num_client,
