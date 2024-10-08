@@ -176,6 +176,8 @@ class ImportContactsWizard(models.TransientModel):
                 self.env['res.partner'].create(record)
                 print(f"Contacto creado: {name}")
 
+            self.env.cr.flush()
+
             if iban:
                 existing_bank_record = self.env['res.partner.bank'].search([
                     ('acc_number', '=', iban),
