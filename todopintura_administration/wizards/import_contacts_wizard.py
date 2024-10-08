@@ -177,6 +177,7 @@ class ImportContactsWizard(models.TransientModel):
                 print(f"Contacto creado: {name}")
 
             self.env.cr.flush()
+            contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
             print("Contact ID: ", contact.id)
             if iban:
                 existing_bank_record = self.env['res.partner.bank'].search([
