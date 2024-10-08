@@ -177,18 +177,19 @@ class ImportContactsWizard(models.TransientModel):
                 print(f"Contacto creado: {name}")
 
             self.env.cr.flush()
-
+            print("Contact ID: ", contact.id)
             if iban:
                 existing_bank_record = self.env['res.partner.bank'].search([
                     ('acc_number', '=', iban),
                     ('partner_id', '=', contact.id)
                 ], limit=1)
-
+                print("Contact ID 2: ", contact.id)
                 if not existing_bank_record:
                     self.env['res.partner.bank'].create({
                         'acc_number': iban,
                         'partner_id': contact.id
                     })
+                    print("Contact ID 3: ", contact.id)
                     print(f"Cuenta bancaria creada: {iban} para {contact.name}")
                 else:
                     print(f"La cuenta bancaria con IBAN: {iban} ya existe para {contact.name}. No se crea una nueva.")
