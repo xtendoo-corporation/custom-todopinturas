@@ -12,6 +12,7 @@
         'wizards/import_suppliers_wizard_view.xml',
         'wizards/import_products_wizard_view.xml',
         'views/menu.xml',
+        'views/product_template.xml',
         'security/ir.model.access.csv',
     ],
     "installable": True,

@@ -1,0 +1,135 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* todopintura_administration
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 17.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-10-08 06:42+0000\n"
+"PO-Revision-Date: 2024-10-08 06:42+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: todopintura_administration
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_contacts_wizard
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_products_wizard
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_suppliers_wizard
+msgid "Cancelar"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_contacts_wizard__create_uid
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_products_wizard__create_uid
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_suppliers_wizard__create_uid
+msgid "Created by"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_contacts_wizard__create_date
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_products_wizard__create_date
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_suppliers_wizard__create_date
+msgid "Created on"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_contacts_wizard__display_name
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_products_wizard__display_name
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_suppliers_wizard__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_contacts_wizard__id
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_products_wizard__id
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_suppliers_wizard__id
+msgid "ID"
+msgstr ""
+
+#. module: todopintura_administration
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_contacts_wizard
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_products_wizard
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_suppliers_wizard
+msgid "Importar"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.actions.act_window,name:todopintura_administration.action_import_contacts_wizard
+#: model:ir.ui.menu,name:todopintura_administration.menu_import_contacts
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_contacts_wizard
+msgid "Importar Contactos"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.actions.act_window,name:todopintura_administration.action_import_products_wizard
+#: model:ir.ui.menu,name:todopintura_administration.menu_import_products
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_products_wizard
+msgid "Importar Productos"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.actions.act_window,name:todopintura_administration.action_import_suppliers_wizard
+#: model:ir.ui.menu,name:todopintura_administration.menu_import_suppliers
+#: model_terms:ir.ui.view,arch_db:todopintura_administration.view_import_suppliers_wizard
+msgid "Importar Proveedores"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_product_product__invoice_description
+#: model:ir.model.fields,field_description:todopintura_administration.field_product_template__invoice_description
+#: model:ir.model.fields,help:todopintura_administration.field_product_product__invoice_description
+#: model:ir.model.fields,help:todopintura_administration.field_product_template__invoice_description
+msgid "Invoice description"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_contacts_wizard__write_uid
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_products_wizard__write_uid
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_suppliers_wizard__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_contacts_wizard__write_date
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_products_wizard__write_date
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_suppliers_wizard__write_date
+msgid "Last Updated on"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_contacts_wizard__file_name
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_products_wizard__file_name
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_suppliers_wizard__file_name
+msgid "Nombre del archivo"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model,name:todopintura_administration.model_product_template
+msgid "Product"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_contacts_wizard__file
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_products_wizard__file
+#: model:ir.model.fields,field_description:todopintura_administration.field_import_suppliers_wizard__file
+msgid "Subir archivo XLS"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model,name:todopintura_administration.model_import_contacts_wizard
+msgid "Wizard para importar contactos desde un archivo XLS"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model,name:todopintura_administration.model_import_products_wizard
+msgid "Wizard para importar productos desde un archivo XLS"
+msgstr ""
+
+#. module: todopintura_administration
+#: model:ir.model,name:todopintura_administration.model_import_suppliers_wizard
+msgid "Wizard para importar proveedores desde un archivo XLS"
+msgstr ""

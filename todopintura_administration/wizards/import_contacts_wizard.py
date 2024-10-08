@@ -122,10 +122,10 @@ class ImportContactsWizard(models.TransientModel):
             credit_limit = sheet.cell(row, 11).value
             credit_limit = credit_limit if credit_limit not in [None, 0] else None
             iban = sheet.cell(row, 14).value.strip() if sheet.cell(row, 14).value else None
-            observation1 = sheet.cell(row, 19).value
-            observation2 = sheet.cell(row, 20).value
-            observation3 = sheet.cell(row, 21).value
-            observation4 = sheet.cell(row, 22).value
+            observation1 = str(sheet.cell(row, 19).value).strip() if sheet.cell(row, 16).value is not None else ''
+            observation2 = str(sheet.cell(row, 20).value).strip() if sheet.cell(row, 17).value is not None else ''
+            observation3 = str(sheet.cell(row, 21).value).strip() if sheet.cell(row, 18).value is not None else ''
+            observation4 = str(sheet.cell(row, 22).value).strip() if sheet.cell(row, 19).value is not None else ''
 
             print(num_client, " ", name, " ", address, " ", cp, " ", telefono, " ", nif, " ", forma_pago, " ", email,
                   " ", credit_limit,
@@ -136,10 +136,10 @@ class ImportContactsWizard(models.TransientModel):
                 break
 
             observations = [
-                str(observation1) if observation1 else '',
-                str(observation2) if observation2 else '',
-                str(observation3) if observation3 else '',
-                str(observation4) if observation4 else ''
+                observation1,
+                observation2,
+                observation3,
+                observation4,
             ]
             notes = "<br/>".join(filter(None, observations))
 
