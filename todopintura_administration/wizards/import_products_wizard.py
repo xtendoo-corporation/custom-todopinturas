@@ -22,8 +22,16 @@ class ImportProductsWizard(models.TransientModel):
 
         for row in range(1, sheet.nrows):
             num_prod = int(sheet.cell(row, 0).value)
-            name = sheet.cell(row, 1).value.strip()
+            try:
+                name = str(sheet.cell(row, 1).value).strip()
+            except ValueError:
+                name = ''
             taxes_id_name = int(sheet.cell(row, 2).value)
+            try:
+                list_price = float(sheet.cell(row, 7).value) if sheet.cell(row, 7).value else 0.0
+            except ValueError:
+                list_price = 0.0
+
             barcode_value = sheet.cell(row, 23).value
             if isinstance(barcode_value, float):
                 barcode = str(int(barcode_value)).strip()
@@ -64,6 +72,7 @@ class ImportProductsWizard(models.TransientModel):
 
             print("num_prod: " + str(num_prod), "name: " + name, "taxes_id: " + str(taxes_id_name),
                   "barcode: " + str(barcode),
+                  "price: " + str(list_price),
                   "description: " + description, "coste: " + str(coste))
 
             if not (num_prod or name or taxes_id_name or barcode or description):
@@ -75,6 +84,7 @@ class ImportProductsWizard(models.TransientModel):
             record = {
                 'default_code': num_prod,
                 'name': name,
+                'list_price': list_price,
                 'taxes_id': [(6, 0, [tax_id])] if tax_id else [],
                 'barcode': barcode if barcode else None,
                 'description': notes if notes else None,
@@ -82,11 +92,12 @@ class ImportProductsWizard(models.TransientModel):
                 'invoice_description': invoice_description if invoice_description else None
             }
 
-            product = self.env['product.template'].search([('default_code', '=', num_prod)], limit=1)
+            if name:
+                product = self.env['product.template'].search([('default_code', '=', num_prod)], limit=1)
 
-            if product:
-                product.write(record)
-                print(f"Producto actualizado: {record['name']}")
-            else:
-                self.env['product.product'].create(record)
-                print(f"Producto creado: {record['name']}")
+                if product:
+                    product.write(record)
+                    print(f"Producto actualizado: {record['name']}")
+                else:
+                    self.env['product.product'].create(record)
+                    print(f"Producto creado: {record['name']}")
