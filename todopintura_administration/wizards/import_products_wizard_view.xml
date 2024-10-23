@@ -8,6 +8,9 @@
                 <group>
                     <field name="file" filename="file_name"/>
                 </group>
+                 <group>
+                    <field name="error_log" invisible="not error_log"/>
+                </group>
                 <footer>
                     <button name="action_import_products" string="Importar" type="object" class="btn-primary"/>
                     <button string="Cancelar" class="btn-secondary" special="cancel"/>

@@ -10,6 +10,7 @@ class ImportProductsWizard(models.TransientModel):
 
     file = fields.Binary('Subir archivo XLS', required=True)
     file_name = fields.Char('Nombre del archivo')
+    error_log = fields.Text('Errores', readonly=True)
 
     def action_import_products(self):
         if not self.file:
@@ -18,6 +19,8 @@ class ImportProductsWizard(models.TransientModel):
         data = base64.b64decode(self.file)
         book = xlrd.open_workbook(file_contents=data)
         sheet = book.sheet_by_index(0)
+
+        errors = []
 
         for row in range(1, sheet.nrows):
             num_prod = int(sheet.cell(row, 0).value)
@@ -69,10 +72,10 @@ class ImportProductsWizard(models.TransientModel):
 
             notes = "<br/>".join(filter(None, observations))
 
-            print("num_prod: " + str(num_prod), "name: " + name, "taxes_id: " + str(taxes_id_name),
-                  "barcode: " + str(barcode),
-                  "price: " + str(list_price),
-                  "description: " + description, "coste: " + str(coste))
+            # print("num_prod: " + str(num_prod), "name: " + name, "taxes_id: " + str(taxes_id_name),
+            #       "barcode: " + str(barcode),
+            #       "price: " + str(list_price),
+            #       "description: " + description, "coste: " + str(coste))
 
             if not (num_prod or name or taxes_id_name or barcode or description):
                 print("Todos los datos están vacíos. Terminando la importación.")
@@ -94,12 +97,30 @@ class ImportProductsWizard(models.TransientModel):
                 'available_in_pos': True,
             }
 
-            if name:
-                product = self.env['product.template'].search([('default_code', '=', num_prod)], limit=1)
+            try:
+                self._create_or_update_product(record)
+            except Exception as e:
+                error_message = f"Error en la fila {row + 1}: al crear o actualizar el producto {num_prod}. Error: {e}"
+                errors.append(error_message)
 
-                if product:
-                    product.write(record)
-                    print(f"Producto actualizado: {record['name']}")
-                else:
-                    self.env['product.product'].create(record)
-                    print(f"Producto creado: {record['name']}")
+            if errors:
+                self.error_log = "\n".join(errors)
+
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'import.products.wizard',
+            'view_mode': 'form',
+            'res_id': self.id,
+        }
+    def _create_or_update_product(self, record):
+        if record['name']:
+            product = self.env['product.template'].search([('default_code', '=', record['default_code'])], limit=1)
+            if product:
+                product.write(record)
+                print(f"Producto actualizado: {record['name']}+{record['default_code']}")
+                return True
+            else:
+                self.env['product.product'].create(record)
+                print(f"Producto creado: {record['name']}+{record['default_code']}")
+                return True
+
