@@ -143,11 +143,16 @@ class ImportContactsWizard(models.TransientModel):
             ]
             notes = "<br/>".join(filter(None, observations))
 
+            country_id = self.env['res.country'].search([('name', '=', 'España')], limit=1)
+            if not country_id:
+                raise UserError("País 'España' no encontrado en la base de datos.")
+
             record = {
                 'ref': num_client,
                 'name': name,
                 'street': address,
                 'zip': cp,
+                'country_id': country_id.id,
                 'phone': telefono,
                 'vat': f"ES{nif}",
                 'email': email,

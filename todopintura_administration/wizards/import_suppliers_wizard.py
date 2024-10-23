@@ -196,6 +196,7 @@ class ImportSuppliersWizard(models.TransientModel):
                 'name': name,
                 'street': address,
                 'zip': cp,
+                'country_id': "España",
                 'phone': telefono,
                 'mobile': telefono2,
                 'vat': f"ES{nif}" if nif else '',

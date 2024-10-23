@@ -15,7 +15,6 @@ class ImportProductsWizard(models.TransientModel):
         if not self.file:
             raise UserError("Por favor, sube un archivo XLS.")
 
-        # Decodificar el archivo XLS
         data = base64.b64decode(self.file)
         book = xlrd.open_workbook(file_contents=data)
         sheet = book.sheet_by_index(0)
@@ -89,7 +88,10 @@ class ImportProductsWizard(models.TransientModel):
                 'barcode': barcode if barcode else None,
                 'description': notes if notes else None,
                 'standard_price': coste if coste else 0,
-                'invoice_description': invoice_description if invoice_description else None
+                'invoice_description': invoice_description if invoice_description else None,
+                'detailed_type': "product",
+                'invoice_policy': "delivery",
+                'available_in_pos': True,
             }
 
             if name:
