@@ -8,10 +8,11 @@
     'data': [
     ],
     'assets': {
-        'point_of_sale.assets': [
-            'pos_auto_logout/static/src/js/receipt_screen.js',
+        'point_of_sale._assets_pos': [
+            'pos_auto_logout/static/src/js/pos_auto_logout.js',
         ],
     },
     'installable': True,
     'application': False,
+    'license': 'LGPL-3',
 }
