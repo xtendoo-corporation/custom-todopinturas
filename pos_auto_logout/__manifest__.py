@@ -4,8 +4,9 @@
     'summary': 'POS Auto Logout When pos order done',
     'category': 'Point of Sale',
     'author': 'Abraham Xtendoo',
-    'depends': ['point_of_sale'],
+    'depends': ['point_of_sale', 'hr'],
     'data': [
+        'views/hr_employee_view.xml',
     ],
     'assets': {
         'point_of_sale._assets_pos': [
