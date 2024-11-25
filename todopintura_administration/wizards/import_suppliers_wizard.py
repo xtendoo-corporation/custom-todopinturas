@@ -12,6 +12,9 @@ class ImportSuppliersWizard(models.TransientModel):
     file_name = fields.Char('Nombre del archivo')
 
     def action_import_suppliers(self):
+        es_country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        print(es_country.id, es_country.name)
+
         if not self.file:
             raise UserError("Por favor, sube un archivo XLS.")
 
@@ -196,7 +199,8 @@ class ImportSuppliersWizard(models.TransientModel):
                 'name': name,
                 'street': address,
                 'zip': cp,
-                'country_id': "España",
+                'is_company': True,
+                'country_id': es_country.id,
                 'phone': telefono,
                 'mobile': telefono2,
                 'vat': f"ES{nif}" if nif else '',
@@ -221,19 +225,19 @@ class ImportSuppliersWizard(models.TransientModel):
                 print(f"Proveedor actualizado: {supplier.name}")
 
             else:
-                self.env['res.partner'].create(record)
+                supplier = self.env['res.partner'].create(record)
                 print(f"Proveedor creado: {name}")
 
             if address2 or cp2:
                 contact_address = {
-                    'name': "Otra dirección",
+                    'name': "Otra dirección "+ str(name),
                     'parent_id': supplier.id,
                     'type': 'other',
                     'street': address2,
                     'zip': cp2,
                 }
                 existing_contact = self.env['res.partner'].search([
-                    ('name', '=', "Otra dirección"),
+                    ('name', '=', "Otra dirección " + str(name)),
                     ('parent_id', '=', supplier.id),
                     ('type', '=', 'other'),
                     ('street', '=', address2),
@@ -242,7 +246,9 @@ class ImportSuppliersWizard(models.TransientModel):
 
                 if existing_contact:
                     existing_contact.write(contact_address)
-                    print(f"Dirección secundaria actualizada: {address2}")
+                    print(
+                        f"Dirección secundaria actualizada: {address2}, Nombre: {existing_contact.name}, Parent ID: {existing_contact.parent_id.id}")
                 else:
                     self.env['res.partner'].create(contact_address)
-                    print(f"Dirección secundaria creada: {address2}")
+                    print(
+                        f"Dirección secundaria creada: {address2}, Nombre: {contact_address['name']}, Parent ID: {contact_address['parent_id']}")
