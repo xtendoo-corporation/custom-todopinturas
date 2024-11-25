@@ -107,95 +107,109 @@ class ImportContactsWizard(models.TransientModel):
         sheet = book.sheet_by_index(0)
 
         for row in range(1, sheet.nrows):
-            num_client = sheet.cell(row, 0).value
-            name = sheet.cell(row, 1).value
-            address = sheet.cell(row, 2).value
-            cp_value = sheet.cell(row, 3).value
-            cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (
-                int, float)) else ''
-            telefono_value = sheet.cell(row, 4).value
-            telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (
-                int, float)) else ''
-            nif = sheet.cell(row, 6).value.strip()
-            forma_pago = str(int(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value else ''
-            email = sheet.cell(row, 23).value.strip()
-            credit_limit = sheet.cell(row, 11).value
-            credit_limit = credit_limit if credit_limit not in [None, 0] else None
-            iban = sheet.cell(row, 14).value.strip() if sheet.cell(row, 14).value else None
-            observation1 = str(sheet.cell(row, 19).value).strip() if sheet.cell(row, 16).value is not None else ''
-            observation2 = str(sheet.cell(row, 20).value).strip() if sheet.cell(row, 17).value is not None else ''
-            observation3 = str(sheet.cell(row, 21).value).strip() if sheet.cell(row, 18).value is not None else ''
-            observation4 = str(sheet.cell(row, 22).value).strip() if sheet.cell(row, 19).value is not None else ''
+                num_client = sheet.cell(row, 0).value
+                name = sheet.cell(row, 1).value
+                address = sheet.cell(row, 2).value
+                cp_value = sheet.cell(row, 3).value
+                cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
+                telefono_value = sheet.cell(row, 4).value
+                telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value,
+                                                                                     (int, float)) else ''
+                nif = str(sheet.cell(row, 6).value).strip()
+                try:
+                    forma_pago = str(int(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value else ''
+                except ValueError:
+                    forma_pago = ''
+                email = str(sheet.cell(row, 23).value).strip() if sheet.cell(row, 23).value else ''
+                credit_limit = sheet.cell(row, 11).value
+                credit_limit = credit_limit if credit_limit not in [None, 0] else None
+                iban = sheet.cell(row, 14).value.strip() if sheet.cell(row, 14).value else None
+                observation1 = str(sheet.cell(row, 19).value).strip() if sheet.cell(row, 16).value is not None else ''
+                observation2 = str(sheet.cell(row, 20).value).strip() if sheet.cell(row, 17).value is not None else ''
+                observation3 = str(sheet.cell(row, 21).value).strip() if sheet.cell(row, 18).value is not None else ''
+                observation4 = str(sheet.cell(row, 22).value).strip() if sheet.cell(row, 19).value is not None else ''
 
-            print(num_client, " ", name, " ", address, " ", cp, " ", telefono, " ", nif, " ", forma_pago, " ", email,
-                  " ", credit_limit,
-                  " ", iban, " ", observation1, " ", observation2, " ", observation3, " ", observation4)
+                print(num_client, " ", name, " ", address, " ", cp, " ", telefono, " ", nif, " ", forma_pago, " ",
+                      email,
+                      " ", credit_limit, " ", iban, " ", observation1, " ", observation2, " ", observation3, " ",
+                      observation4)
 
-            if not (name or address or cp or telefono or nif):
-                print("Todos los datos están vacíos. Terminando la importación.")
-                break
+                if not (name or address or cp or telefono or nif):
+                    print("Todos los datos están vacíos. Terminando la importación.")
+                    break
 
-            observations = [
-                observation1,
-                observation2,
-                observation3,
-                observation4,
-            ]
-            notes = "<br/>".join(filter(None, observations))
+                observations = [
+                    observation1,
+                    observation2,
+                    observation3,
+                    observation4,
+                ]
+                notes = "<br/>".join(filter(None, observations))
 
-            country_id = self.env['res.country'].search([('name', '=', 'España')], limit=1)
-            if not country_id:
-                raise UserError("País 'España' no encontrado en la base de datos.")
+                country_id = self.env['res.country'].search([('name', '=', 'España')], limit=1)
+                if not country_id:
+                    raise UserError("País 'España' no encontrado en la base de datos.")
 
-            record = {
-                'ref': num_client,
-                'name': name,
-                'street': address,
-                'zip': cp,
-                'country_id': country_id.id,
-                'phone': telefono,
-                'vat': f"ES{nif}",
-                'email': email,
-                'comment': notes,
-            }
+                record = {
+                    'ref': num_client,
+                    'name': name,
+                    'street': address,
+                    'zip': cp,
+                    'country_id': country_id.id,
+                    'phone': telefono,
+                    'vat': f"ES{nif}" if nif else '',
+                    'email': email,
+                    'comment': notes,
+                }
 
-            if credit_limit is not None:
-                record['credit_limit'] = credit_limit
+                if credit_limit is not None:
+                    record['credit_limit'] = credit_limit
 
-            if forma_pago in payment_terms:
-                print(f"Forma de pago encontrada: {forma_pago} - {payment_terms[forma_pago]}")
-                payment_term = self.env['account.payment.term'].search(
-                    [('name', '=', payment_terms[forma_pago])], limit=1)
-                if payment_term:
-                    print(f"Término de pago encontrado: {payment_term.name} (ID: {payment_term.id})")
-                    record['property_payment_term_id'] = payment_term.id
+                if forma_pago in payment_terms:
+                    print(f"Forma de pago encontrada: {forma_pago} - {payment_terms[forma_pago]}")
+                    payment_term = self.env['account.payment.term'].search(
+                        [('name', '=', payment_terms[forma_pago])], limit=1)
+                    if payment_term:
+                        print(f"Término de pago encontrado: {payment_term.name} (ID: {payment_term.id})")
+                        record['property_payment_term_id'] = payment_term.id
+                    else:
+                        print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
+
+                contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
+
+                if contact:
+                    try:
+                        contact.write(record)
+                        print(f"Contacto actualizado: {contact.name}")
+                    except Exception as e:
+                        record['vat'] = ''
+                        contact.write(record)
+                        print(f"Error al actualizar NIF, se ha puesto vacío: {str(e)}")
                 else:
-                    print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
+                    try:
+                        self.env['res.partner'].create(record)
+                        print(f"Contacto creado: {name}")
+                    except Exception as e:
+                        record['vat'] = ''
+                        self.env['res.partner'].create(record)
+                        print(f"Error al crear NIF, se ha puesto vacío: {str(e)}")
 
-            contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
-
-            if contact:
-                contact.write(record)
-                print(f"Contacto actualizado: {contact.name}")
-            else:
-                self.env['res.partner'].create(record)
-                print(f"Contacto creado: {name}")
-
-            self.env.cr.flush()
-            contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
-            print("Contact ID: ", contact.id)
-            if iban:
-                existing_bank_record = self.env['res.partner.bank'].search([
-                    ('acc_number', '=', iban),
-                    ('partner_id', '=', contact.id)
-                ], limit=1)
-                print("Contact ID 2: ", contact.id)
-                if not existing_bank_record:
-                    self.env['res.partner.bank'].create({
-                        'acc_number': iban,
-                        'partner_id': contact.id
-                    })
-                    print("Contact ID 3: ", contact.id)
-                    print(f"Cuenta bancaria creada: {iban} para {contact.name}")
-                else:
-                    print(f"La cuenta bancaria con IBAN: {iban} ya existe para {contact.name}. No se crea una nueva.")
+                self.env.cr.flush()
+                contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
+                print("Contact ID: ", contact.id)
+                if iban:
+                    existing_bank_record = self.env['res.partner.bank'].search([
+                        ('acc_number', '=', iban),
+                        ('partner_id', '=', contact.id)
+                    ], limit=1)
+                    print("Contact ID 2: ", contact.id)
+                    if not existing_bank_record:
+                        self.env['res.partner.bank'].create({
+                            'acc_number': iban,
+                            'partner_id': contact.id
+                        })
+                        print("Contact ID 3: ", contact.id)
+                        print(f"Cuenta bancaria creada: {iban} para {contact.name}")
+                    else:
+                        print(
+                            f"La cuenta bancaria con IBAN: {iban} ya existe para {contact.name}. No se crea una nueva.")
