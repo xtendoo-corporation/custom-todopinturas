@@ -12,8 +12,8 @@ class ImportSuppliersWizard(models.TransientModel):
     file_name = fields.Char('Nombre del archivo')
 
     def action_import_suppliers(self):
-        es_country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
-        print(es_country.id, es_country.name)
+        # es_country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        # print(es_country.id, es_country.name)
 
         if not self.file:
             raise UserError("Por favor, sube un archivo XLS.")
@@ -121,13 +121,15 @@ class ImportSuppliersWizard(models.TransientModel):
             telefono2 = str(int(telefono2_value)) if telefono2_value and isinstance(telefono2_value,
                                                                                     (int, float)) else ''
             telefono2 = '' if all(char == '*' for char in telefono2) else telefono2
-            nif = sheet.cell(row, 5).value.strip()
+            nif_value = sheet.cell(row, 5).value
+            nif = str(nif_value).strip() if isinstance(nif_value, float) else nif_value.strip()
             nif = '' if all(char == '*' for char in nif) else nif
             forma_pago = str(int(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value else ''
             cp_value = sheet.cell(row, 7).value
             cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
             cp = '' if all(char == '*' for char in cp) else cp
-            address2 = sheet.cell(row, 9).value.strip()
+            address2 = str(sheet.cell(row, 9).value).strip() if isinstance(sheet.cell(row, 9).value,
+                                                                           float) else sheet.cell(row, 9).value.strip()
             address2 = '' if all(char == '*' for char in address2) else address2
             cp2_value = sheet.cell(row, 10).value
             cp2 = str(int(cp2_value)) if cp2_value and isinstance(cp2_value, (int, float)) else ''
@@ -194,6 +196,11 @@ class ImportSuppliersWizard(models.TransientModel):
                 print("Todos los datos están vacíos. Terminando la importación.")
                 break
 
+            es_country = self.env['res.country'].search(
+                [('code', '=', 'DE' if nif.startswith('DE') else 'GB' if nif.startswith('GB') else 'ES')],
+                limit=1)
+            print(es_country.id, es_country.name)
+
             record = {
                 'ref': num_prov,
                 'name': name,
@@ -203,7 +210,7 @@ class ImportSuppliersWizard(models.TransientModel):
                 'country_id': es_country.id,
                 'phone': telefono,
                 'mobile': telefono2,
-                'vat': f"ES{nif}" if nif else '',
+                'vat': f"{'ES' if es_country.code == 'ES' else 'DE' if es_country.code == 'DE' else 'GB'}{nif}" if nif else '',
                 'active': False if activo == 'N' else True,
                 'comment': notes,
             }
@@ -218,15 +225,22 @@ class ImportSuppliersWizard(models.TransientModel):
                 else:
                     print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
 
-            supplier = self.env['res.partner'].search(['|', ('ref', '=', num_prov), ('name', '=', name)], limit=1)
+            try:
+                supplier = self.env['res.partner'].search(['|', ('ref', '=', num_prov), ('name', '=', name)], limit=1)
 
-            if supplier:
-                supplier.write(record)
-                print(f"Proveedor actualizado: {supplier.name}")
-
-            else:
-                supplier = self.env['res.partner'].create(record)
-                print(f"Proveedor creado: {name}")
+                if supplier:
+                    supplier.write(record)
+                    print(f"Proveedor actualizado: {supplier.name}")
+                else:
+                    supplier = self.env['res.partner'].create(record)
+                    print(f"Proveedor creado: {name}")
+            except Exception as e:
+                print(f"Error al actualizar o crear el proveedor: {e}")
+                record['vat'] = ''
+                if supplier:
+                    supplier.write(record)
+                else:
+                    supplier = self.env['res.partner'].create(record)
 
             if address2 or cp2:
                 contact_address = {
