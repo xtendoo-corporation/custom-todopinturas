@@ -26,31 +26,28 @@ class ImportCategoriesWizard(models.TransientModel):
 
             # Determinar el nivel jerárquico
             parent_id = None  # Por defecto no tiene padre
-            if len(str(category_id)) == 6:
-                # Es una categoría de último nivel (ej. 101001, 101002)
-                parent_id = category_dict.get(int(str(category_id)[:5]))  # Padre de 5 dígitos
-            elif len(str(category_id)) == 5:
-                # Es una subcategoría (ej. 10100, 10200)
-                parent_id = category_dict.get(int(str(category_id)[:3] + "00"))  # Padre de 3 dígitos
-            elif len(str(category_id)) == 3:
-                # Es una categoría principal (ej. 100, 200)
-                parent_id = category_dict.get(10000)  # Opcional, depende si 10000 es la raíz global
-            elif len(str(category_id)) == 2:
-                # Es una categoría raíz (ej. 10, 20)
-                parent_id = None
+            if category_id % 10000 == 0:
+                parent_id = None  # Es una categoría padre
+                print(f"Categoría padre: category_id={category_id}, parent_id={parent_id}")
+            elif category_id % 100 == 0:
+                parent_id = category_dict.get(category_id - (category_id % 10000))  # Es hija de una categoría padre
+                print(f"Hija de categoría padre: category_id={category_id}, parent_id={parent_id}")
+            else:
+                parent_id = category_dict.get((category_id // 100) * 100)  # Es hija de una hija de una categoría padre
+                print(f"Hija de una hija de categoría padre: category_id={category_id}, parent_id={parent_id}")
 
-            # Buscar o crear la categoría
-            category = self.env['product.category'].search([('id', '=', category_id)], limit=1)
+                # Buscar o crear la categoría
+            category = self.env['pos.category'].search([('id', '=', category_id)], limit=1)
             if category:
                 category.write({'name': category_name, 'parent_id': parent_id})
-                print(f"Categoría actualizada: {category_name}")
+                print(f"Categoría actualizada: {category_name}+{category_id}")
             else:
-                category = self.env['product.category'].create({
+                category = self.env['pos.category'].create({
                     'id': category_id,
                     'name': category_name,
-                    'parent_id': parent_id
+                    'parent_id': parent_id,
                 })
-                print(f"Categoría creada: {category_name}")
+                print(f"Categoría creada: {category_name}+{category_id}" )
 
             # Guardar la categoría en el diccionario
             category_dict[category_id] = category.id

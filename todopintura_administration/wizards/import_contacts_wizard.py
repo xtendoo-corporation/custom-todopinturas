@@ -107,7 +107,7 @@ class ImportContactsWizard(models.TransientModel):
         sheet = book.sheet_by_index(0)
 
         for row in range(1, sheet.nrows):
-                num_client = sheet.cell(row, 0).value
+                num_client = int(sheet.cell(row, 0).value)
                 name = sheet.cell(row, 1).value
                 address = sheet.cell(row, 2).value
                 cp_value = sheet.cell(row, 3).value
@@ -175,7 +175,7 @@ class ImportContactsWizard(models.TransientModel):
                     else:
                         print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
 
-                contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
+                contact = self.env['res.partner'].search([('ref', '=', num_client), ('name', '=', name)], limit=1)
 
                 if contact:
                     try:

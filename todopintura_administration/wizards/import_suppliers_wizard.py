@@ -110,7 +110,7 @@ class ImportSuppliersWizard(models.TransientModel):
         sheet = book.sheet_by_index(0)
 
         for row in range(1, sheet.nrows):
-            num_prov = sheet.cell(row, 0).value
+            num_prov = '0' + str(int(sheet.cell(row, 0).value))
             name = sheet.cell(row, 1).value.strip()
             address = sheet.cell(row, 2).value.strip()
             address = '' if all(char == '*' for char in address) else address
@@ -226,7 +226,7 @@ class ImportSuppliersWizard(models.TransientModel):
                     print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
 
             try:
-                supplier = self.env['res.partner'].search(['|', ('ref', '=', num_prov), ('name', '=', name)], limit=1)
+                supplier = self.env['res.partner'].search([('ref', '=', num_prov), ('name', '=', name)], limit=1)
 
                 if supplier:
                     supplier.write(record)

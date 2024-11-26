@@ -34,7 +34,7 @@ class ImportProductsWizard(models.TransientModel):
             except ValueError:
                 list_price = 0.0
 
-            prov_id = int(sheet.cell(row, 17).value)
+            prov_id = '0' + str(int(sheet.cell(row, 17).value))
 
             barcode_value = sheet.cell(row, 23).value
             if isinstance(barcode_value, float):
@@ -100,14 +100,21 @@ class ImportProductsWizard(models.TransientModel):
             }
 
             if prov_id:
-                provider = self.env['res.partner'].search([('id', '=', prov_id)], limit=1)
+                print(f"NUM PROV: {prov_id}")
+                provider = self.env['res.partner'].search([('ref', '=', prov_id)], limit=1)
+                print(f"Proveedor: {provider}")
                 if provider:
                     prov_name = provider.name
+                    print(f"Nombre del proveedor: {prov_name}")
                     category = self.env['product.category'].search([('name', '=', prov_name)], limit=1)
+                    print(f"Categoría: {category}")
                     if not category:
                         category = self.env['product.category'].create({'name': prov_name})
-                    record['categ_id'] = category.id
-                    print(f"Categoría nueva: {record['categ_id']}")
+                        record['categ_id'] = category.id
+                        print(f"Categoría nueva: {record['categ_id']}")
+                    else:
+                        record['categ_id'] = category.id
+                        print(f"Categoría existente: {record['categ_id']}")
 
             try:
                 self._create_or_update_product(record)
@@ -141,4 +148,3 @@ class ImportProductsWizard(models.TransientModel):
                 self.env['product.template'].create(record)
                 print(f"Producto creado: {record['name']}+{record['default_code']}")
                 return True
-
