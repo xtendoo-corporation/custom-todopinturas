@@ -34,6 +34,8 @@ class ImportProductsWizard(models.TransientModel):
             except ValueError:
                 list_price = 0.0
 
+            prov_id = int(sheet.cell(row, 17).value)
+
             barcode_value = sheet.cell(row, 23).value
             if isinstance(barcode_value, float):
                 barcode = str(int(barcode_value)).strip()
@@ -97,6 +99,16 @@ class ImportProductsWizard(models.TransientModel):
                 'available_in_pos': True,
             }
 
+            if prov_id:
+                provider = self.env['res.partner'].search([('id', '=', prov_id)], limit=1)
+                if provider:
+                    prov_name = provider.name
+                    category = self.env['product.category'].search([('name', '=', prov_name)], limit=1)
+                    if not category:
+                        category = self.env['product.category'].create({'name': prov_name})
+                    record['categ_id'] = category.id
+                    print(f"Categoría nueva: {record['categ_id']}")
+
             try:
                 self._create_or_update_product(record)
             except Exception as e:
@@ -112,6 +124,7 @@ class ImportProductsWizard(models.TransientModel):
             'view_mode': 'form',
             'res_id': self.id,
         }
+
     def _create_or_update_product(self, record):
         if record['name']:
             product = self.env['product.template'].search([('default_code', '=', record['default_code'])], limit=1)
@@ -120,7 +133,12 @@ class ImportProductsWizard(models.TransientModel):
                 print(f"Producto actualizado: {record['name']}+{record['default_code']}")
                 return True
             else:
-                self.env['product.product'].create(record)
+                existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])],
+                                                                              limit=1)
+                if existing_barcode_product:
+                    record['barcode'] = None
+                    print(f"El código de barras {record['barcode']} ya existe en otro producto. Se dejará vacío.")
+                self.env['product.template'].create(record)
                 print(f"Producto creado: {record['name']}+{record['default_code']}")
                 return True
 
