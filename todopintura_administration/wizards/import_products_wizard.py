@@ -22,6 +22,14 @@ class ImportProductsWizard(models.TransientModel):
 
         errors = []
 
+        tariff_names = [f"Tarifa {i}" for i in range(1, 8)]
+        tariffs = {}
+        for name in tariff_names:
+            tariff = self.env['product.pricelist'].search([('name', '=', name)], limit=1)
+            if not tariff:
+                tariff = self.env['product.pricelist'].create({'name': name})
+            tariffs[name] = tariff
+
         for row in range(1, sheet.nrows):
             num_prod = int(sheet.cell(row, 0).value)
             try:
@@ -47,6 +55,11 @@ class ImportProductsWizard(models.TransientModel):
             except ValueError:
                 coste = 0.0
             art_prov = str(sheet.cell(row, 22).value).strip() if sheet.cell(row, 22).value is not None else ''
+
+            pos_categ = self.env['pos.category'].search(
+                [('referencia_todopintura', '=', int(sheet.cell(row, 28).value))], limit=1).id
+            print(f"POS CATEG: {pos_categ}")
+            print(f"REFERENCIA TODOPINTURA: {int(sheet.cell(row, 28).value)}")
             observation1 = str(sheet.cell(row, 40).value).strip() if sheet.cell(row, 40).value is not None else ''
             observation2 = str(sheet.cell(row, 41).value).strip() if sheet.cell(row, 41).value is not None else ''
             observation3 = str(sheet.cell(row, 42).value).strip() if sheet.cell(row, 42).value is not None else ''
@@ -97,6 +110,7 @@ class ImportProductsWizard(models.TransientModel):
                 'detailed_type': "product",
                 'invoice_policy': "delivery",
                 'available_in_pos': True,
+                'pos_categ_ids': [(6, 0, [pos_categ])] if pos_categ else [],
             }
 
             if prov_id:
@@ -116,14 +130,33 @@ class ImportProductsWizard(models.TransientModel):
                         record['categ_id'] = category.id
                         print(f"Categoría existente: {record['categ_id']}")
 
-            try:
-                self._create_or_update_product(record)
-            except Exception as e:
-                error_message = f"Error en la fila {row + 1}: al crear o actualizar el producto {num_prod}. Error: {e}"
-                errors.append(error_message)
+            # try:
+                product = self._create_or_update_product(record)
+                print(f"PRODUCTO: {product}")
 
-            if errors:
-                self.error_log = "\n".join(errors)
+                for i in range(3, 17, 2):
+                    precio = sheet.cell(row, i).value
+                    descuento = sheet.cell(row, i + 1).value
+
+                    # Convert to string and strip spaces
+                    precio = str(precio).strip() if precio else ''
+                    descuento = str(descuento).strip() if descuento else ''
+
+                    # Convert to float if valid, else set to None
+                    precio = float(precio) if precio.replace('.', '', 1).isdigit() else None
+                    descuento = float(descuento) if descuento.replace('.', '', 1).isdigit() else None
+
+                    tariff_index = (i - 3) // 2  # Adjust the index to start from 0 for "Tarifa 1"
+                    print(f"PRECIO TARIFA {tariff_index + 1}: {precio}")
+                    print(f"DESCUENTO TARIFA {tariff_index + 1}: {descuento}")
+                    self.create_or_update_tariffs(product, precio, descuento, tariff_names[tariff_index])
+
+            # except Exception as e:
+            #     error_message = f"Error en la fila {row + 1}: al crear o actualizar el producto {num_prod}. Error: {e}"
+            #     errors.append(error_message)
+            #
+            # if errors:
+            #     self.error_log = "\n".join(errors)
 
         return {
             'type': 'ir.actions.act_window',
@@ -137,14 +170,35 @@ class ImportProductsWizard(models.TransientModel):
             product = self.env['product.template'].search([('default_code', '=', record['default_code'])], limit=1)
             if product:
                 product.write(record)
-                print(f"Producto actualizado: {record['name']}+{record['default_code']}")
-                return True
+                print(f"Producto actualizado: {record['name']}+{record['default_code']}+{record['pos_categ_ids']}")
             else:
                 existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])],
-                                                                              limit=1)
+                                                                               limit=1)
                 if existing_barcode_product:
                     record['barcode'] = None
                     print(f"El código de barras {record['barcode']} ya existe en otro producto. Se dejará vacío.")
-                self.env['product.template'].create(record)
+                product = self.env['product.template'].create(record)
                 print(f"Producto creado: {record['name']}+{record['default_code']}")
-                return True
+            return product
+
+    def create_or_update_tariffs(self, product, precio, descuento, tariff_name):
+        tariff = self.env['product.pricelist'].search([('name', '=', tariff_name)], limit=1)
+        if not tariff:
+            tariff = self.env['product.pricelist'].create({'name': tariff_name})
+            print(f"Tariff created: {tariff_name}")
+        else:
+            print(f"Tariff found: {tariff_name}")
+
+        print(f"Tariff {tariff_name}")
+        print(f"PRECIO: {precio}")
+        print(f"DESCUENTO: {descuento}")
+        if precio is not None and precio != 0 or descuento is not None and descuento != 0:
+            self.env['product.pricelist.item'].create({
+                'pricelist_id': tariff.id,
+                'product_tmpl_id': product.id,
+                'fixed_price': precio,
+                'percent_price': descuento,
+            })
+            print(f"Tariff creada {tariff_name}: price={precio}, discount={descuento}")
+        else:
+            print(f"Tariff no creada {tariff_name}: price={precio}, discount={descuento}")

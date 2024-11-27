@@ -43,7 +43,7 @@ class ImportCategoriesWizard(models.TransientModel):
                 print(f"Categoría actualizada: {category_name}+{category_id}")
             else:
                 category = self.env['pos.category'].create({
-                    'id': category_id,
+                    'referencia_todopintura': category_id,
                     'name': category_name,
                     'parent_id': parent_id,
                 })

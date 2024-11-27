@@ -5,7 +5,7 @@
     "description": "Administración de Todo Pintura",
     "company": "Xtendoo",
     "website": "http://www.xtendoo.es",
-    'depends': ['base', 'product', 'contacts'],
+    'depends': ['base', 'product', 'contacts', 'point_of_sale'],
     "license": "AGPL-3",
     "data": [
         'wizards/import_contacts_wizard_view.xml',
@@ -14,6 +14,7 @@
         'wizards/import_categories_wizard_view.xml',
         'views/menu.xml',
         'views/product_template.xml',
+        'views/pos_category.xml',
         'security/ir.model.access.csv',
     ],
     "installable": True,
