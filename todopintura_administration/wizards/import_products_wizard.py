@@ -130,28 +130,45 @@ class ImportProductsWizard(models.TransientModel):
                         record['categ_id'] = category.id
                         print(f"Categoría existente: {record['categ_id']}")
 
-            # try:
-                product = self._create_or_update_product(record)
-                print(f"PRODUCTO: {product}")
+                        # Extraer precios y descuentos
+                    precios = []
+                    descuentos = []
+                    for i in range(3, 17, 2):
+                        precio = sheet.cell(row, i).value
+                        descuento = sheet.cell(row, i + 1).value
 
-                for i in range(3, 17, 2):
-                    precio = sheet.cell(row, i).value
-                    descuento = sheet.cell(row, i + 1).value
+                        # Convert to string and strip spaces
+                        precio = str(precio).strip() if precio else ''
+                        descuento = str(descuento).strip() if descuento else ''
 
-                    # Convert to string and strip spaces
-                    precio = str(precio).strip() if precio else ''
-                    descuento = str(descuento).strip() if descuento else ''
+                        # Convert to float if valid, else set to None
+                        precio = float(precio) if precio.replace('.', '', 1).isdigit() else None
+                        descuento = float(descuento) if descuento.replace('.', '', 1).isdigit() else None
 
-                    # Convert to float if valid, else set to None
-                    precio = float(precio) if precio.replace('.', '', 1).isdigit() else None
-                    descuento = float(descuento) if descuento.replace('.', '', 1).isdigit() else None
+                        if precio is not None:
+                            precios.append(precio)
+                        descuentos.append(descuento)
 
-                    tariff_index = (i - 3) // 2  # Adjust the index to start from 0 for "Tarifa 1"
-                    print(f"PRECIO TARIFA {tariff_index + 1}: {precio}")
-                    print(f"DESCUENTO TARIFA {tariff_index + 1}: {descuento}")
-                    self.create_or_update_tariffs(product, precio, descuento, tariff_names[tariff_index])
+                    # Determinar el precio más alto
+                    if precios:
+                        record['list_price'] = max(precios)
+                        print(f"PRECIO DE VENTA: {record['list_price']}")
+                    product = self._create_or_update_product(record)
+                    print(f"PRODUCTO: {product}")
 
-            # except Exception as e:
+                    # Crear o actualizar tarifas
+                    for i, tariff_name in enumerate(tariff_names):
+                        # Revisa si hay suficientes precios y descuentos disponibles para la tarifa
+                        precio = precios[i] if i < len(precios) else None
+                        descuento = descuentos[i] if i < len(descuentos) else None
+
+                        # Crea o actualiza la tarifa sólo si hay un descuento disponible
+                        if descuento is not None:
+                            self.create_or_update_tariffs(product, descuento, tariff_name)
+                        else:
+                            print(f"No se encontró descuento para la tarifa {tariff_name}")
+
+        # except Exception as e:
             #     error_message = f"Error en la fila {row + 1}: al crear o actualizar el producto {num_prod}. Error: {e}"
             #     errors.append(error_message)
             #
@@ -181,7 +198,7 @@ class ImportProductsWizard(models.TransientModel):
                 print(f"Producto creado: {record['name']}+{record['default_code']}")
             return product
 
-    def create_or_update_tariffs(self, product, precio, descuento, tariff_name):
+    def create_or_update_tariffs(self, product, descuento, tariff_name):
         tariff = self.env['product.pricelist'].search([('name', '=', tariff_name)], limit=1)
         if not tariff:
             tariff = self.env['product.pricelist'].create({'name': tariff_name})
@@ -190,15 +207,15 @@ class ImportProductsWizard(models.TransientModel):
             print(f"Tariff found: {tariff_name}")
 
         print(f"Tariff {tariff_name}")
-        print(f"PRECIO: {precio}")
         print(f"DESCUENTO: {descuento}")
-        if precio is not None and precio != 0 or descuento is not None and descuento != 0:
-            self.env['product.pricelist.item'].create({
+
+        if descuento is not None and descuento != 0:
+            price_rule = self.env['product.pricelist.item'].create({
                 'pricelist_id': tariff.id,
                 'product_tmpl_id': product.id,
-                'fixed_price': precio,
+                'compute_price': 'percentage',
                 'percent_price': descuento,
             })
-            print(f"Tariff creada {tariff_name}: price={precio}, discount={descuento}")
+            print(f"Regla de tarifa creada {tariff_name} con descuento: discount={descuento}")
         else:
-            print(f"Tariff no creada {tariff_name}: price={precio}, discount={descuento}")
+            print(f"Tariff no creada {tariff_name}: discount={descuento}")
