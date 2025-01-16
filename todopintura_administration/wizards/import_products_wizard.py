@@ -37,13 +37,7 @@ class ImportProductsWizard(models.TransientModel):
             except ValueError:
                 name = ''
             taxes_id_name = int(sheet.cell(row, 2).value)
-            try:
-                list_price = float(sheet.cell(row, 7).value) if sheet.cell(row, 7).value else 0.0
-            except ValueError:
-                list_price = 0.0
-
             prov_id = '0' + str(int(sheet.cell(row, 17).value))
-
             barcode_value = sheet.cell(row, 23).value
             if isinstance(barcode_value, float):
                 barcode = str(int(barcode_value)).strip()
@@ -58,8 +52,6 @@ class ImportProductsWizard(models.TransientModel):
 
             pos_categ = self.env['pos.category'].search(
                 [('referencia_todopintura', '=', int(sheet.cell(row, 28).value))], limit=1).id
-            print(f"POS CATEG: {pos_categ}")
-            print(f"REFERENCIA TODOPINTURA: {int(sheet.cell(row, 28).value)}")
             observation1 = str(sheet.cell(row, 40).value).strip() if sheet.cell(row, 40).value is not None else ''
             observation2 = str(sheet.cell(row, 41).value).strip() if sheet.cell(row, 41).value is not None else ''
             observation3 = str(sheet.cell(row, 42).value).strip() if sheet.cell(row, 42).value is not None else ''
@@ -87,16 +79,33 @@ class ImportProductsWizard(models.TransientModel):
 
             notes = "<br/>".join(filter(None, observations))
 
-            # print("num_prod: " + str(num_prod), "name: " + name, "taxes_id: " + str(taxes_id_name),
-            #       "barcode: " + str(barcode),
-            #       "price: " + str(list_price),
-            #       "description: " + description, "coste: " + str(coste))
-
             if not (num_prod or name or taxes_id_name or barcode or description):
                 print("Todos los datos están vacíos. Terminando la importación.")
                 break
 
             tax_id = self.env['account.tax'].search([('name', '=', '21% G')], limit=1).id
+
+            # Extraer precios y descuentos
+            precios = []
+            descuentos = []
+            for i in range(3, 17, 2):
+                precio = sheet.cell(row, i).value
+                descuento = sheet.cell(row, i + 1).value
+
+                # Convert to string and strip spaces
+                precio = str(precio).strip() if precio else ''
+                descuento = str(descuento).strip() if descuento else ''
+
+                # Convert to float if valid, else set to None
+                precio = float(precio) if precio.replace('.', '', 1).isdigit() else None
+                descuento = float(descuento) if descuento.replace('.', '', 1).isdigit() else None
+
+                if precio is not None:
+                    precios.append(precio)
+                descuentos.append(descuento)
+
+            # Determinar el primer precio disponible
+            list_price = next((precio for precio in precios if precio is not None), 0.0)
 
             record = {
                 'default_code': num_prod,
@@ -114,66 +123,26 @@ class ImportProductsWizard(models.TransientModel):
             }
 
             if prov_id:
-                print(f"NUM PROV: {prov_id}")
                 provider = self.env['res.partner'].search([('ref', '=', prov_id)], limit=1)
-                print(f"Proveedor: {provider}")
                 if provider:
                     prov_name = provider.name
-                    print(f"Nombre del proveedor: {prov_name}")
                     category = self.env['product.category'].search([('name', '=', prov_name)], limit=1)
-                    print(f"Categoría: {category}")
                     if not category:
                         category = self.env['product.category'].create({'name': prov_name})
                         record['categ_id'] = category.id
-                        print(f"Categoría nueva: {record['categ_id']}")
                     else:
                         record['categ_id'] = category.id
-                        print(f"Categoría existente: {record['categ_id']}")
 
-                        # Extraer precios y descuentos
-                    precios = []
-                    descuentos = []
-                    for i in range(3, 17, 2):
-                        precio = sheet.cell(row, i).value
-                        descuento = sheet.cell(row, i + 1).value
-
-                        # Convert to string and strip spaces
-                        precio = str(precio).strip() if precio else ''
-                        descuento = str(descuento).strip() if descuento else ''
-
-                        # Convert to float if valid, else set to None
-                        precio = float(precio) if precio.replace('.', '', 1).isdigit() else None
-                        descuento = float(descuento) if descuento.replace('.', '', 1).isdigit() else None
-
-                        if precio is not None:
-                            precios.append(precio)
-                        descuentos.append(descuento)
-
-                    # Determinar el precio más alto
-                    if precios:
-                        record['list_price'] = max(precios)
-                        print(f"PRECIO DE VENTA: {record['list_price']}")
                     product = self._create_or_update_product(record)
-                    print(f"PRODUCTO: {product}")
 
                     # Crear o actualizar tarifas
                     for i, tariff_name in enumerate(tariff_names):
-                        # Revisa si hay suficientes precios y descuentos disponibles para la tarifa
-                        precio = precios[i] if i < len(precios) else None
+                        # Revisa si hay suficientes descuentos disponibles para la tarifa
                         descuento = descuentos[i] if i < len(descuentos) else None
 
                         # Crea o actualiza la tarifa sólo si hay un descuento disponible
                         if descuento is not None:
                             self.create_or_update_tariffs(product, descuento, tariff_name)
-                        else:
-                            print(f"No se encontró descuento para la tarifa {tariff_name}")
-
-        # except Exception as e:
-            #     error_message = f"Error en la fila {row + 1}: al crear o actualizar el producto {num_prod}. Error: {e}"
-            #     errors.append(error_message)
-            #
-            # if errors:
-            #     self.error_log = "\n".join(errors)
 
         return {
             'type': 'ir.actions.act_window',
@@ -187,35 +156,22 @@ class ImportProductsWizard(models.TransientModel):
             product = self.env['product.template'].search([('default_code', '=', record['default_code'])], limit=1)
             if product:
                 product.write(record)
-                print(f"Producto actualizado: {record['name']}+{record['default_code']}+{record['pos_categ_ids']}")
             else:
-                existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])],
-                                                                               limit=1)
+                existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])], limit=1)
                 if existing_barcode_product:
                     record['barcode'] = None
-                    print(f"El código de barras {record['barcode']} ya existe en otro producto. Se dejará vacío.")
                 product = self.env['product.template'].create(record)
-                print(f"Producto creado: {record['name']}+{record['default_code']}")
             return product
 
     def create_or_update_tariffs(self, product, descuento, tariff_name):
         tariff = self.env['product.pricelist'].search([('name', '=', tariff_name)], limit=1)
         if not tariff:
             tariff = self.env['product.pricelist'].create({'name': tariff_name})
-            print(f"Tariff created: {tariff_name}")
-        else:
-            print(f"Tariff found: {tariff_name}")
-
-        print(f"Tariff {tariff_name}")
-        print(f"DESCUENTO: {descuento}")
 
         if descuento is not None and descuento != 0:
-            price_rule = self.env['product.pricelist.item'].create({
+            self.env['product.pricelist.item'].create({
                 'pricelist_id': tariff.id,
                 'product_tmpl_id': product.id,
                 'compute_price': 'percentage',
                 'percent_price': descuento,
             })
-            print(f"Regla de tarifa creada {tariff_name} con descuento: discount={descuento}")
-        else:
-            print(f"Tariff no creada {tariff_name}: discount={descuento}")
