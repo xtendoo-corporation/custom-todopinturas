@@ -36,6 +36,18 @@
               action="action_import_products_wizard"
               sequence="110"/>
 
+    <record id="action_import_client_tariffs_wizard" model="ir.actions.act_window">
+        <field name="name">Importar Tarifas de clientes</field>
+        <field name="res_model">import.client.tariffs.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+    <menuitem id="menu_client_tariffs_wizard"
+              name="Importar Tarifas de clientes"
+              parent="stock.menu_stock_root"
+              action="action_import_client_tariffs_wizard"
+              sequence="120"/>
+
      <record id="action_import_tpv_categories_wizard" model="ir.actions.act_window">
         <field name="name">Importar Categorias</field>
         <field name="res_model">import.categories.wizard</field>
