@@ -23,19 +23,21 @@ class ImportClientTariffsWizard(models.TransientModel):
 
         for row in range(1, sheet.nrows):
             client_ref = str(int(sheet.cell(row, 1).value)).strip()
-            provider_ref = str(int(sheet.cell(row, 2).value)).strip()
-            product_code = str(int(sheet.cell(row, 3).value)).strip()
+            provider_ref = str(int(sheet.cell(row, 2).value)).strip() if sheet.cell(row, 2).value else '0'
+            product_code = str(int(sheet.cell(row, 3).value)) if sheet.cell(row, 3).value else '0'
+            category = sheet.cell(row, 4).value
+            category = int(str(category).replace('_', '').strip()) if category and str(category).replace('_', '').strip().isdigit() else 0
+            size = str(int(sheet.cell(row, 5).value)).strip() if sheet.cell(row, 5).value else ''
             price_line = int(sheet.cell(row, 6).value) if sheet.cell(row, 6).value else 0
-            discount = sheet.cell(row, 7).value
-            discount = str(discount).strip() if discount else ''
-            discount = float(discount) if discount.replace('.', '', 1).isdigit() else 0
+            discount = str(float(sheet.cell(row, 7).value)) if sheet.cell(row, 7).value and isinstance(sheet.cell(row, 7).value, (int, float)) else '0'
+            fixed_price = str(float(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value and isinstance(sheet.cell(row, 8).value, (int, float)) else '0'
             print("*"*50)
-            print(f"client_ref: {client_ref}, provider_ref: {provider_ref}, product_code: {product_code}, price_line: {price_line}, discount: {discount}")
-
+            print(category)
             client = self.env['res.partner'].search([('ref', '=', client_ref)], limit=1)
-            provider = self.env['res.partner'].search([('ref', '=', provider_ref)], limit=1) if provider_ref != '0' else None
-            product = self.env['product.product'].search([('default_code', '=', product_code)], limit=1) if product_code != '0' else None
-
+            provider = self.env['res.partner'].search([('ref', '=', provider_ref)], limit=1)
+            product = self.env['product.product'].search([('default_code', '=', product_code)], limit=1)
+            category = self.env['product.category'].search([('id', '=', category)], limit=1)
+            print(category)
             if not client:
                 errors.append(f"Client with reference {client_ref} not found.")
                 continue
@@ -46,23 +48,181 @@ class ImportClientTariffsWizard(models.TransientModel):
                 pricelist = self.env['product.pricelist'].create({'name': pricelist_name})
 
             base_pricelist_name = f"Tarifa {price_line}"
-            base_pricelist = self.env['product.pricelist'].search([('name', '=', base_pricelist_name)], limit=1)
-            print(f"base_pricelist_name: {base_pricelist_name}, base_pricelist: {base_pricelist}")
-            if not base_pricelist:
-                errors.append(f"Base pricelist {base_pricelist_name} not found.")
-                continue
+            if price_line != 0:
+                base_pricelist = self.env['product.pricelist'].search([('name', '=', base_pricelist_name)], limit=1)
+                if not category:
+                    if product.id == 0:
+                        pricelist_item_vals = {
+                            'pricelist_id': pricelist.id,
+                            'applied_on': '3_global',
+                            'compute_price': 'formula',
+                            'base': 'pricelist',
+                            'price_discount': discount,
+                            'base_pricelist_id': base_pricelist.id,
+                        }
+                        print("Pricelist item vals 1: ", pricelist_item_vals)
+                        pricelist_item = self.env['product.pricelist.item'].search([
+                            ('pricelist_id', '=', pricelist.id),
+                            ('product_tmpl_id', '=', product.id)
+                        ], limit=1)
+                        if pricelist_item:
+                            pricelist_item.write(pricelist_item_vals)
+                        else:
+                            self.env['product.pricelist.item'].create(pricelist_item_vals)
+                    else:
+                        pricelist_item_vals = {
+                            'pricelist_id': pricelist.id,
+                            'applied_on': '1_product',
+                            'product_tmpl_id': product.id,
+                            'compute_price': 'formula',
+                            'base': 'pricelist',
+                            'price_discount': discount,
+                            'base_pricelist_id': base_pricelist.id,
+                        }
+                        print("Pricelist item vals 2: ", pricelist_item_vals)
+                        pricelist_item = self.env['product.pricelist.item'].search([
+                            ('pricelist_id', '=', pricelist.id),
+                            ('product_tmpl_id', '=', product.id)
+                        ], limit=1)
+                        if pricelist_item:
+                            pricelist_item.write(pricelist_item_vals)
+                        else:
+                            self.env['product.pricelist.item'].create(pricelist_item_vals)
+                else:
+                    if size == 0 or size == '':
+                        pricelist_item_vals = {
+                            'pricelist_id': pricelist.id,
+                            'applied_on': '2_product_category',
+                            'compute_price': 'formula',
+                            'base': 'pricelist',
+                            'base_pricelist_id': base_pricelist.id,
+                            'categ_id': category.id,
+                        }
+                        print("Pricelist item vals 3: ", pricelist_item_vals)
+                        pricelist_item = self.env['product.pricelist.item'].search([
+                            ('pricelist_id', '=', pricelist.id),
+                            ('product_tmpl_id', '=', product.id)
+                        ], limit=1)
+                        if pricelist_item:
+                            pricelist_item.write(pricelist_item_vals)
+                        else:
+                            self.env['product.pricelist.item'].create(pricelist_item_vals)
+                    else:
+                        pricelist_item_vals = {
+                            'pricelist_id': pricelist.id,
+                            'applied_on': '2_product_category',
+                            'compute_price': 'formula',
+                            'base': 'pricelist',
+                            'base_pricelist_id': base_pricelist.id,
+                            'categ_id': category.id,
+                            'min_quantity': size,
+                        }
+                        print("Pricelist item vals 4: ", pricelist_item_vals)
+                        pricelist_item = self.env['product.pricelist.item'].search([
+                            ('pricelist_id', '=', pricelist.id),
+                            ('product_tmpl_id', '=', product.id)
+                        ], limit=1)
+                        if pricelist_item:
+                            pricelist_item.write(pricelist_item_vals)
+                        else:
+                            self.env['product.pricelist.item'].create(pricelist_item_vals)
+            else:
+                base_pricelist = self.env['product.pricelist'].search([('name', '=', base_pricelist_name)], limit=1)
+                if not category:
+                    if fixed_price != '0':
+                        pricelist_item_vals = {
+                            'pricelist_id': pricelist.id,
+                            'applied_on': '1_product',
+                            'compute_price': 'fixed',
+                            'fixed_price': fixed_price,
+                            'product_tmpl_id': product.id,
+                        }
+                        print("Pricelist item vals 5: ", pricelist_item_vals)
+                        pricelist_item = self.env['product.pricelist.item'].search([
+                            ('pricelist_id', '=', pricelist.id),
+                            ('product_tmpl_id', '=', product.id)
+                        ], limit=1)
+                        if pricelist_item:
+                            pricelist_item.write(pricelist_item_vals)
+                        else:
+                            self.env['product.pricelist.item'].create(pricelist_item_vals)
+                    else:
+                        if product.id == 0:
+                            pricelist_item_vals = {
+                                'pricelist_id': pricelist.id,
+                                'applied_on': '3_global',
+                                'compute_price': 'percentage',
+                                'percent_price': discount,
+                            }
+                            print("Pricelist item vals 6: ", pricelist_item_vals)
+                            pricelist_item = self.env['product.pricelist.item'].search([
+                                ('pricelist_id', '=', pricelist.id),
+                                ('product_tmpl_id', '=', product.id)
+                            ], limit=1)
+                            if pricelist_item:
+                                pricelist_item.write(pricelist_item_vals)
+                            else:
+                                self.env['product.pricelist.item'].create(pricelist_item_vals)
+                        else:
+                            pricelist_item_vals = {
+                                'pricelist_id': pricelist.id,
+                                'applied_on': '1_product',
+                                'product_tmpl_id': product.id,
+                                'compute_price': 'percentage',
+                                'percent_price': discount,
+                            }
+                            print("Pricelist item vals 7: ", pricelist_item_vals)
+                            product = self.env['product.product'].search([('default_code', '=', product_code)], limit=1)
+                            pricelist_item = self.env['product.pricelist.item'].search([
+                                ('pricelist_id', '=', pricelist.id),
+                                ('product_tmpl_id', '=', product.id)
+                            ], limit=1)
+                            if pricelist_item:
+                                pricelist_item.write(pricelist_item_vals)
+                            else:
+                                self.env['product.pricelist.item'].create(pricelist_item_vals)
+                else:
+                    if size == 0 or size == '':
+                        pricelist_item_vals = {
+                            'pricelist_id': pricelist.id,
+                            'applied_on': '2_product_category',
+                            'compute_price': 'formula',
+                            'base': 'pricelist',
+                            'percent_price': discount,
+                            'base_pricelist_id': base_pricelist.id,
+                            'categ_id': category.id,
+                        }
+                        print("Pricelist item vals 8: ", pricelist_item_vals)
+                        pricelist_item = self.env['product.pricelist.item'].search([
+                            ('pricelist_id', '=', pricelist.id),
+                            ('product_tmpl_id', '=', product.id)
+                        ], limit=1)
+                        if pricelist_item:
+                            pricelist_item.write(pricelist_item_vals)
+                        else:
+                            self.env['product.pricelist.item'].create(pricelist_item_vals)
+                    else:
+                        pricelist_item_vals = {
+                            'pricelist_id': pricelist.id,
+                            'applied_on': '2_product_category',
+                            'compute_price': 'formula',
+                            'base': 'pricelist',
+                            'percent_price': discount,
+                            'base_pricelist_id': base_pricelist.id,
+                            'categ_id': category.id,
+                            'min_quantity': size,
+                        }
+                        print("Pricelist item vals 9: ", pricelist_item_vals)
+                        pricelist_item = self.env['product.pricelist.item'].search([
+                            ('pricelist_id', '=', pricelist.id),
+                            ('product_tmpl_id', '=', product.id)
+                        ], limit=1)
+                        if pricelist_item:
+                            pricelist_item.write(pricelist_item_vals)
+                        else:
+                            self.env['product.pricelist.item'].create(pricelist_item_vals)
 
-            pricelist_item_vals = {
-                'pricelist_id': pricelist.id,
-                'applied_on': '3_global' if not product else '1_product',
-                'product_id': product.id if product else None,
-                'compute_price': 'formula',
-                'base': 'pricelist',
-                'price_discount': discount,
-                'base_pricelist_id': base_pricelist.id,
-            }
-
-            self.env['product.pricelist.item'].create(pricelist_item_vals)
+            client.write({'property_product_pricelist': pricelist.id})
 
         if errors:
             self.error_log = "\n".join(errors)
