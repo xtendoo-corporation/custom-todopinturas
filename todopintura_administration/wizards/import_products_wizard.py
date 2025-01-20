@@ -52,6 +52,13 @@ class ImportProductsWizard(models.TransientModel):
 
             pos_categ = self.env['pos.category'].search(
                 [('referencia_todopintura', '=', int(sheet.cell(row, 28).value))], limit=1)
+            num_prov = int(sheet.cell(row, 30).value) if sheet.cell(row, 30).value else None
+            cell_value = sheet.cell(row, 24).value
+
+            if cell_value and isinstance(cell_value, str):
+                cell_value = cell_value.strip()
+
+            price_last_buy = float(cell_value) if cell_value else None
             observation1 = str(sheet.cell(row, 40).value).strip() if sheet.cell(row, 40).value is not None else ''
             observation2 = str(sheet.cell(row, 41).value).strip() if sheet.cell(row, 41).value is not None else ''
             observation3 = str(sheet.cell(row, 42).value).strip() if sheet.cell(row, 42).value is not None else ''
@@ -144,6 +151,26 @@ class ImportProductsWizard(models.TransientModel):
                     record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
                     product = self._create_or_update_product(record)
 
+                    # Create or update product.supplierinfo
+                    print(f"num_prov: {num_prov}, price_last_buy: {price_last_buy}")
+                    if num_prov and price_last_buy:
+                        partner = self.env['res.partner'].search([('ref', '=', f'0{num_prov}')], limit=1)
+                        if partner:
+                            supplierinfo = self.env['product.supplierinfo'].search([
+                                ('product_id', '=', product.id),
+                                ('partner_id', '=', partner.id)
+                            ], limit=1)
+                            supplierinfo_vals = {
+                                'partner_id': partner.id,
+                                'product_id': product.id,
+                                'price': price_last_buy,
+                            }
+                            if supplierinfo:
+                                supplierinfo.write(supplierinfo_vals)
+                                print("Proveedor actualizado")
+                            else:
+                                self.env['product.supplierinfo'].create(supplierinfo_vals)
+                                print("Proveedor creado")
                     # Crear o actualizar tarifas
                     for i, tariff_name in enumerate(tariff_names):
                         # Revisa si hay suficientes descuentos disponibles para la tarifa
