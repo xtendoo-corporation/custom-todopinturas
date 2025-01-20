@@ -51,7 +51,7 @@ class ImportProductsWizard(models.TransientModel):
             art_prov = str(sheet.cell(row, 22).value).strip() if sheet.cell(row, 22).value is not None else ''
 
             pos_categ = self.env['pos.category'].search(
-                [('referencia_todopintura', '=', int(sheet.cell(row, 28).value))], limit=1).id
+                [('referencia_todopintura', '=', int(sheet.cell(row, 28).value))], limit=1)
             observation1 = str(sheet.cell(row, 40).value).strip() if sheet.cell(row, 40).value is not None else ''
             observation2 = str(sheet.cell(row, 41).value).strip() if sheet.cell(row, 41).value is not None else ''
             observation3 = str(sheet.cell(row, 42).value).strip() if sheet.cell(row, 42).value is not None else ''
@@ -134,12 +134,14 @@ class ImportProductsWizard(models.TransientModel):
             #             record['categ_id'] = category.id
             if pos_categ:
                   #crear una categoria normal igual que este de pos_categ
-                    category = self.env['product.category'].search([('name', '=', pos_categ)], limit=1)
+                  #la ha creado con el nombre de la referencia todopintura de pos_Categ
+                    category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
                     if not category:
-                        category = self.env['product.category'].create({'name': pos_categ})
+                        category = self.env['product.category'].create({'name': pos_categ.name})
                         record['categ_id'] = category.id
                     else:
                         record['categ_id'] = category.id
+                    record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
                     product = self._create_or_update_product(record)
 
                     # Crear o actualizar tarifas

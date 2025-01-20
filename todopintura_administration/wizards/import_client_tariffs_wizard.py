@@ -36,8 +36,22 @@ class ImportClientTariffsWizard(models.TransientModel):
             client = self.env['res.partner'].search([('ref', '=', client_ref)], limit=1)
             provider = self.env['res.partner'].search([('ref', '=', provider_ref)], limit=1)
             product = self.env['product.product'].search([('default_code', '=', product_code)], limit=1)
-            category = self.env['product.category'].search([('id', '=', category)], limit=1)
+            pos_categ = self.env['pos.category'].search([('referencia_todopintura', '=', category)], limit=1)
+
+            if pos_categ:
+                # Search for the product.category with the same name as the pos.category
+                category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
+                if not category:
+                    self.env['product.category'].create({
+                        'name': pos_categ.name,
+                        'parent_id': None,
+                    })
+                    category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
+
+            else:
+                category = None
             print(category)
+
             if not client:
                 errors.append(f"Client with reference {client_ref} not found.")
                 continue
@@ -101,7 +115,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                         print("Pricelist item vals 3: ", pricelist_item_vals)
                         pricelist_item = self.env['product.pricelist.item'].search([
                             ('pricelist_id', '=', pricelist.id),
-                            ('product_tmpl_id', '=', product.id)
+                            ('categ_id', '=', category.id)
                         ], limit=1)
                         if pricelist_item:
                             pricelist_item.write(pricelist_item_vals)
@@ -120,7 +134,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                         print("Pricelist item vals 4: ", pricelist_item_vals)
                         pricelist_item = self.env['product.pricelist.item'].search([
                             ('pricelist_id', '=', pricelist.id),
-                            ('product_tmpl_id', '=', product.id)
+                            ('categ_id', '=', category.id)
                         ], limit=1)
                         if pricelist_item:
                             pricelist_item.write(pricelist_item_vals)
@@ -188,14 +202,14 @@ class ImportClientTariffsWizard(models.TransientModel):
                             'applied_on': '2_product_category',
                             'compute_price': 'formula',
                             'base': 'pricelist',
-                            'percent_price': discount,
+                            'price_discount': discount,
                             'base_pricelist_id': base_pricelist.id,
                             'categ_id': category.id,
                         }
                         print("Pricelist item vals 8: ", pricelist_item_vals)
                         pricelist_item = self.env['product.pricelist.item'].search([
                             ('pricelist_id', '=', pricelist.id),
-                            ('product_tmpl_id', '=', product.id)
+                            ('categ_id', '=', category.id,)
                         ], limit=1)
                         if pricelist_item:
                             pricelist_item.write(pricelist_item_vals)
@@ -207,7 +221,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                             'applied_on': '2_product_category',
                             'compute_price': 'formula',
                             'base': 'pricelist',
-                            'percent_price': discount,
+                            'price_discount': discount,
                             'base_pricelist_id': base_pricelist.id,
                             'categ_id': category.id,
                             'min_quantity': size,
@@ -215,7 +229,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                         print("Pricelist item vals 9: ", pricelist_item_vals)
                         pricelist_item = self.env['product.pricelist.item'].search([
                             ('pricelist_id', '=', pricelist.id),
-                            ('product_tmpl_id', '=', product.id)
+                            ('categ_id', '=', category.id)
                         ], limit=1)
                         if pricelist_item:
                             pricelist_item.write(pricelist_item_vals)
