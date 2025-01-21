@@ -249,6 +249,7 @@ class ImportProductsWizard(models.TransientModel):
                 'product_tmpl_id': product.id,
                 'compute_price': 'percentage',
                 'percent_price': descuento,
+                'applied_on': '1_product'
             }
 
             if pricelist_item:
