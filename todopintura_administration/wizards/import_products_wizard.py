@@ -193,12 +193,16 @@ class ImportProductsWizard(models.TransientModel):
             product = self.env['product.template'].search([('default_code', '=', record['default_code'])], limit=1)
             if product:
                 product.write(record)
+                print("Producto actualizado")
+                print(f"Product: {product}")
             else:
                 existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])], limit=1)
                 if existing_barcode_product:
                     record['barcode'] = None
                     print(f"Product with barcode {record['barcode']} already exists. Setting barcode to None.")
                 product = self.env['product.template'].create(record)
+                print("Producto creado")
+                print(f"Product: {product}")
             return product
 
     def create_or_update_tariffs(self, product, descuento, tariff_name):
