@@ -156,6 +156,7 @@ class ImportProductsWizard(models.TransientModel):
                     print(f"num_prov: {num_prov}, price_last_buy: {price_last_buy}")
                     if num_prov and price_last_buy:
                         partner = self.env['res.partner'].search([('ref', '=', f'0{num_prov}')], limit=1)
+                        print(f"partner: {partner}")
                         if partner:
                             supplierinfo = self.env['product.supplierinfo'].search([
                                 ('product_id', '=', product.id),
