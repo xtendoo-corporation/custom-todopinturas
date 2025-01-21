@@ -151,7 +151,7 @@ class ImportProductsWizard(models.TransientModel):
                         record['categ_id'] = category.id
                     record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
                     product = self._create_or_update_product(record)
-
+                    print(f"Product después de actualizar o crear: {product}")
                     # Create or update product.supplierinfo
                     print(f"num_prov: {num_prov}, price_last_buy: {price_last_buy}")
                     if num_prov and price_last_buy:
