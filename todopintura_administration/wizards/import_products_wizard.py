@@ -195,6 +195,7 @@ class ImportProductsWizard(models.TransientModel):
                 product.write(record)
                 print("Producto actualizado")
                 print(f"Product: {product}")
+                print(f"Product Variants: {product.product_variant_ids}")
             else:
                 existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])], limit=1)
                 if existing_barcode_product:
@@ -203,6 +204,7 @@ class ImportProductsWizard(models.TransientModel):
                 product = self.env['product.template'].create(record)
                 print("Producto creado")
                 print(f"Product: {product}")
+                print(f"Product Variants: {product.product_variant_ids}")
             return product
 
     def create_or_update_tariffs(self, product, descuento, tariff_name):
