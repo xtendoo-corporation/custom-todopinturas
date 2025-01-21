@@ -52,6 +52,7 @@ class ImportProductsWizard(models.TransientModel):
 
             pos_categ = self.env['pos.category'].search(
                 [('referencia_todopintura', '=', int(sheet.cell(row, 28).value))], limit=1)
+            print(f"pos_categ: {pos_categ}")
             num_prov = int(sheet.cell(row, 30).value) if sheet.cell(row, 30).value else None
             cell_value = sheet.cell(row, 24).value
 
