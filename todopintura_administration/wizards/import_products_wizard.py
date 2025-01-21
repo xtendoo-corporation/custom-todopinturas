@@ -151,14 +151,11 @@ class ImportProductsWizard(models.TransientModel):
                         record['categ_id'] = category.id
                     record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
                     product = self._create_or_update_product(record)
-                    print(f"Product después de actualizar o crear: {product}")
                     # Create or update product.supplierinfo
-                    print(f"num_prov: {num_prov}, price_last_buy: {price_last_buy}")
                     product_variant = product.product_variant_id
                     if product_variant:
                         if num_prov and price_last_buy:
                             partner = self.env['res.partner'].search([('ref', '=', f'0{num_prov}')], limit=1)
-                            print(f"partner: {partner}")
                             if partner:
                                 supplierinfo = self.env['product.supplierinfo'].search([
                                     ('product_id', '=', product_variant.id),
@@ -184,6 +181,38 @@ class ImportProductsWizard(models.TransientModel):
                         if descuento is not None:
                             self.create_or_update_tariffs(product, descuento, tariff_name)
 
+            else:
+                product = self._create_or_update_product(record)
+                # Create or update product.supplierinfo
+                product_variant = product.product_variant_id
+                if product_variant:
+                    if num_prov and price_last_buy:
+                        partner = self.env['res.partner'].search([('ref', '=', f'0{num_prov}')], limit=1)
+                        if partner:
+                            supplierinfo = self.env['product.supplierinfo'].search([
+                                ('product_id', '=', product_variant.id),
+                                ('partner_id', '=', partner.id)
+                            ], limit=1)
+                            supplierinfo_vals = {
+                                'partner_id': partner.id,
+                                'product_id': product_variant.id,
+                                'price': price_last_buy,
+                            }
+                            if supplierinfo:
+                                supplierinfo.write(supplierinfo_vals)
+                                print("Proveedor actualizado")
+                            else:
+                                self.env['product.supplierinfo'].create(supplierinfo_vals)
+                                print("Proveedor creado")
+                # Crear o actualizar tarifas
+                for i, tariff_name in enumerate(tariff_names):
+                    # Revisa si hay suficientes descuentos disponibles para la tarifa
+                    descuento = descuentos[i] if i < len(descuentos) else None
+
+                    # Crea o actualiza la tarifa sólo si hay un descuento disponible
+                    if descuento is not None:
+                        self.create_or_update_tariffs(product, descuento, tariff_name)
+
         return {
             'type': 'ir.actions.act_window',
             'res_model': 'import.products.wizard',
@@ -196,18 +225,12 @@ class ImportProductsWizard(models.TransientModel):
             product = self.env['product.template'].search([('default_code', '=', record['default_code'])], limit=1)
             if product:
                 product.write(record)
-                print("Producto actualizado")
-                print(f"Product: {product}")
-                print(f"Product Variants: {product.product_variant_ids}")
             else:
                 existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])], limit=1)
                 if existing_barcode_product:
                     record['barcode'] = None
                     print(f"Product with barcode {record['barcode']} already exists. Setting barcode to None.")
                 product = self.env['product.template'].create(record)
-                print("Producto creado")
-                print(f"Product: {product}")
-                print(f"Product Variants: {product.product_variant_ids}")
             return product
 
     def create_or_update_tariffs(self, product, descuento, tariff_name):
