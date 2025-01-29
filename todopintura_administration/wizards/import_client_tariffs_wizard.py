@@ -34,7 +34,8 @@ class ImportClientTariffsWizard(models.TransientModel):
             fixed_price = str(float(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value and isinstance(sheet.cell(row, 8).value, (int, float)) else '0'
             print("*"*50)
             print(category)
-            percentage_about_cost = str(float(sheet.cell(row, 9).value)) if sheet.cell(row, 9).value and isinstance(sheet.cell(row, 9).value, (int, float)) else '0'
+            percentage_about_cost = str(-float(sheet.cell(row, 9).value)) if sheet.cell(row, 9).value and isinstance(
+                sheet.cell(row, 9).value, (int, float)) else '0'
             client = self.env['res.partner'].search([('ref', '=', client_ref)], limit=1)
             provider = self.env['res.partner'].search([('ref', '=', provider_ref)], limit=1)
             product = self.env['product.product'].search([('default_code', '=', product_code)], limit=1)
