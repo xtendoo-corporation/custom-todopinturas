@@ -6,7 +6,7 @@ class ProductPricelistItem(models.Model):
 
     filter_supplier_id = fields.Many2one(
         comodel_name="res.partner",
-        string="Supplier filter",
+        string="Filtro proveedor",
         help="Only match prices from the selected supplier",
     )
 
