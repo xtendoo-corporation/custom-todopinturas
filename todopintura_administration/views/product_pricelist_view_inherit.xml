@@ -19,12 +19,14 @@
             <xpath expr="//field[@name='price']" position="after">
                 <field name="percent_price" invisible="not compute_price == 'percentage'" string="Desc %"
                        optional="show"/>
-                <field name="min_quantity" colspan="4" optional="show"/>
                 <field name="base" invisible="not compute_price == 'formula'" optional="show"/>
                 <field name="base_pricelist_id" invisible="not compute_price == 'formula' or not base == 'pricelist'"
                        string="Otra Tarifa" optional="show"/>
                 <field name="price_discount" invisible="not compute_price == 'formula'" string="Desc %"
                        optional="show"/>
+            </xpath>
+            <xpath expr="///tree[2]/field[@name='min_quantity']" position="before">
+              <field name="filter_supplier_id" string="Proveedor" optional="show"/>
             </xpath>
         </field>
     </record>

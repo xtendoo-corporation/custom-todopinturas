@@ -24,7 +24,7 @@ class ImportClientTariffsWizard(models.TransientModel):
 
         for row in range(1, sheet.nrows):
             client_ref = str(int(sheet.cell(row, 1).value)).strip()
-            provider_ref = str(int(sheet.cell(row, 2).value)).strip() if sheet.cell(row, 2).value else '0'
+            provider_ref = f"0{str(int(sheet.cell(row, 2).value)).strip()}" if sheet.cell(row, 2).value else '0'
             product_code = str(int(sheet.cell(row, 3).value)) if sheet.cell(row, 3).value else '0'
             category = sheet.cell(row, 4).value
             category = int(str(category).replace('_', '').strip()) if category and str(category).replace('_', '').strip().isdigit() else 0
@@ -37,7 +37,8 @@ class ImportClientTariffsWizard(models.TransientModel):
             percentage_about_cost = str(-float(sheet.cell(row, 9).value)) if sheet.cell(row, 9).value and isinstance(
                 sheet.cell(row, 9).value, (int, float)) else '0'
             client = self.env['res.partner'].search([('ref', '=', client_ref)], limit=1)
-            provider = self.env['res.partner'].search([('ref', '=', provider_ref)], limit=1)
+            provider = self.env['res.partner'].search([('ref', '=', provider_ref)],
+                                                      limit=1) if provider_ref != '0777' else None
             product = self.env['product.product'].search([('default_code', '=', product_code)], limit=1)
             pos_categ = self.env['pos.category'].search([('referencia_todopintura', '=', category)], limit=1)
             date_start = sheet.cell(row, 12).value
@@ -116,11 +117,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                             pricelist_item_vals['date_end'] = date_end
                         if provider:
                             pricelist_item_vals['filter_supplier_id'] = provider.id
+                            pricelist_item = self.env['product.pricelist.item'].search([
+                                ('pricelist_id', '=', pricelist.id),
+                                ('product_tmpl_id', '=', product.id),
+                                ('filter_supplier_id', '=', provider.id)
+                            ], limit=1)
+                        else:
+                            pricelist_item = self.env['product.pricelist.item'].search([
+                                ('pricelist_id', '=', pricelist.id),
+                                ('product_tmpl_id', '=', product.id)
+                            ], limit=1)
                         print("Pricelist item vals percentage_about_cost global: ", pricelist_item_vals)
-                        pricelist_item = self.env['product.pricelist.item'].search([
-                            ('pricelist_id', '=', pricelist.id),
-                            ('product_tmpl_id', '=', product.id)
-                        ], limit=1)
                         if pricelist_item:
                             pricelist_item.write(pricelist_item_vals)
                         else:
@@ -140,11 +147,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals['date_end'] = date_end
                             if provider:
                                 pricelist_item_vals['filter_supplier_id'] = provider.id
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id),
+                                    ('filter_supplier_id', '=', provider.id)
+                                ], limit=1)
+                            else:
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id)
+                                ], limit=1)
                             print("Pricelist item vals percentage_about_cost category: ", pricelist_item_vals)
-                            pricelist_item = self.env['product.pricelist.item'].search([
-                                ('pricelist_id', '=', pricelist.id),
-                                ('categ_id', '=', category.id)
-                            ], limit=1)
                             if pricelist_item:
                                 pricelist_item.write(pricelist_item_vals)
                             else:
@@ -164,11 +177,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals['date_end'] = date_end
                             if provider:
                                 pricelist_item_vals['filter_supplier_id'] = provider.id
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id),
+                                    ('filter_supplier_id', '=', provider.id)
+                                ], limit=1)
+                            else:
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id)
+                                ], limit=1)
                             print("Pricelist item vals percentage_about_cost category size: ", pricelist_item_vals)
-                            pricelist_item = self.env['product.pricelist.item'].search([
-                                ('pricelist_id', '=', pricelist.id),
-                                ('categ_id', '=', category.id)
-                            ], limit=1)
                             if pricelist_item:
                                 pricelist_item.write(pricelist_item_vals)
                             else:
@@ -191,11 +210,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals['date_end'] = date_end
                             if provider:
                                 pricelist_item_vals['filter_supplier_id'] = provider.id
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('product_tmpl_id', '=', product.id),
+                                    ('filter_supplier_id', '=', provider.id)
+                                ], limit=1)
+                            else:
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('product_tmpl_id', '=', product.id)
+                                ], limit=1)
                             print("Pricelist item vals 1: ", pricelist_item_vals)
-                            pricelist_item = self.env['product.pricelist.item'].search([
-                                ('pricelist_id', '=', pricelist.id),
-                                ('product_tmpl_id', '=', product.id)
-                            ], limit=1)
                             if pricelist_item:
                                 pricelist_item.write(pricelist_item_vals)
                             else:
@@ -237,11 +262,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals['date_end'] = date_end
                             if provider:
                                 pricelist_item_vals['filter_supplier_id'] = provider.id
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id),
+                                    ('filter_supplier_id', '=', provider.id)
+                                ], limit=1)
+                            else:
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id)
+                                ], limit=1)
                             print("Pricelist item vals 3: ", pricelist_item_vals)
-                            pricelist_item = self.env['product.pricelist.item'].search([
-                                ('pricelist_id', '=', pricelist.id),
-                                ('categ_id', '=', category.id)
-                            ], limit=1)
                             if pricelist_item:
                                 pricelist_item.write(pricelist_item_vals)
                             else:
@@ -261,11 +292,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals['date_end'] = date_end
                             if provider:
                                 pricelist_item_vals['filter_supplier_id'] = provider.id
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id),
+                                    ('filter_supplier_id', '=', provider.id)
+                                ], limit=1)
+                            else:
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id)
+                                ], limit=1)
                             print("Pricelist item vals 4: ", pricelist_item_vals)
-                            pricelist_item = self.env['product.pricelist.item'].search([
-                                ('pricelist_id', '=', pricelist.id),
-                                ('categ_id', '=', category.id)
-                            ], limit=1)
                             if pricelist_item:
                                 pricelist_item.write(pricelist_item_vals)
                             else:
@@ -306,11 +343,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     pricelist_item_vals['date_end'] = date_end
                                 if provider:
                                     pricelist_item_vals['filter_supplier_id'] = provider.id
+                                    pricelist_item = self.env['product.pricelist.item'].search([
+                                        ('pricelist_id', '=', pricelist.id),
+                                        ('product_tmpl_id', '=', product.id),
+                                        ('filter_supplier_id', '=', provider.id)
+                                    ], limit=1)
+                                else:
+                                    pricelist_item = self.env['product.pricelist.item'].search([
+                                        ('pricelist_id', '=', pricelist.id),
+                                        ('product_tmpl_id', '=', product.id)
+                                    ], limit=1)
                                 print("Pricelist item vals 6: ", pricelist_item_vals)
-                                pricelist_item = self.env['product.pricelist.item'].search([
-                                    ('pricelist_id', '=', pricelist.id),
-                                    ('product_tmpl_id', '=', product.id)
-                                ], limit=1)
                                 if pricelist_item:
                                     pricelist_item.write(pricelist_item_vals)
                                 else:
@@ -352,11 +395,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals['date_end'] = date_end
                             if provider:
                                 pricelist_item_vals['filter_supplier_id'] = provider.id
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id,),
+                                    ('filter_supplier_id', '=', provider.id)
+                                ], limit=1)
+                            else:
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id,)
+                                ], limit=1)
                             print("Pricelist item vals 8: ", pricelist_item_vals)
-                            pricelist_item = self.env['product.pricelist.item'].search([
-                                ('pricelist_id', '=', pricelist.id),
-                                ('categ_id', '=', category.id,)
-                            ], limit=1)
                             if pricelist_item:
                                 pricelist_item.write(pricelist_item_vals)
                             else:
@@ -377,11 +426,17 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals['date_end'] = date_end
                             if provider:
                                 pricelist_item_vals['filter_supplier_id'] = provider.id
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id),
+                                    ('filter_supplier_id', '=', provider.id)
+                                ], limit=1)
+                            else:
+                                pricelist_item = self.env['product.pricelist.item'].search([
+                                    ('pricelist_id', '=', pricelist.id),
+                                    ('categ_id', '=', category.id)
+                                ], limit=1)
                             print("Pricelist item vals 9: ", pricelist_item_vals)
-                            pricelist_item = self.env['product.pricelist.item'].search([
-                                ('pricelist_id', '=', pricelist.id),
-                                ('categ_id', '=', category.id)
-                            ], limit=1)
                             if pricelist_item:
                                 pricelist_item.write(pricelist_item_vals)
                             else:
