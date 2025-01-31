@@ -75,9 +75,9 @@ class Pricelist(models.Model):
                 qty_in_product_uom = quantity
 
             prioritized_rules = sorted(rules, key=lambda r: (
-                r.product_id and r.product_id == product,
-                r.categ_id and r.filter_supplier_id,
-                not r.filter_supplier_id
+                bool(r.product_id and r.product_id == product),
+                bool(r.categ_id and r.filter_supplier_id),
+                not bool(r.filter_supplier_id)
             ), reverse=True)
 
             for rule in prioritized_rules:
