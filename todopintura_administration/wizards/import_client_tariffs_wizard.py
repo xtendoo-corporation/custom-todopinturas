@@ -39,7 +39,7 @@ class ImportClientTariffsWizard(models.TransientModel):
             client = self.env['res.partner'].search([('ref', '=', client_ref)], limit=1)
             provider = self.env['res.partner'].search([('ref', '=', provider_ref)],
                                                       limit=1) if provider_ref != '0777' else None
-            product = self.env['product.product'].search([('default_code', '=', product_code)], limit=1)
+            product = self.env['product.template'].search([('default_code', '=', product_code)], limit=1)
             pos_categ = self.env['pos.category'].search([('referencia_todopintura', '=', category)], limit=1)
             date_start = sheet.cell(row, 12).value
             date_end = sheet.cell(row, 13).value
