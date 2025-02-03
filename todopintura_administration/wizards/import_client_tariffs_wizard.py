@@ -381,7 +381,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                         pricelist_item_vals['date_end'] = date_end
                                     if product.default_code == '49002015':
                                         print("Pricelist item vals 7: ", pricelist_item_vals)
-                                    product = self.env['product.product'].search([('default_code', '=', product_code)], limit=1)
+                                    product = self.env['product.template'].search([('default_code', '=', product_code)], limit=1)
                                     pricelist_item = self.env['product.pricelist.item'].search([
                                         ('pricelist_id', '=', pricelist.id),
                                         ('product_tmpl_id', '=', product.id)
