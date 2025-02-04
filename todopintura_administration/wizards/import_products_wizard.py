@@ -130,26 +130,20 @@ class ImportProductsWizard(models.TransientModel):
                 'pos_categ_ids': [(6, 0, [pos_categ])] if pos_categ else [],
             }
 
-            # if prov_id:
-            #     provider = self.env['res.partner'].search([('ref', '=', prov_id)], limit=1)
-            #     if provider:
-            #         prov_name = provider.name
-            #         category = self.env['product.category'].search([('name', '=', prov_name)], limit=1)
-            #         if not category:
-            #             category = self.env['product.category'].create({'name': prov_name})
-            #             record['categ_id'] = category.id
-            #         else:
-            #             record['categ_id'] = category.id
             if pos_categ:
                   #crear una categoria normal igual que este de pos_categ
                   #la ha creado con el nombre de la referencia todopintura de pos_Categ
-                    category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
-                    if not category:
-                        category = self.env['product.category'].create({'name': pos_categ.name})
-                        record['categ_id'] = category.id
-                    else:
-                        record['categ_id'] = category.id
+                    # category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
+                    # if not category:
+                    #     category = self.env['product.category'].create({'name': pos_categ.name})
+                    #     record['categ_id'] = category.id
+                    # else:
+                    #     record['categ_id'] = category.id
+                    # record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
                     record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
+                    category = self.crear_categoria_con_padres(pos_categ)
+                    record['categ_id'] = category.id
+                    print(f"category: {category}")
                     product = self._create_or_update_product(record)
                     # Create or update product.supplierinfo
                     product_variant = product.product_variant_id
@@ -257,3 +251,17 @@ class ImportProductsWizard(models.TransientModel):
                 pricelist_item.write(pricelist_item_vals)
             else:
                 self.env['product.pricelist.item'].create(pricelist_item_vals)
+
+    def crear_categoria_con_padres(self, pos_categ):
+        category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
+        if not category:
+            # Si la categoría no existe, la creamos
+            category = self.env['product.category'].create({'name': pos_categ.name})
+
+        # Iteramos para crear las categorías padres de la misma forma
+        parent_category = pos_categ.parent_id
+        if parent_category:
+            parent_category_record = self.crear_categoria_con_padres(parent_category)
+            category.write({'parent_id': parent_category_record.id})
+
+        return category

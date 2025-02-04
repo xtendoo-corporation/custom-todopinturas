@@ -69,7 +69,7 @@ class Pricelist(models.Model):
                 print(f"Evaluando regla: {rule.id}, producto: {rule.product_tmpl_id}, proveedor: {rule.filter_supplier_id.name}, {rule.percent_price}")
 
             for rule in prioritized_rules:
-                print(f"Evaluando regla: {rule.id}, producto: {rule.product_id}, proveedor: {rule.filter_supplier_id}")
+                print(f"Evaluando regla: {rule.id}, producto: {rule.product_tmpl_id}, proveedor: {rule.filter_supplier_id.name}")
                 if rule._is_applicable_for(product, qty_in_product_uom):
                     if rule.filter_supplier_id and rule.filter_supplier_id.id not in product.seller_ids.partner_id.mapped(
                         'id'):
