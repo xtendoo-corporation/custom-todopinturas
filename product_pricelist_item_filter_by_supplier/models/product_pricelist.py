@@ -57,13 +57,16 @@ class Pricelist(models.Model):
                 qty_in_product_uom = quantity
 
             prioritized_rules = sorted(rules, key=lambda r: (
-                bool(r.product_id and r.filter_supplier_id),
-                bool(r.product_id),
+                bool(r.product_tmpl_id and r.filter_supplier_id),
+                bool(r.product_tmpl_id),
                 bool(r.categ_id and r.filter_supplier_id),
                 bool(r.categ_id),
                 bool(r.filter_supplier_id),
                 not bool(r.filter_supplier_id)
             ), reverse=True)
+
+            for rule in prioritized_rules:
+                print(f"Evaluando regla: {rule.id}, producto: {rule.product_tmpl_id}, proveedor: {rule.filter_supplier_id.name}, {rule.percent_price}")
 
             for rule in prioritized_rules:
                 print(f"Evaluando regla: {rule.id}, producto: {rule.product_id}, proveedor: {rule.filter_supplier_id}")
