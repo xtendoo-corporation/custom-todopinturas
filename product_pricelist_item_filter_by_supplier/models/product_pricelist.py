@@ -4,24 +4,6 @@ from odoo.exceptions import UserError
 class Pricelist(models.Model):
     _inherit = "product.pricelist"
 
-    # def _compute_price_rule(self, products_qty_partner, date=False, uom_id=False):
-    #     self.ensure_one()
-    #     date = date or fields.Date.today()
-    #     items = self.env['product.pricelist.item'].search([
-    #         ('pricelist_id', '=', self.id),
-    #         ('date_start', '<=', date),
-    #         ('date_end', '>=', date),
-    #     ])
-    #
-    #     results = {}
-    #     for product, qty, partner in products_qty_partner:
-    #         price = 0.0
-    #         applicable_items = items.filtered(lambda item: item._is_applicable_for(product, qty))
-    #         for item in applicable_items:
-    #             price += item._compute_price(product, qty, uom_id, date, self.currency_id)
-    #         results[product.id] = (price, False)
-    #     return results
-
     def _compute_price_rule(
             self, products, quantity, currency=None, uom=None, date=False, compute_price=True,
             **kwargs
@@ -75,17 +57,22 @@ class Pricelist(models.Model):
                 qty_in_product_uom = quantity
 
             prioritized_rules = sorted(rules, key=lambda r: (
-                bool(r.product_id and r.product_id == product),
+                bool(r.product_id and r.filter_supplier_id),
+                bool(r.product_id),
                 bool(r.categ_id and r.filter_supplier_id),
+                bool(r.categ_id),
+                bool(r.filter_supplier_id),
                 not bool(r.filter_supplier_id)
             ), reverse=True)
 
             for rule in prioritized_rules:
+                print(f"Evaluando regla: {rule.id}, producto: {rule.product_id}, proveedor: {rule.filter_supplier_id}")
                 if rule._is_applicable_for(product, qty_in_product_uom):
                     if rule.filter_supplier_id and rule.filter_supplier_id.id not in product.seller_ids.partner_id.mapped(
                         'id'):
                         continue  # Skip this rule if supplier does not match
                     suitable_rule = rule
+                    print(f"Regla seleccionada: {suitable_rule.id}")
                     break
 
             if compute_price:
