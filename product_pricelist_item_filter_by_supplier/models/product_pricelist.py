@@ -66,7 +66,7 @@ class Pricelist(models.Model):
             ), reverse=True)
 
             for rule in prioritized_rules:
-                print(f"Evaluando regla: {rule.id}, producto: {rule.product_tmpl_id}, proveedor: {rule.filter_supplier_id.name}, {rule.percent_price}")
+                print(f"Evaluando regla: {rule.id}, producto: {rule.product_tmpl_id}, proveedor: {rule.filter_supplier_id.name}, {rule.percent_price}, categoria: {rule.categ_id.name}")
 
             for rule in prioritized_rules:
                 print(f"Evaluando regla: {rule.id}, producto: {rule.product_tmpl_id}, proveedor: {rule.filter_supplier_id.name}")
