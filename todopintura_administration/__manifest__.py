@@ -18,6 +18,7 @@
         'views/pos_category.xml',
         'views/product_pricelist_view_inherit.xml',
         'security/ir.model.access.csv',
+        'views/res_partner_views.xml',
     ],
     "installable": True,
 }
