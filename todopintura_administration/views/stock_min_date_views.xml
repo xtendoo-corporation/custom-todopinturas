@@ -1,0 +1,42 @@
+<odoo>
+    <record id="view_stock_min_dates_tree" model="ir.ui.view">
+        <field name="name">stock.min.dates.tree</field>
+        <field name="model">stock.min.dates</field>
+        <field name="arch" type="xml">
+            <tree string="Stock Minimum Dates">
+                <field name="min_qty"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="orderpoint_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_stock_min_dates_form" model="ir.ui.view">
+        <field name="name">stock.min.dates.form</field>
+        <field name="model">stock.min.dates</field>
+        <field name="arch" type="xml">
+            <form string="Stock Minimum Dates">
+                <group>
+                    <field name="min_qty"/>
+                    <field name="start_date"/>
+                    <field name="end_date"/>
+                    <field name="orderpoint_id"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stock_min_dates" model="ir.actions.act_window">
+        <field name="name">Stock Minimum Dates</field>
+        <field name="res_model">stock.min.dates</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Stock Minimum Date
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_stock_min_dates" name="Stock Minimum Dates" parent="stock.menu_stock_root" action="action_stock_min_dates"/>
+</odoo>

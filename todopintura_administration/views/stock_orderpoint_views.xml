@@ -4,9 +4,8 @@
         <field name="model">stock.warehouse.orderpoint</field>
         <field name="inherit_id" ref="stock.view_warehouse_orderpoint_tree_editable"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='product_max_qty']" position="after">
-                <field name="fecha_inicio" optional="show"/>
-                <field name="fecha_fin" optional="show"/>
+            <xpath expr="//field[@name='product_min_qty']" position="before">
+                <field name="stock_min_dates_ids" widget="one2many_list" optional="show"/>
             </xpath>
         </field>
     </record>
