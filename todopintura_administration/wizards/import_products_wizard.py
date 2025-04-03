@@ -124,7 +124,7 @@ class ImportProductsWizard(models.TransientModel):
                 'description': notes if notes else None,
                 'standard_price': coste if coste else 0,
                 'invoice_description': invoice_description if invoice_description else None,
-                'detailed_type': "product",
+                'type': "consu",
                 'invoice_policy': "delivery",
                 'available_in_pos': True,
                 'pos_categ_ids': [(6, 0, [pos_categ])] if pos_categ else [],

@@ -10,12 +10,12 @@
                 <page name="assigned_persons" string="Personas asignadas"
                       modifiers="{'invisible': [('is_company', '=', False)]}">
                     <field name="assigned_person_ids" context="{'default_parent_id': id}" mode="tree,form">
-                        <tree string="Assigned Persons">
+                        <list string="Assigned Persons">
                             <field name="name"/>
                             <field name="email"/>
                             <field name="phone"/>
                             <field name="vat"/>
-                        </tree>
+                        </list>
                         <form string="Assigned Person">
                             <sheet>
                                 <group>

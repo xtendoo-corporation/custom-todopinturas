@@ -4,16 +4,16 @@
         <field name="model">product.pricelist</field>
         <field name="inherit_id" ref="product.product_pricelist_view"/>
         <field name="arch" type="xml">
-            <xpath expr="//tree[2]/field[@name='base']" position="replace">
+            <xpath expr="//list/field[@name='base']" position="replace">
             </xpath>
-             <xpath expr="//tree[2]/field[@name='applied_on']" position="replace">
+             <xpath expr="//list/field[@name='applied_on']" position="replace">
             </xpath>
 
-             <xpath expr="//tree[2]/field[@name='price']" position="replace">
+             <xpath expr="//list/field[@name='price']" position="replace">
                     <field name="price" string="Precio" required='1' invisible="not compute_price == 'fixed'"
                            optional="show"/>
             </xpath>
-            <xpath expr="//tree[2]/field[@name='price']" position="before">
+            <xpath expr="//list/field[@name='price']" position="before">
                     <field name="compute_price" string="Tipo Cálculo" optional="show"/>
             </xpath>
             <xpath expr="//field[@name='price']" position="after">
@@ -25,7 +25,7 @@
                 <field name="price_discount" invisible="not compute_price == 'formula'" string="Desc %"
                        optional="show"/>
             </xpath>
-            <xpath expr="///tree[2]/field[@name='min_quantity']" position="before">
+            <xpath expr="///list/field[@name='min_quantity']" position="before">
               <field name="filter_supplier_id" string="Proveedor" optional="show"/>
             </xpath>
         </field>

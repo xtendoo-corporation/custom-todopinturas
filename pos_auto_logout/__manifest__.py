@@ -1,6 +1,6 @@
 {
     'name': 'POS Auto Logout',
-    'version': "17.0.1.0.0",
+    'version': "18.0.1.0.0",
     'summary': 'POS Auto Logout When pos order done',
     'category': 'Point of Sale',
     'author': 'Abraham Xtendoo',
