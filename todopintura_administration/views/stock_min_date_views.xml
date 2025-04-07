@@ -38,5 +38,9 @@
         </field>
     </record>
 
-    <menuitem id="menu_stock_min_dates" name="Stock Minimum Dates" parent="stock.menu_stock_root" action="action_stock_min_dates"/>
+    <menuitem id="menu_stock_min_dates"
+              name="Stock Minimum Dates"
+              parent="todopintura_administration.menu_imports"
+              action="action_stock_min_dates"
+              sequence="150"/>
 </odoo>

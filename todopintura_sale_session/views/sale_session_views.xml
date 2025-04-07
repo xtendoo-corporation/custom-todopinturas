@@ -1,0 +1,87 @@
+<odoo>
+    <record id="view_sale_session_kanban" model="ir.ui.view">
+        <field name="name">sale.session.kanban</field>
+        <field name="model">sale.session</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <field name="name"/>
+                <field name="company_id"/>
+                <field name="initial_amount"/>
+                <field name="final_amount"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card">
+                            <div name="card_title" class="mb-4 ms-2 d-flex justify-content-between">
+                                <field name="name" class="fw-bold fs-4 d-block"/>
+                                <div class="dropdown">
+                                    <button name="menu_info_sale_session" class="btn btn-secondary btn-sm dropdown-toggle" type="button"
+                                            id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                        &#x22EE;
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                        <li>
+                                            <a class="dropdown-item" type="object" name="action_open_sale_session_form">
+                                                + Info
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" type="object" name="action_view_related_orders">Ver
+                                                Pedidos
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="ms-2">
+                                <div t-if="record.state.raw_value == 'open'" class="badge text-bg-info d-inline-block">
+                                    <span>Abierto</span>
+                                </div>
+                                <div t-if="record.state.raw_value == 'closed'"
+                                     class="badge text-bg-info d-inline-block">
+                                    <span>Cerrado</span>
+                                </div>
+                            </div>
+                            <div class="row g-0 pb-4 ms-2 mt-auto">
+                                <div name="card_left" class="col-6">
+                                    <button t-if="record.state.raw_value == 'closed'" type="object" name="action_open_sale_box"
+                                            class="btn btn-primary btn-sm me-2" string="Abrir caja"/>
+                                    <button t-if="record.state.raw_value == 'open'" type="object" name="action_close_sale_box"
+                                            class="btn btn-danger btn-sm me-2" string="Cerrar caja"/>
+                                </div>
+                                <div class="col-6 d-inline-block">
+                                    <span class="d-inline">Dinero en caja: </span>
+                                    <field name="initial_amount" class="d-inline text-end"/>
+                                    <span class="d-inline"> €</span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+     <record id="view_sale_session_form" model="ir.ui.view">
+        <field name="name">sale.session.form</field>
+        <field name="model">sale.session</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="initial_amount" string="Última cantidad inicial"/>
+                        <field name="final_amount" string="Última cantidad final"/>
+                        <field name="open_time" string="Última hora de apertura"/>
+                        <field name="close_time" string="Última hora de cierre"/>
+                        <field name="state"/>
+                    </group>
+<!--                    <group>-->
+<!--                        <field name="sale_order_ids" widget="one2many_list" readonly="True"/>-->
+<!--                    </group>-->
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

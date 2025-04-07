@@ -1,0 +1,31 @@
+<odoo>
+    <record id="view_sale_session_history_tree" model="ir.ui.view">
+        <field name="name">sale.session.history.tree</field>
+        <field name="model">sale.session.history</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sale_session_id"/>
+                <field name="open_time"/>
+                <field name="close_time"/>
+                <field name="initial_amount"/>
+                <field name="final_amount"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_sale_session_history_form" model="ir.ui.view">
+        <field name="name">sale.session.history.form</field>
+        <field name="model">sale.session.history</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="sale_session_id"/>
+                    <field name="open_time"/>
+                    <field name="close_time"/>
+                    <field name="initial_amount"/>
+                    <field name="final_amount"/>
+                </group>
+            </form>
+        </field>
+    </record>
+</odoo>

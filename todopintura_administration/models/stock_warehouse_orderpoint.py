@@ -20,5 +20,23 @@ class StockWarehouseOrderpoint(models.Model):
             )
             if min_date_record:
                 orderpoint.product_min_qty = min_date_record[0].min_qty
+                min_qty = min_date_record[0].min_qty
+                qty_multiple = orderpoint.qty_multiple
+                if qty_multiple > 0:
+                    orderpoint.product_max_qty = ((min_qty // qty_multiple) + 1) * qty_multiple
+                else:
+                    orderpoint.product_max_qty = min_qty
             else:
                 orderpoint.product_min_qty = 0.0
+                orderpoint.product_max_qty = 0.0
+
+    def action_view_stock_min_dates(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Stock Minimum Dates',
+            'view_mode': 'list',
+            'res_model': 'stock.min.dates',
+            'domain': [('orderpoint_id', '=', self.id)],
+            'context': {'default_orderpoint_id': self.id},
+        }

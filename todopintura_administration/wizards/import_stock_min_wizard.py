@@ -33,6 +33,8 @@ class ImportStockMinWizard(models.TransientModel):
             if not product:
                 error_log.append(f"Producto no encontrado: {ref}")
                 continue
+            if max_qty < min_qty:
+                max_qty = min_qty * 2
 
             orderpoint_vals = {
                 'product_id': product.id,

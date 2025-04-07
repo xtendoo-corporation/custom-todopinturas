@@ -6,11 +6,19 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
+
+    <menuitem
+            id="menu_imports"
+            name="Importaciones"
+            parent="contacts.menu_contacts"
+            sequence="50"/>
+
+
     <menuitem id="menu_import_contacts"
               name="Importar Contactos"
-              parent="contacts.menu_contacts"
+              parent="todopintura_administration.menu_imports"
               action="action_import_contacts_wizard"
-              sequence="30"/>
+              sequence="10"/>
 
      <record id="action_import_suppliers_wizard" model="ir.actions.act_window">
         <field name="name">Importar Proveedores</field>
@@ -20,9 +28,9 @@
     </record>
     <menuitem id="menu_import_suppliers"
               name="Importar Proveedores"
-              parent="contacts.menu_contacts"
+              parent="todopintura_administration.menu_imports"
               action="action_import_suppliers_wizard"
-              sequence="40"/>
+              sequence="20"/>
 
     <record id="action_import_products_wizard" model="ir.actions.act_window">
         <field name="name">Importar Productos</field>
@@ -30,9 +38,16 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
+
+     <menuitem
+            id="menu_imports"
+            name="Importaciones"
+            parent="stock.menu_stock_root"
+            sequence="150"/>
+
     <menuitem id="menu_import_products"
               name="Importar Productos"
-              parent="stock.menu_stock_root"
+              parent="todopintura_administration.menu_imports"
               action="action_import_products_wizard"
               sequence="110"/>
 
@@ -44,7 +59,7 @@
     </record>
     <menuitem id="menu_client_tariffs_wizard"
               name="Importar Tarifas de clientes"
-              parent="stock.menu_stock_root"
+              parent="todopintura_administration.menu_imports"
               action="action_import_client_tariffs_wizard"
               sequence="120"/>
 
@@ -56,7 +71,7 @@
     </record>
     <menuitem id="menu_import_tpv_categories"
               name="Importar Categorias"
-              parent="point_of_sale.menu_point_root"
+              parent="todopintura_administration.menu_imports"
               action="action_import_tpv_categories_wizard"
               sequence="100"/>
 
@@ -68,7 +83,7 @@
     </record>
     <menuitem id="menu_import_stock_min"
               name="Importar Stock Mínimo"
-              parent="stock.menu_stock_root"
+              parent="todopintura_administration.menu_imports"
               action="action_import_stock_min_wizard"
               sequence="130"/>
 
@@ -80,7 +95,7 @@
     </record>
     <menuitem id="menu_import_stock_in_hand"
               name="Importar Existencias"
-              parent="stock.menu_stock_root"
+              parent="todopintura_administration.menu_imports"
               action="action_import_stock_in_hand_wizard"
               sequence="140"/>
 </odoo>
