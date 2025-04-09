@@ -32,9 +32,8 @@ import { debounce } from "@web/core/utils/timing";
 import { openCustomerDisplay } from "@point_of_sale/customer_display/utils";
 import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
-
+import { PartnerList } from "@point_of_sale/app/screens/partner_list/partner_list";
 const { DateTime } = luxon;
-
 patch(PosStore.prototype, {
     /**
      * Versión modificada que solo utiliza la lista de precios predeterminada
@@ -313,5 +312,68 @@ patch(PosStore.prototype, {
                 product.get_price(pricelist, 1);
             }
         }
+    },
+
+    async selectPartner() {
+        const currentOrder = this.get_order();
+        if (!currentOrder) {
+            return false;
+        }
+        const currentPartner = currentOrder.get_partner();
+        if (currentPartner && currentOrder.getHasRefundLines()) {
+            this.dialog.add(AlertDialog, {
+                title: _t("Can't change customer"),
+                body: _t(
+                    "This order already has refund lines for %s. We can't change the customer associated to it. Create a new order for the new customer.",
+                    currentPartner.name
+                ),
+            });
+            return currentPartner;
+        }
+        const payload = await makeAwaitable(this.dialog, PartnerList, {
+            partner: currentPartner,
+            getPayload: (newPartner) => currentOrder.set_partner(newPartner),
+        });
+
+        let newPartner = false;
+        if (payload) {
+            currentOrder.set_partner(payload);
+            newPartner = payload;
+        } else {
+            currentOrder.set_partner(false);
+        }
+
+        // Si el cliente tiene una tarifa específica, aplicarla
+        if (newPartner) {
+            console.log("Cliente seleccionado:", newPartner.name);
+
+            // Obtener tarifa usando el mismo método que updatePricelistAndFiscalPosition
+            const customerPricelist = this.models["product.pricelist"].find(
+                (pricelist) => pricelist.id === newPartner.property_product_pricelist?.id
+            );
+
+            console.log("Tarifa del cliente encontrada:", customerPricelist?.name);
+
+            // Limpiar cachés de productos
+            const products = this.models["product.product"].getAll();
+            products.forEach(product => {
+                product.prices = {};
+                product.cachedPricelistRules = {};
+            });
+
+            // Usar selectPricelist para actualizar la tarifa
+            await this.selectPricelist(customerPricelist);
+
+            // Forzar actualización de la UI
+            setTimeout(() => {
+                if (this.tempScreen?.name === 'ProductScreen') {
+                    const productScreen = this.tempScreen.component;
+                    if (productScreen.productListWidget) {
+                        productScreen.productListWidget.render();
+                    }
+                }
+            }, 200);
+        }
+        return currentPartner;
     },
 });
