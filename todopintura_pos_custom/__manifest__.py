@@ -18,6 +18,7 @@
         'point_of_sale._assets_pos': [
             'todopintura_pos_custom/static/src/js/pos_store.js',
             'todopintura_pos_custom/static/src/js/control_buttons.js',
+            'todopintura_pos_custom/static/src/js/pos_order.js',
         ],
     },
     'license': 'LGPL-3',
