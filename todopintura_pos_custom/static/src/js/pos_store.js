@@ -182,7 +182,15 @@ patch(PosStore.prototype, {
 
   async computeProductPricelistCacheForSpecificPricelist(data, pricelist) {
         console.log("computeProductPricelistCacheForSpecificPricelist", data, pricelist.name);
-
+        console.log("Elementos de lista de precios con filter_supplier_id:",
+            this.models["product.pricelist.item"].getAll()
+            .filter(item => item.filter_supplier_id)
+            .map(item => ({
+                id: item.id,
+                supplier: item.filter_supplier_id,
+                pricelist: item.pricelist_id.name
+            }))
+        );
         // Limpiar cachés agresivamente al inicio para todos los productos
         const products = this.models["product.product"].getAll();
         products.forEach(product => {
@@ -375,5 +383,26 @@ patch(PosStore.prototype, {
             }, 200);
         }
         return currentPartner;
+    },
+    async ready() {
+        const result = await this._super(...arguments);
+
+        // Cargar todos los contactos una sola vez al inicio
+        const allPartners = this.models["res.partner"].getAll();
+        console.log(`Cargados ${allPartners.length} contactos al inicio`);
+
+        // Si no hay suficientes contactos, intentar cargarlos todos
+        if (allPartners.length < 1000) {
+            console.log("Cargando todos los contactos disponibles...");
+            try {
+                await this.data.loadPartnersBackground();
+                const partnersAfterLoad = this.models["res.partner"].getAll();
+                console.log(`Contactos cargados después de forzar: ${partnersAfterLoad.length}`);
+            } catch (error) {
+                console.error("Error al cargar contactos:", error);
+            }
+        }
+
+        return result;
     },
 });
