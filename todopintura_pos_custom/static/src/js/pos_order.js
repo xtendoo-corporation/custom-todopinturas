@@ -4,15 +4,9 @@ import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { _t } from "@web/core/l10n/translation";
 
 patch(PosOrder.prototype, {
-    /**
-     * Sobrescribe el método set_pricelist para añadir funcionalidad adicional
-     * cuando se cambia la lista de precios
-     */
     set_pricelist(pricelist) {
-        console.log("Iniciando selección de pricelist...");
         if (pricelist) {
             this.update({ pricelist_id: pricelist });
-            console.log("Nueva pricelist seleccionada:", pricelist.name);
         } else {
             this.update({ pricelist_id: false });
         }
@@ -66,6 +60,5 @@ patch(PosOrder.prototype, {
                 ).price_unit
             );
         });
-        console.log("Pricelist actualizada a:", this.pricelist_id?.name);
     },
 });

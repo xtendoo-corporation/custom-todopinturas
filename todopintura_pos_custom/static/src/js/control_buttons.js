@@ -7,11 +7,7 @@ import { SelectionPopup } from "@point_of_sale/app/utils/input_popups/selection_
 
 patch(ControlButtons.prototype, {
     async clickPricelist() {
-        console.log("Iniciando selección de pricelist...");
-        console.log("Pricelist actual:", this.currentOrder.pricelist_id?.name || "Sin pricelist");
-
         const selectionList = this.getPricelistList();
-        console.log("Pricelists disponibles:", selectionList);
 
         const payload = await makeAwaitable(this.dialog, SelectionPopup, {
             title: _t("Select the pricelist"),
@@ -19,9 +15,7 @@ patch(ControlButtons.prototype, {
         });
 
         if (payload) {
-            console.log("Nueva pricelist seleccionada:", payload.name);
             this.pos.selectPricelist(payload);
-            console.log("Pricelist actualizada a:", this.currentOrder.pricelist_id?.name);
         } else {
             console.log("Selección de pricelist cancelada");
         }

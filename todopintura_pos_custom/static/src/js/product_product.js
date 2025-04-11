@@ -85,16 +85,6 @@ patch(ProductProduct.prototype, {
     getPricelistRule(pricelist, quantity) {
         const rules = !pricelist ? [] : this.cachedPricelistRules[pricelist?.id] || [];
         const applicableRule = rules.find((rule) => !rule.min_quantity || quantity >= rule.min_quantity);
-
-        // Log para depuración
-        if (applicableRule?.filter_supplier_id) {
-            console.log("Aplicando regla con filtro de proveedor:", {
-                producto: this.display_name,
-                proveedor: applicableRule.filter_supplier_id.name,
-                descuento: applicableRule.percent_price || applicableRule.price_discount
-            });
-        }
-
         return applicableRule;
     }
 });

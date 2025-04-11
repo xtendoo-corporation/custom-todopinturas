@@ -39,7 +39,6 @@ patch(PosStore.prototype, {
      * Versión modificada que solo utiliza la lista de precios predeterminada
      */
     computeProductPricelistCache(data) {
-        console.log("computeProductPricelistCache", data);
         if (data) {
             data = this.models[data.model].readMany(data.ids);
         }
@@ -160,10 +159,8 @@ patch(PosStore.prototype, {
     },
 
    async selectPricelist(pricelist) {
-        console.log("selectPricelist method in pos_store.js", pricelist);
 
         const oldPricelist = this.get_order().pricelist_id;
-        console.log("Cambiando de pricelist:", oldPricelist?.name, "a", pricelist.name);
 
         // Definir el objeto data antes de usarlo
         const data = {
@@ -177,31 +174,17 @@ patch(PosStore.prototype, {
 
         await this.get_order().set_pricelist(pricelist);
 
-        console.log("Pricelist actualizada correctamente a:", this.get_order().pricelist_id?.name);
     },
 
   async computeProductPricelistCacheForSpecificPricelist(data, pricelist) {
-        console.log("computeProductPricelistCacheForSpecificPricelist", data, pricelist.name);
-        console.log("Elementos de lista de precios con filter_supplier_id:",
-            this.models["product.pricelist.item"].getAll()
-            .filter(item => item.filter_supplier_id)
-            .map(item => ({
-                id: item.id,
-                supplier: item.filter_supplier_id,
-                pricelist: item.pricelist_id.name
-            }))
-        );
-        // Limpiar cachés agresivamente al inicio para todos los productos
         const products = this.models["product.product"].getAll();
         products.forEach(product => {
             product.prices = {};
         });
 
-        // Encontrar todas las listas de precios que son base para la actual
         const allPricelists = this.models["product.pricelist"].getAll();
         const pricelistItems = this.models["product.pricelist.item"].getAll();
 
-        // Identificar tarifas base necesarias
         const basePricelistIds = new Set();
         const currentPricelistItems = pricelistItems.filter(item =>
             item.pricelist_id.id === pricelist.id &&
@@ -209,24 +192,18 @@ patch(PosStore.prototype, {
             item.base_pricelist_id
         );
 
-        // Recolectar todas las tarifas base
         currentPricelistItems.forEach(item => {
             basePricelistIds.add(item.base_pricelist_id.id);
         });
 
-        console.log(`Tarifas base encontradas: ${basePricelistIds.size}`);
 
-        // Calcular precios para las tarifas base primero
         for (const basePricelistId of basePricelistIds) {
             const basePricelist = allPricelists.find(pl => pl.id === basePricelistId);
             if (basePricelist) {
-                console.log(`Calculando precios para tarifa base: ${basePricelist.name}`);
                 await this.calculatePricesForPricelist(basePricelist, products);
             }
         }
 
-        // Ahora calcular los precios para la tarifa seleccionada
-        console.log(`Calculando precios para tarifa seleccionada: ${pricelist.name}`);
         await this.calculatePricesForPricelist(pricelist, products);
 
         // Actualizar la UI con doble renderizado
@@ -238,7 +215,6 @@ patch(PosStore.prototype, {
 
                     setTimeout(() => {
                         productScreen.productListWidget.render();
-                        console.log("UI actualizada con doble renderizado");
                         resolve();
                     }, 100);
                 } else {
@@ -250,10 +226,8 @@ patch(PosStore.prototype, {
             }
         });
 
-        console.log(`Caché de precios completada para pricelist: ${pricelist.name}`);
     },
 
-    // Nuevo método para calcular precios específicos de una tarifa
     async calculatePricesForPricelist(pricelist, products) {
         const date = DateTime.now();
         const pricelistId = pricelist.id;
@@ -269,7 +243,6 @@ patch(PosStore.prototype, {
             globalItems: [],
         };
 
-        // Función auxiliar para agregar elementos
         const pushItem = (targetArray, key, item) => {
             if (!targetArray[key]) {
                 targetArray[key] = [];
@@ -277,7 +250,6 @@ patch(PosStore.prototype, {
             targetArray[key].push(item);
         };
 
-        // Clasificar los items por tipo
         for (const item of pricelistItems) {
             if (
                 (item.date_start && deserializeDate(item.date_start, { zone: "utc" }) > date) ||
@@ -306,18 +278,14 @@ patch(PosStore.prototype, {
             }
         }
 
-        // Calcular precios para cada producto
         for (const product of products) {
-            // Limpiar reglas existentes para esta lista de precios
             delete product.cachedPricelistRules[pricelistId];
 
-            // Calcular nuevas reglas aplicables
             const applicableRules = product.getApplicablePricelistRules(pricelistRules);
 
             if (applicableRules[pricelistId]) {
                 product.cachedPricelistRules[pricelistId] = applicableRules[pricelistId];
 
-                // Forzar cálculo explícito del precio con la nueva tarifa
                 product.get_price(pricelist, 1);
             }
         }
@@ -352,28 +320,19 @@ patch(PosStore.prototype, {
             currentOrder.set_partner(false);
         }
 
-        // Si el cliente tiene una tarifa específica, aplicarla
         if (newPartner) {
-            console.log("Cliente seleccionado:", newPartner.name);
-
-            // Obtener tarifa usando el mismo método que updatePricelistAndFiscalPosition
             const customerPricelist = this.models["product.pricelist"].find(
                 (pricelist) => pricelist.id === newPartner.property_product_pricelist?.id
             );
 
-            console.log("Tarifa del cliente encontrada:", customerPricelist?.name);
-
-            // Limpiar cachés de productos
             const products = this.models["product.product"].getAll();
             products.forEach(product => {
                 product.prices = {};
                 product.cachedPricelistRules = {};
             });
 
-            // Usar selectPricelist para actualizar la tarifa
             await this.selectPricelist(customerPricelist);
 
-            // Forzar actualización de la UI
             setTimeout(() => {
                 if (this.tempScreen?.name === 'ProductScreen') {
                     const productScreen = this.tempScreen.component;
@@ -388,17 +347,13 @@ patch(PosStore.prototype, {
     async ready() {
         const result = await this._super(...arguments);
 
-        // Cargar todos los contactos una sola vez al inicio
         const allPartners = this.models["res.partner"].getAll();
         console.log(`Cargados ${allPartners.length} contactos al inicio`);
 
-        // Si no hay suficientes contactos, intentar cargarlos todos
         if (allPartners.length < 1000) {
-            console.log("Cargando todos los contactos disponibles...");
             try {
                 await this.data.loadPartnersBackground();
                 const partnersAfterLoad = this.models["res.partner"].getAll();
-                console.log(`Contactos cargados después de forzar: ${partnersAfterLoad.length}`);
             } catch (error) {
                 console.error("Error al cargar contactos:", error);
             }

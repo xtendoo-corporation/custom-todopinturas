@@ -5,8 +5,6 @@ import { patch } from "@web/core/utils/patch";
 
 patch(PartnerList.prototype, {
     async getNewPartners() {
-        console.log("Buscando contactos...");
-        console.log("Offset actual:", this.state.currentOffset);
         let domain = [];
         const limit = 100000;
 
@@ -18,7 +16,6 @@ patch(PartnerList.prototype, {
             limit: limit,
             offset: this.state.currentOffset,
         });
-        console.log("Contactos encontrados:", result.length);
         return result;
     }
 });
