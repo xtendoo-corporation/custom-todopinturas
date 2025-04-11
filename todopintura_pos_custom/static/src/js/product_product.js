@@ -4,155 +4,97 @@ import { roundPrecision } from "@web/core/utils/numbers";
 import { _t } from "@web/core/l10n/translation";
 
 patch(ProductProduct.prototype, {
-    get_price(pricelist, quantity, price_extra = 0, recurring = false, list_price = false) {
-        if (recurring && !pricelist) {
-            alert(_t("Un error ocurrió al cargar los precios. Asegúrese de que todas las tarifas estén disponibles en el POS."));
-        }
+    getApplicablePricelistRules(pricelistRules) {
+        const applicableRules = {};
+        for (const pricelistId in pricelistRules) {
+            applicableRules[pricelistId] = [];
+            const rules = pricelistRules[pricelistId];
 
-        let price = (list_price || this.lst_price) + (price_extra || 0);
-        const rule = this.getPricelistRule(pricelist, quantity);
+            // Reglas específicas de producto
+            if (rules.productItems[this.id]) {
+                // Filtrar reglas por proveedor si es necesario
+                const productRules = rules.productItems[this.id].filter(rule => {
+                    if (rule.filter_supplier_id) {
+                        // Verificar si el producto tiene este proveedor
+                        return this.seller_ids && this.seller_ids.some(
+                            seller => seller.partner_id.id === rule.filter_supplier_id.id
+                        );
+                    }
+                    return true; // Mantener reglas sin filtro de proveedor
+                });
 
-        if (!rule) {
-            return price;
-        }
+                applicableRules[pricelistId].push(...productRules);
+                if (productRules.length && !productRules[0].min_quantity) {
+                    continue;
+                }
+            }
 
-        // Procesamiento de la regla seleccionada
-        if (rule.base === "pricelist") {
-            if (rule.base_pricelist_id) {
-                // Primero comprobar si hay filtro de proveedor
+            // Reglas de plantilla de producto
+            const productTmplId = this.raw.product_tmpl_id;
+            if (rules.productTmlpItems[productTmplId]) {
+                // Filtrar reglas por proveedor si es necesario
+                const templateRules = rules.productTmlpItems[productTmplId].filter(rule => {
+                    if (rule.filter_supplier_id) {
+                        return this.seller_ids && this.seller_ids.some(
+                            seller => seller.partner_id.id === rule.filter_supplier_id.id
+                        );
+                    }
+                    return true;
+                });
+
+                applicableRules[pricelistId].push(...templateRules);
+                if (templateRules.length && !templateRules[0].min_quantity) {
+                    continue;
+                }
+            }
+
+            // Reglas por categoría
+            for (const category of this.parentCategories) {
+                if (rules.categoryItems[category]) {
+                    // Filtrar reglas por proveedor si es necesario
+                    const categoryRules = rules.categoryItems[category].filter(rule => {
+                        if (rule.filter_supplier_id) {
+                            return this.seller_ids && this.seller_ids.some(
+                                seller => seller.partner_id.id === rule.filter_supplier_id.id
+                            );
+                        }
+                        return true;
+                    });
+
+                    applicableRules[pricelistId].push(...categoryRules);
+                    if (categoryRules.length && !categoryRules[0].min_quantity) {
+                        break;
+                    }
+                }
+            }
+
+            // Reglas globales (también filtradas por proveedor)
+            const globalRules = rules.globalItems.filter(rule => {
                 if (rule.filter_supplier_id) {
-                    const hasSupplier = this.seller_ids && this.seller_ids.some(
+                    return this.seller_ids && this.seller_ids.some(
                         seller => seller.partner_id.id === rule.filter_supplier_id.id
                     );
-
-                    if (!hasSupplier) {
-                        console.log(`Regla ignorada: filtro de proveedor ${rule.filter_supplier_id.name} no coincide`);
-                        return price; // No aplicar la regla si el proveedor no coincide
-                    }
-
-                    console.log(`Aplicando regla con proveedor ${rule.filter_supplier_id.name} basada en tarifa ${rule.base_pricelist_id.name}`);
                 }
+                return true;
+            });
 
-                // Obtener el precio base de la tarifa referenciada
-                price = this.get_price(rule.base_pricelist_id, quantity, 0, true, list_price);
-                console.log(`Precio base desde tarifa ${rule.base_pricelist_id.name}: ${price}`);
-            }
-        } else if (rule.base === "standard_price") {
-            price = this.standard_price;
+            applicableRules[pricelistId].push(...globalRules);
         }
-
-        // Aplicar el cálculo de precio según el tipo de regla
-        if (rule.compute_price === "fixed") {
-            price = rule.fixed_price;
-            console.log(`Aplicando precio fijo: ${price}`);
-        } else if (rule.compute_price === "percentage") {
-            const oldPrice = price;
-            price = price - price * (rule.percent_price / 100);
-            console.log(`Aplicando porcentaje ${rule.percent_price}%: ${oldPrice} -> ${price}`);
-        } else {
-            var price_limit = price;
-            const oldPrice = price;
-            price -= price * (rule.price_discount / 100);
-            console.log(`Aplicando descuento ${rule.price_discount}%: ${oldPrice} -> ${price}`);
-
-            if (rule.price_round) {
-                price = roundPrecision(price, rule.price_round);
-                console.log(`Redondeando a ${rule.price_round}: ${price}`);
-            }
-            if (rule.price_surcharge) {
-                price += rule.price_surcharge;
-                console.log(`Aplicando recargo ${rule.price_surcharge}: ${price}`);
-            }
-            if (rule.price_min_margin) {
-                price = Math.max(price, price_limit + rule.price_min_margin);
-                console.log(`Aplicando margen mínimo: ${price}`);
-            }
-            if (rule.price_max_margin) {
-                price = Math.min(price, price_limit + rule.price_max_margin);
-                console.log(`Aplicando margen máximo: ${price}`);
-            }
-        }
-
-        // Registrar información de debug para reglas con proveedor
-        if (rule.filter_supplier_id) {
-            console.log(`Precio final con regla de proveedor ${rule.filter_supplier_id.name}: ${price}`);
-        }
-
-        return price;
+        return applicableRules;
     },
-
     getPricelistRule(pricelist, quantity) {
         const rules = !pricelist ? [] : this.cachedPricelistRules[pricelist?.id] || [];
+        const applicableRule = rules.find((rule) => !rule.min_quantity || quantity >= rule.min_quantity);
 
-        if (!rules.length) {
-            return undefined;
+        // Log para depuración
+        if (applicableRule?.filter_supplier_id) {
+            console.log("Aplicando regla con filtro de proveedor:", {
+                producto: this.display_name,
+                proveedor: applicableRule.filter_supplier_id.name,
+                descuento: applicableRule.percent_price || applicableRule.price_discount
+            });
         }
 
-        // Filtrar reglas por cantidad mínima
-        const validRules = rules.filter(rule => !rule.min_quantity || quantity >= rule.min_quantity);
-
-        if (!validRules.length) {
-            return undefined;
-        }
-
-        // Ordenar reglas según la misma prioridad que en Python
-        const prioritizedRules = [...validRules].sort((a, b) => {
-            // 1. Producto específico + proveedor (máxima prioridad)
-            const aHasProductAndSupplier = (a.product_tmpl_id || a.product_id) && a.filter_supplier_id;
-            const bHasProductAndSupplier = (b.product_tmpl_id || b.product_id) && b.filter_supplier_id;
-
-            if (aHasProductAndSupplier && !bHasProductAndSupplier) return -1;
-            if (!aHasProductAndSupplier && bHasProductAndSupplier) return 1;
-
-            // 2. Producto específico
-            const aHasProduct = a.product_tmpl_id || a.product_id;
-            const bHasProduct = b.product_tmpl_id || b.product_id;
-
-            if (aHasProduct && !bHasProduct) return -1;
-            if (!aHasProduct && bHasProduct) return 1;
-
-            // 3. Categoría + proveedor
-            const aHasCategoryAndSupplier = a.categ_id && a.filter_supplier_id;
-            const bHasCategoryAndSupplier = b.categ_id && b.filter_supplier_id;
-
-            if (aHasCategoryAndSupplier && !bHasCategoryAndSupplier) return -1;
-            if (!aHasCategoryAndSupplier && bHasCategoryAndSupplier) return 1;
-
-            // 4. Categoría
-            const aHasCategory = a.categ_id;
-            const bHasCategory = b.categ_id;
-
-            if (aHasCategory && !bHasCategory) return -1;
-            if (!aHasCategory && bHasCategory) return 1;
-
-            // 5. Proveedor
-            const aHasSupplier = a.filter_supplier_id;
-            const bHasSupplier = b.filter_supplier_id;
-
-            if (aHasSupplier && !bHasSupplier) return -1;
-            if (!aHasSupplier && bHasSupplier) return 1;
-
-            // 6. Cualquier otra regla
-            return 0;
-        });
-
-        // Verificar reglas que tienen filtro de proveedor
-        for (const rule of prioritizedRules) {
-            if (rule.filter_supplier_id) {
-                const hasSupplier = this.seller_ids && this.seller_ids.some(
-                    seller => seller.partner_id.id === rule.filter_supplier_id.id
-                );
-
-                if (!hasSupplier) {
-                    continue; // Saltar esta regla si el producto no tiene este proveedor
-                }
-            }
-
-            return rule;
-        }
-
-        // Si llegamos aquí, no hay reglas con filtro de proveedor aplicables,
-        // devolver la primera regla válida
-        return prioritizedRules[0];
+        return applicableRule;
     }
 });

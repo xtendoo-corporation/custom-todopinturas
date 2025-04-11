@@ -257,6 +257,7 @@ patch(PosStore.prototype, {
     async calculatePricesForPricelist(pricelist, products) {
         const date = DateTime.now();
         const pricelistId = pricelist.id;
+
         let pricelistItems = this.models["product.pricelist.item"].getAll()
             .filter(item => item.pricelist_id.id === pricelistId);
 
