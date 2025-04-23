@@ -143,6 +143,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals = {
                                     'pricelist_id': pricelist.id,
                                     'applied_on': '2_product_category',
+                                    'display_applied_on': '2_product_category',
                                     'compute_price': 'formula',
                                     'base': 'standard_price',
                                     'price_discount': percentage_about_cost,
@@ -175,6 +176,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals = {
                                     'pricelist_id': pricelist.id,
                                     'applied_on': '2_product_category',
+                                    'display_applied_on': '2_product_category',
                                     'compute_price': 'formula',
                                     'base': 'standard_price',
                                     'price_discount': percentage_about_cost,
@@ -267,6 +269,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals = {
                                     'pricelist_id': pricelist.id,
                                     'applied_on': '2_product_category',
+                                    'display_applied_on': '2_product_category',
                                     'compute_price': 'formula',
                                     'base': 'pricelist',
                                     'base_pricelist_id': base_pricelist.id,
@@ -299,6 +302,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals = {
                                     'pricelist_id': pricelist.id,
                                     'applied_on': '2_product_category',
+                                    'display_applied_on': '2_product_category',
                                     'compute_price': 'formula',
                                     'base': 'pricelist',
                                     'base_pricelist_id': base_pricelist.id,
@@ -409,6 +413,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals = {
                                     'pricelist_id': pricelist.id,
                                     'applied_on': '2_product_category',
+                                    'display_applied_on': '2_product_category',
                                     'compute_price': 'percentage',
                                     'percent_price': discount,
                                     'categ_id': category.id,
@@ -440,6 +445,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals = {
                                     'pricelist_id': pricelist.id,
                                     'applied_on': '2_product_category',
+                                    'display_applied_on': '2_product_category',
                                     'compute_price': 'percentage',
                                     'percent_price': discount,
                                     'categ_id': category.id,
