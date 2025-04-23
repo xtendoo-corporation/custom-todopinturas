@@ -5,7 +5,9 @@
         <field name="inherit_id" ref="product.product_pricelist_item_form_view" />
         <field name="arch" type="xml">
             <xpath expr="//field[@name='price_max_margin']/.." position="after">
-                <field name="filter_supplier_id"/>
+                   <field name="filter_supplier_id"
+                         invisible="display_applied_on != '3_filter_supplier'"
+                         required="display_applied_on == '3_filter_supplier'"/>
             </xpath>
         </field>
     </record>

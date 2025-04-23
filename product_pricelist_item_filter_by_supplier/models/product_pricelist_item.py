@@ -10,38 +10,45 @@ class ProductPricelistItem(models.Model):
         help="Only match prices from the selected supplier",
     )
 
-    # def _compute_price(self, product, quantity, uom, date, currency=None):
-    #     result = 0.0
-    #     if not self.filter_supplier_id:
-    #         result = super()._compute_price(product, quantity, uom, date, currency)
-    #
-    #     if self.filter_supplier_id and self.filter_supplier_id.id in product.seller_ids.partner_id.mapped('id'):
-    #
-    #         result = super()._compute_price(product, quantity, uom, date, currency)
-    #
-    #     return result
+    applied_on = fields.Selection(
+        selection_add=[('4_filter_supplier', "Filtro por proveedor")],
+        ondelete={'4_filter_supplier': 'set default'}
+    )
 
+    display_applied_on = fields.Selection(
+        selection_add=[('3_filter_supplier', "Proveedor")],
+        ondelete={'3_filter_supplier': 'set default'}
+    )
 
-    # @api.depends('applied_on', 'categ_id', 'product_tmpl_id', 'product_id', 'compute_price', 'fixed_price', \
-    #              'pricelist_id', 'percent_price', 'price_discount', 'price_surcharge', 'filter_supplier_id')
-    # def _compute_name_and_price(self):
-    #     for item in self:
-    #         if item.categ_id and item.applied_on == '2_product_category':
-    #             item.name = _("Category: %s", item.categ_id.display_name)
-    #         elif item.product_tmpl_id and item.applied_on == '1_product':
-    #             item.name = _("Product: %s", item.product_tmpl_id.display_name)
-    #         elif item.product_id and item.applied_on == '0_product_variant':
-    #             item.name = _("Variant: %s", item.product_id.display_name)
-    #         elif item.applied_on == '3_global' and item.filter_supplier_id:
-    #             item.name = _("All products with Supplier: %s", item.filter_supplier_id.display_name)
-    #         else:
-    #             item.name = _("All Products")
-    #
-    #         if item.compute_price == 'fixed':
-    #             item.price = formatLang(
-    #                 item.env, item.fixed_price, monetary=True, dp="Product Price", currency_obj=item.currency_id)
-    #         elif item.compute_price == 'percentage':
-    #             item.price = _("%s %% discount", item.percent_price)
-    #         else:
-    #             item.price = _("%(percentage)s %% discount and %(price)s surcharge", percentage=item.price_discount,
-    #                            price=item.price_surcharge)
+    @api.depends('applied_on', 'categ_id', 'product_tmpl_id', 'product_id', 'filter_supplier_id')
+    def _compute_name(self):
+        res = super()._compute_name()
+        for item in self:
+            if item.filter_supplier_id and item.applied_on == '4_filter_supplier':
+                item.name = _("Proveedor: %s", item.filter_supplier_id.display_name)
+            elif not item.filter_supplier_id and item.applied_on == '4_filter_supplier':
+                item.name = _("Todos los proveedores")
+        return res
+
+    @api.onchange('display_applied_on')
+    def _onchange_display_applied_on(self):
+        for item in self:
+            if item.display_applied_on == '3_filter_supplier':
+                item.update({
+                    'applied_on': '4_filter_supplier',
+                    'product_id': None,
+                    'product_tmpl_id': None,
+                    'categ_id': None,
+                    'product_uom': None,
+                })
+            else:
+                super(ProductPricelistItem, self)._onchange_display_applied_on()
+
+    @api.onchange('applied_on')
+    def _onchange_applied_on(self):
+        for item in self:
+            if item.applied_on == '4_filter_supplier' and item.display_applied_on != '3_filter_supplier':
+                item.display_applied_on = '3_filter_supplier'
+            elif item.applied_on != '4_filter_supplier' and item.display_applied_on == '3_filter_supplier':
+                # Si cambió applied_on pero display sigue en proveedor, actualizar display
+                item.display_applied_on = item.applied_on

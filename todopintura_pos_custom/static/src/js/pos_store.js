@@ -89,6 +89,7 @@ patch(PosStore.prototype, {
             productTmlpItems: {},
             categoryItems: {},
             globalItems: [],
+            supplierItems: [],
         };
 
         for (const item of pricelistItems) {
@@ -101,6 +102,10 @@ patch(PosStore.prototype, {
 
             // Solo procesar elementos de la lista de precios predeterminada
             if (item.pricelist_id.id !== defaultPricelistId) {
+                continue;
+            }
+            if (item.applied_on === '4_filter_supplier') {
+                pricelistRules[defaultPricelistId].supplierItems.push(item);
                 continue;
             }
 
@@ -235,12 +240,23 @@ patch(PosStore.prototype, {
         let pricelistItems = this.models["product.pricelist.item"].getAll()
             .filter(item => item.pricelist_id.id === pricelistId);
 
+        // Separar las reglas que usan otras listas de precios como base
+        const basedOnPricelistItems = pricelistItems.filter(
+            item => item.base === 'pricelist' && item.base_pricelist_id
+        );
+
+        // Asegurarnos que las reglas con filtro de proveedor se procesen correctamente
+        const supplierPricelistItems = pricelistItems.filter(
+            item => item.applied_on === '4_filter_supplier'
+        );
+
         const pricelistRules = {};
         pricelistRules[pricelistId] = {
             productItems: {},
             productTmlpItems: {},
             categoryItems: {},
             globalItems: [],
+            supplierItems: [],
         };
 
         const pushItem = (targetArray, key, item) => {
@@ -255,6 +271,10 @@ patch(PosStore.prototype, {
                 (item.date_start && deserializeDate(item.date_start, { zone: "utc" }) > date) ||
                 (item.date_end && deserializeDate(item.date_end, { zone: "utc" }) < date)
             ) {
+                continue;
+            }
+             if (item.applied_on === '4_filter_supplier') {
+                pricelistRules[pricelistId].supplierItems.push(item);
                 continue;
             }
 
@@ -284,12 +304,32 @@ patch(PosStore.prototype, {
             const applicableRules = product.getApplicablePricelistRules(pricelistRules);
 
             if (applicableRules[pricelistId]) {
-                product.cachedPricelistRules[pricelistId] = applicableRules[pricelistId];
+            // Verificar si hay reglas basadas en otra tarifa + filtro proveedor
+            const hasBasePricelistSupplier = applicableRules[pricelistId].some(
+                rule => rule.applied_on === '4_filter_supplier' &&
+                        rule.base === 'pricelist' &&
+                        rule.base_pricelist_id
+            );
 
-                product.get_price(pricelist, 1);
+            product.cachedPricelistRules[pricelistId] = applicableRules[pricelistId];
+
+            // Calcular el precio considerando reglas basadas en otras tarifas
+            product.get_price(pricelist, 1);
+
+            // Si es necesario, recalcular para reglas especiales
+            if (hasBasePricelistSupplier) {
+                const supplierRules = applicableRules[pricelistId].filter(
+                    r => r.applied_on === '4_filter_supplier'
+                );
+
+                // Forzar recálculo del precio usando estas reglas
+                if (supplierRules.length > 0) {
+                    product.get_price(pricelist, 1, true);
+                }
             }
         }
-    },
+    }
+},
 
     async selectPartner() {
         const currentOrder = this.get_order();

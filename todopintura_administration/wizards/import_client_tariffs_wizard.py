@@ -120,6 +120,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 pricelist_item_vals['date_end'] = date_end
                             if provider:
                                 pricelist_item_vals['filter_supplier_id'] = provider.id
+                                pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                 pricelist_item = self.env['product.pricelist.item'].search([
                                     ('pricelist_id', '=', pricelist.id),
                                     ('product_tmpl_id', '=', product.id),
@@ -151,6 +153,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     pricelist_item_vals['date_end'] = date_end
                                 if provider:
                                     pricelist_item_vals['filter_supplier_id'] = provider.id
+                                    pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                    pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                     pricelist_item = self.env['product.pricelist.item'].search([
                                         ('pricelist_id', '=', pricelist.id),
                                         ('categ_id', '=', category.id),
@@ -182,6 +186,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     pricelist_item_vals['date_end'] = date_end
                                 if provider:
                                     pricelist_item_vals['filter_supplier_id'] = provider.id
+                                    pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                    pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                     pricelist_item = self.env['product.pricelist.item'].search([
                                         ('pricelist_id', '=', pricelist.id),
                                         ('categ_id', '=', category.id),
@@ -216,6 +222,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     pricelist_item_vals['date_end'] = date_end
                                 if provider:
                                     pricelist_item_vals['filter_supplier_id'] = provider.id
+                                    pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                    pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                     pricelist_item = self.env['product.pricelist.item'].search([
                                         ('pricelist_id', '=', pricelist.id),
                                         ('applied_on', '=', '3_global'),
@@ -269,6 +277,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     pricelist_item_vals['date_end'] = date_end
                                 if provider:
                                     pricelist_item_vals['filter_supplier_id'] = provider.id
+                                    pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                    pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                     pricelist_item = self.env['product.pricelist.item'].search([
                                         ('pricelist_id', '=', pricelist.id),
                                         ('categ_id', '=', category.id),
@@ -300,6 +310,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     pricelist_item_vals['date_end'] = date_end
                                 if provider:
                                     pricelist_item_vals['filter_supplier_id'] = provider.id
+                                    pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                    pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                     pricelist_item = self.env['product.pricelist.item'].search([
                                         ('pricelist_id', '=', pricelist.id),
                                         ('categ_id', '=', category.id),
@@ -352,6 +364,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                         pricelist_item_vals['date_end'] = date_end
                                     if provider:
                                         pricelist_item_vals['filter_supplier_id'] = provider.id
+                                        pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                        pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                         pricelist_item = self.env['product.pricelist.item'].search([
                                             ('pricelist_id', '=', pricelist.id),
                                             ('applied_on', '=', '3_global'),
@@ -404,6 +418,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     pricelist_item_vals['date_end'] = date_end
                                 if provider:
                                     pricelist_item_vals['filter_supplier_id'] = provider.id
+                                    pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                    pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                     pricelist_item = self.env['product.pricelist.item'].search([
                                         ('pricelist_id', '=', pricelist.id),
                                         ('categ_id', '=', category.id,),
@@ -434,6 +450,8 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     pricelist_item_vals['date_end'] = date_end
                                 if provider:
                                     pricelist_item_vals['filter_supplier_id'] = provider.id
+                                    pricelist_item_vals['applied_on'] = '4_filter_supplier'
+                                    pricelist_item_vals['display_applied_on'] = '3_filter_supplier'
                                     pricelist_item = self.env['product.pricelist.item'].search([
                                         ('pricelist_id', '=', pricelist.id),
                                         ('categ_id', '=', category.id),

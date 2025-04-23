@@ -8,24 +8,6 @@ class Pricelist(models.Model):
             self, products, quantity, currency=None, uom=None, date=False, compute_price=True,
             **kwargs
     ):
-        """ Low-level method - Mono pricelist, multi products
-        Returns: dict{product_id: (price, suitable_rule) for the given pricelist}
-
-        Note: self and self.ensure_one()
-
-        :param products: recordset of products (product.product/product.template)
-        :param float quantity: quantity of products requested (in given uom)
-        :param currency: record of currency (res.currency)
-                         note: currency.ensure_one()
-        :param uom: unit of measure (uom.uom record)
-            If not specified, prices returned are expressed in product uoms
-        :param date: date to use for price computation and currency conversions
-        :type date: date or datetime
-        :param bool compute_price: whether the price should be computed (default: True)
-
-        :returns: product_id: (price, pricelist_rule)
-        :rtype: dict
-        """
         self and self.ensure_one()  # self is at most one record
 
         currency = currency or self.currency_id or self.env.company.currency_id
@@ -56,33 +38,38 @@ class Pricelist(models.Model):
             else:
                 qty_in_product_uom = quantity
 
+            # Obtener los IDs de proveedores del producto para comparación eficiente
+            product_supplier_ids = product.seller_ids.partner_id.ids
+
+            # Priorizar las reglas según especificidad
+            # 1. Producto específico + proveedor específico
+            # 2. Producto específico (sin proveedor)
+            # 3. Categoría + proveedor específico
+            # 4. Categoría (sin proveedor)
+            # 5. Solo proveedor específico (4_filter_supplier)
+            # 6. Global (3_global)
             prioritized_rules = sorted(rules, key=lambda r: (
-                bool(r.product_tmpl_id and r.filter_supplier_id),
-                bool(r.product_tmpl_id),
-                bool(r.categ_id and r.filter_supplier_id),
-                bool(r.categ_id),
-                bool(r.filter_supplier_id),
-                not bool(r.filter_supplier_id)
+                bool(r.product_tmpl_id and r.filter_supplier_id and r.filter_supplier_id.id in product_supplier_ids),
+                bool(r.product_tmpl_id and not r.filter_supplier_id),
+                bool(r.categ_id and r.filter_supplier_id and r.filter_supplier_id.id in product_supplier_ids),
+                bool(r.categ_id and not r.filter_supplier_id),
+                bool(
+                    r.applied_on == '4_filter_supplier' and r.filter_supplier_id and r.filter_supplier_id.id in product_supplier_ids),
+                bool(r.applied_on == '3_global')
             ), reverse=True)
 
             for rule in prioritized_rules:
-                print(f"Evaluando regla: {rule.id}, producto: {rule.product_tmpl_id}, proveedor: {rule.filter_supplier_id.name}, {rule.percent_price}, categoria: {rule.categ_id.name}")
-
-            for rule in prioritized_rules:
-                print(f"Evaluando regla: {rule.id}, producto: {rule.product_tmpl_id}, proveedor: {rule.filter_supplier_id.name}")
                 if rule._is_applicable_for(product, qty_in_product_uom):
-                    if rule.filter_supplier_id and rule.filter_supplier_id.id not in product.seller_ids.partner_id.mapped(
-                        'id'):
-                        continue  # Skip this rule if supplier does not match
+                    # Si la regla es tipo proveedor pero el proveedor no coincide, saltarla
+                    if rule.filter_supplier_id and rule.filter_supplier_id.id not in product_supplier_ids:
+                        continue
                     suitable_rule = rule
-                    print(f"Regla seleccionada: {suitable_rule.id}")
                     break
 
             if compute_price:
                 price = suitable_rule._compute_price(
                     product, quantity, target_uom, date=date, currency=currency)
             else:
-                # Skip price computation when only the rule is requested.
                 price = 0.0
             results[product.id] = (price, suitable_rule.id)
 
