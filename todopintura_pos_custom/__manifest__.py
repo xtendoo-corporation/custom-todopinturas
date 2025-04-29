@@ -17,11 +17,12 @@
     'assets': {
         'point_of_sale._assets_pos': [
             'todopintura_pos_custom/static/src/js/pos_store.js',
-            'todopintura_pos_custom/static/src/js/control_buttons.js',
             'todopintura_pos_custom/static/src/js/pos_order.js',
             'todopintura_pos_custom/static/src/js/product_product.js',
             'todopintura_pos_custom/static/src/js/partner_list.js',
             'todopintura_pos_custom/static/src/js/res_partner.js',
+            'todopintura_pos_custom/static/src/js/control_buttons.js',
+            'todopintura_pos_custom/static/src/xml/control_buttons.xml',
         ],
     },
     'license': 'LGPL-3',
