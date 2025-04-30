@@ -1,8 +1,8 @@
-/** @odoo-module **/
 import { useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { Dialog } from "@web/core/dialog/dialog";
 import { registry } from "@web/core/registry";
+import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 
 export class LocationSelectionDialog extends Dialog {
     static template = 'todopintura_pos_custom.LocationSelectionDialog';
@@ -20,27 +20,72 @@ export class LocationSelectionDialog extends Dialog {
     setup() {
         super.setup();
         this.state = useState({
-            selectedLocationId: null
+            productsByLocation: {},
+            selectedLocations: []
         });
-    }
 
-    onLocationChange(ev) {
-        this.state.selectedLocationId = parseInt(ev.target.value);
-    }
-
-    getSelectedLocation() {
-        if (!this.state.selectedLocationId || !this.props.locations) {
-            return null;
+        // Inicializar todos los productos sin ubicación asignada
+        if (this.props.orderProducts) {
+            this.props.orderProducts.forEach(product => {
+                this.state.productsByLocation[product.id] = null;
+            });
         }
-        return this.props.locations.find(loc => loc.id === this.state.selectedLocationId);
+    }
+
+    // Método específico para manejar el cambio de ubicación
+    handleProductLocationChange(productId, event) {
+        const locationId = event.target.value ? parseInt(event.target.value) : null;
+        this.toggleProductLocation(productId, locationId);
+    }
+
+    toggleProductLocation(productId, locationId) {
+        this.state.productsByLocation[productId] = locationId;
+        this._updateSelectedLocations();
+    }
+
+    _updateSelectedLocations() {
+        const locations = new Set(
+            Object.values(this.state.productsByLocation).filter(id => id !== null)
+        );
+        this.state.selectedLocations = Array.from(locations);
+    }
+
+    getSelectedProductsByLocation() {
+        const result = {};
+
+        for (const [productId, locationId] of Object.entries(this.state.productsByLocation)) {
+            if (locationId !== null) {
+                if (!result[locationId]) {
+                    result[locationId] = [];
+                }
+                result[locationId].push(parseInt(productId));
+            }
+        }
+
+        return result;
     }
 
     onClickConfirm() {
-        const selectedLocation = this.getSelectedLocation();
-        if (selectedLocation) {
-            this.props.onConfirm(selectedLocation);
+        const productsByLocation = this.getSelectedProductsByLocation();
+
+        // Verificar productos sin asignar
+        const unassignedCount = Object.values(this.state.productsByLocation)
+            .filter(locationId => locationId === null).length;
+
+        if (unassignedCount > 0 && this.props.orderProducts) {
+            this.env.services.dialog.add(ConfirmationDialog, {
+                title: _t("Productos sin asignar"),
+                body: _t("Hay productos sin asignar a ubicaciones. ¿Desea continuar?"),
+                confirm: () => {
+                    this.props.onConfirm(productsByLocation);
+                    this.props.close();
+                },
+                cancel: () => {}
+            });
+        } else {
+            this.props.onConfirm(productsByLocation);
+            this.props.close();
         }
-        this.props.close();
     }
 
     onClickCancel() {

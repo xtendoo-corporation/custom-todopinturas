@@ -70,3 +70,81 @@ class SaleOrder(models.Model):
             'name': sale_order.name,
             'picking_ids': sale_order.picking_ids.ids
         }
+
+
+    @api.model
+    def create_sale_with_multiple_pickings_from_pos(self, sale_data):
+        """Crea una orden de venta desde el POS con albaranes separados por ubicación"""
+        # Extraer datos especiales
+        auto_validate = sale_data.pop('auto_validate_picking', False)
+        products_by_location = sale_data.pop('products_by_location', {})
+
+        # Crear la orden de venta
+        sale_order = self.create(sale_data)
+
+        # Confirmar la venta para crear el albarán inicial
+        sale_order.action_confirm()
+
+        # Verificar que hay albaranes y mapeo de productos
+        if sale_order.picking_ids and products_by_location:
+            # Obtener el albarán original
+            original_picking = sale_order.picking_ids[0]
+
+            # Mapeo para nuevos albaranes por ubicación
+            pickings_by_location = {}
+
+            # Procesar cada movimiento del albarán original
+            moves_to_process = original_picking.move_ids
+            for move in list(moves_to_process):
+                product_id = move.product_id.id
+                location_found = False
+
+                # Buscar en qué ubicación está este producto
+                for loc_id_str, product_ids in products_by_location.items():
+                    loc_id = int(loc_id_str)
+                    if product_id in [int(pid) for pid in product_ids]:
+                        location_found = True
+
+                        # Crear nuevo albarán si no existe para esta ubicación
+                        if loc_id not in pickings_by_location:
+                            new_picking = original_picking.copy({
+                                'move_ids': [],
+                                'move_line_ids': [],
+                                'location_id': loc_id,
+                                'origin': original_picking.origin + f" (Ubicación: {loc_id})"
+                            })
+                            pickings_by_location[loc_id] = new_picking
+
+                        # Mover este movimiento al albarán correspondiente
+                        move.picking_id = pickings_by_location[loc_id].id
+                        move.location_id = loc_id
+                        break
+
+            # Si el albarán original quedó vacío, lo cancelamos
+            if not original_picking.move_ids:
+                original_picking.action_cancel()
+
+            # Procesar todos los albaranes
+            if auto_validate:
+                for picking in sale_order.picking_ids.filtered(lambda p: p.state != 'cancel'):
+                    picking.action_assign()
+
+                    # Asignar cantidades a mover
+                    for move in picking.move_ids:
+                        if move.state not in ('done', 'cancel'):
+                            if hasattr(move, 'quantity'):
+                                move.quantity = move.product_uom_qty
+
+                    # Validar albarán
+                    if picking.state not in ['done', 'cancel']:
+                        try:
+                            picking.with_context(skip_backorder=True, immediate_transfer=True).button_validate()
+                        except UserError as e:
+                            _logger.warning(f"Error al validar albarán: {e}")
+                            picking.button_validate()
+
+        return {
+            'id': sale_order.id,
+            'name': sale_order.name,
+            'picking_ids': sale_order.picking_ids.ids
+        }

@@ -121,7 +121,7 @@ patch(ControlButtons.prototype, {
     },
 
    async clickNuevoBotonAlmacen() {
-    const order = this.pos.get_order();
+     const order = this.pos.get_order();
 
     if (!order || order.is_empty()) {
         this.notification.add(_t("No hay productos en el pedido actual"), {
@@ -177,15 +177,14 @@ patch(ControlButtons.prototype, {
         const productIds = orderProducts.map(p => p.id);
         const locationIds = locations.map(loc => loc.id);
 
-        // Intentar obtener inventario solo si el método existe
+        // Intentar obtener inventario
         try {
-            // Intenta llamar directamente al método sin verificar si existe
             const allInventory = await this.env.services.orm.call(
                 'stock.quant',
                 'get_products_in_all_locations',
                 [productIds, locationIds],
             );
-                console.log("Respuesta del servidor:", allInventory);
+            console.log("Respuesta del servidor:", allInventory);
 
             if (allInventory && allInventory.length > 0) {
                 for (const item of allInventory) {
@@ -203,18 +202,18 @@ patch(ControlButtons.prototype, {
         }
 
         // Usar promesa para manejar el diálogo
-        const selectedLocation = await new Promise(resolve => {
+        const productsByLocation = await new Promise(resolve => {
             let dialogClosed = false;
 
             this.env.services.dialog.add(LocationSelectionDialog, {
-                title: _t("Seleccionar ubicación de origen"),
-                bodyMessage: _t("Por favor, selecciona la ubicación de origen para este pedido:"),
+                title: _t("Asignar productos a ubicaciones"),
+                bodyMessage: _t("Selecciona la ubicación de origen para cada producto:"),
                 locations: locations,
                 orderProducts: orderProducts,
                 inventoryData: inventoryData,
-                onConfirm: (location) => {
+                onConfirm: (productsByLocation) => {
                     dialogClosed = true;
-                    resolve(location);
+                    resolve(productsByLocation);
                 },
                 onCancel: () => {
                     dialogClosed = true;
@@ -228,91 +227,96 @@ patch(ControlButtons.prototype, {
             });
         });
 
-        if (selectedLocation) {
-            // Guardar una referencia al pedido actual
+        if (productsByLocation) {
+            // Guardar referencia al pedido actual
             const currentOrder = order;
 
-            // Preparar líneas para venta estándar
-            const orderLines = [];
-            for (const line of order.get_orderlines()) {
-                const product = line.get_product();
-                if (!product) continue;
-
-                const taxIds = [];
-                if (product.taxes_id && product.taxes_id.length) {
-                    for (const tax of product.taxes_id) {
-                        taxIds.push(typeof tax === 'object' ? tax.id : tax);
+            // Ahora procesamos las ventas separadas por ubicación
+               try {
+                // Crear todas las líneas de pedido
+                const allOrderLines = [];
+                for (const line of order.get_orderlines()) {
+                    const product = line.get_product();
+                    const taxIds = [];
+                    if (product.taxes_id && product.taxes_id.length) {
+                        for (const tax of product.taxes_id) {
+                            taxIds.push(typeof tax === 'object' ? tax.id : tax);
+                        }
                     }
+
+                    allOrderLines.push([0, 0, {
+                        product_id: product.id,
+                        product_uom_qty: line.get_quantity(),
+                        price_unit: line.get_unit_price(),
+                        discount: line.get_discount(),
+                        tax_id: [[6, 0, taxIds]]
+                    }]);
                 }
 
-                orderLines.push([0, 0, {
-                    product_id: product.id,
-                    product_uom_qty: line.get_quantity(),
-                    price_unit: line.get_unit_price(),
-                    discount: line.get_discount(),
-                    tax_id: [[6, 0, taxIds]]
-                }]);
+                // Obtener warehouse_id
+                let warehouseId = false;
+                if (this.pos.config && this.pos.config.warehouse_id) {
+                    warehouseId = Array.isArray(this.pos.config.warehouse_id)
+                        ? this.pos.config.warehouse_id[0]
+                        : this.pos.config.warehouse_id;
+                }
+
+                // Crear datos para esta venta
+                const saleData = {
+                    partner_id: partner.id,
+                    order_line: allOrderLines,
+                    origin: `POS ${this.pos.config?.name || 'Desconocido'}`,
+                    user_id: this.pos.user?.id || false,
+                    auto_validate_picking: true,
+                    products_by_location: productsByLocation
+                };
+
+                if (warehouseId) {
+                    saleData.warehouse_id = warehouseId;
+                }
+
+                // Llamar al nuevo método
+                await this.env.services.orm.call(
+                    'sale.order',
+                    'create_sale_with_multiple_pickings_from_pos',
+                    [saleData]
+                );
+
+                // Limpiar el pedido actual
+                this.pos.add_new_order();
+                if (this.pos.removeOrder) {
+                    this.pos.removeOrder(currentOrder);
+                } else if (this.pos.delete_current_order) {
+                    this.pos.delete_current_order();
+                }
+
+                if (this.pos.db && this.pos.db.remove_order) {
+                    this.pos.db.remove_order(currentOrder.uid);
+                }
+
+                this.notification.add(_t("Venta creada con albaranes separados por ubicación"), {
+                    type: "success",
+                });
+            } catch (error) {
+                this.notification.add(_t("Error al crear la venta: ") + (error.message || error), {
+                    type: "danger",
+                });
+                console.error("Error al crear la venta y albarán:", error);
+
+                if (error.data && error.data.debug) {
+                    console.error("Error detallado:", error.data.debug);
+                }
             }
-
-            // Obtener warehouse_id
-            let warehouseId = false;
-            if (this.pos.config && this.pos.config.warehouse_id) {
-                warehouseId = Array.isArray(this.pos.config.warehouse_id)
-                    ? this.pos.config.warehouse_id[0]
-                    : this.pos.config.warehouse_id;
-            }
-
-            // Datos para venta estándar
-            const saleData = {
-                partner_id: partner.id,
-                order_line: orderLines,
-                origin: `POS ${this.pos.config?.name || 'Desconocido'}`,
-                user_id: this.pos.user?.id || false,
-                auto_validate_picking: true,
-                custom_location_id: selectedLocation.id  // Cambiado de location_id a custom_location_id
-            };
-
-            if (warehouseId) {
-                saleData.warehouse_id = warehouseId;
-            }
-
-            // Crear la venta estándar y validar albarán
-            const resultado = await this.env.services.orm.call(
-                'sale.order',
-                'create_sale_from_pos',
-                [saleData]
-            );
-
-            // Crear nuevo pedido y eliminar el anterior
-            this.pos.add_new_order();
-
-            if (this.pos.removeOrder) {
-                this.pos.removeOrder(currentOrder);
-            } else if (this.pos.delete_current_order) {
-                this.pos.delete_current_order();
-            }
-
-            if (this.pos.db && this.pos.db.remove_order) {
-                this.pos.db.remove_order(currentOrder.uid);
-            }
-
-           this.notification.add(_t("Venta y albarán validados correctamente desde la ubicación seleccionada"), {
-                type: "success",
-            });
         } else {
             this.notification.add(_t("Operación cancelada"), {
                 type: "info",
             });
         }
     } catch (error) {
-        console.error("Error:", error);
-        // Mostrar detalles del error del servidor si están disponibles
-        if (error.data && error.data.debug) {
-            console.error("Error detallado:", error.data.debug);
-        }
-        this.notification.add(_t("Error al procesar la operación: ") + (error.data?.message || error.message || error), {
+        this.notification.add(_t("Error en la operación: ") + (error.message || error), {
             type: "danger",
         });
+        console.error("Error general:", error);
     }
 }
  });

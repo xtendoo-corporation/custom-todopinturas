@@ -1,65 +1,68 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<templates xml:space="preserve">
- <t t-name="todopintura_pos_custom.LocationSelectionDialog" owl="1">
-        <Dialog title="props.title" size="'md'" bodyPadding="'p-0'">
-            <div class="modal-body p-3">
-                <p t-if="props.bodyMessage" class="text-prewrap" t-out="props.bodyMessage"/>
-                <div class="location-selection-container">
-                    <t t-if="props.locations and props.locations.length">
-                        <div class="py-2">
-                            <div class="location-list">
-                                <t t-foreach="props.locations" t-as="location" t-key="location.id">
-                                    <div class="location-item mb-3">
-                                        <label class="d-flex">
-                                            <input type="radio"
-                                                   name="location"
-                                                   t-att-value="location.id"
-                                                   t-on-change="onLocationChange"
-                                                   t-att-checked="state.selectedLocationId === location.id" />
-                                            <div class="ms-2">
-                                                <strong t-esc="location.complete_name || location.name"/>
-                                                <t t-if="location.warehouse_id">
-                                                    <div class="text-muted">
-                                                        <small t-esc="'Almacén: ' + location.warehouse_id[1]"/>
-                                                    </div>
-                                                </t>
-
-                                                <t t-if="props.orderProducts and props.orderProducts.length">
-                                                    <div class="inventory-info mt-1 ms-3 border-start ps-2">
-                                                        <t t-foreach="props.orderProducts" t-as="product" t-key="product.id">
-                                                            <div class="product-inventory">
+<t t-name="todopintura_pos_custom.LocationSelectionDialog" owl="1">
+    <Dialog title="props.title" size="'md'" bodyPadding="'p-0'">
+        <div class="modal-body p-3">
+            <p t-if="props.bodyMessage" class="text-prewrap" t-out="props.bodyMessage"/>
+            <div class="location-selection-container">
+                <t t-if="props.locations &amp;&amp; props.locations.length">
+                    <div class="py-2">
+                        <!-- Primero mostramos los productos -->
+                        <div class="products-list mb-4">
+                            <h5>Productos en el pedido:</h5>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Ubicación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="props.orderProducts" t-as="product" t-key="product.id">
+                                        <tr>
+                                            <td>
+                                                <span t-esc="product.name"/>
+                                            </td>
+                                            <td>
+                                                <span t-esc="product.quantity"/>
+                                            </td>
+                                            <td>
+                                                <select class="form-select form-select-sm"
+                                                        t-on-change="(ev) => this.handleProductLocationChange(product.id, ev)">
+                                                    <option value="">Seleccionar ubicación</option>
+                                                    <t t-foreach="props.locations" t-as="location" t-key="location.id">
+                                                        <option t-att-value="location.id"
+                                                                t-att-selected="state.productsByLocation[product.id] === location.id">
+                                                            <t t-esc="location.complete_name || location.name"/>
+                                                            <t t-if="props.inventoryData &amp;&amp; props.inventoryData[location.id]">
                                                                 <t t-set="productStock"
-                                                                   t-value="props.inventoryData &amp;&amp; props.inventoryData[location.id]
-                                                                   ? (props.inventoryData[location.id].find(p =&gt; p.product_id === product.id) || {quantity: 0})
-                                                                   : {quantity: 0}"/>
-                                                                <span t-esc="product.name + ': '" class="product-name"/>
-                                                                <span t-esc="productStock.quantity || 0"
-                                                                      t-attf-class="quantity {{productStock.quantity &gt;= product.quantity ? 'text-success' : 'text-danger'}}"/>
-                                                                <span class="text-muted" t-esc="' uds. (Pedido: ' + product.quantity + ')'"/>
-                                                            </div>
-                                                        </t>
-                                                    </div>
-                                                </t>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </t>
-                            </div>
+                                                                   t-value="props.inventoryData[location.id].find(p => p.product_id === product.id) || {quantity: 0}"/>
+                                                                <t t-esc="' [Stock: ' + (productStock.quantity || 0) + ']'"/>
+                                                            </t>
+                                                        </option>
+                                                    </t>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
                         </div>
-                    </t>
-                    <div t-else="" class="alert alert-warning">
-                        No se encontraron ubicaciones disponibles
                     </div>
+                </t>
+                <div t-else="" class="alert alert-warning">
+                    No se encontraron ubicaciones disponibles
                 </div>
             </div>
-            <t t-set-slot="footer">
-                <button class="btn btn-primary" t-on-click="onClickConfirm" t-att-disabled="!state.selectedLocationId">
-                    Confirmar
-                </button>
-                <button class="btn btn-secondary" t-on-click="onClickCancel">
-                    Cancelar
-                </button>
-            </t>
-        </Dialog>
-    </t>
-</templates>
+        </div>
+        <t t-set-slot="footer">
+            <button class="btn btn-primary"
+                    t-on-click="onClickConfirm"
+                    t-att-disabled="state.selectedLocations.length === 0">
+                Confirmar
+            </button>
+            <button class="btn btn-secondary" t-on-click="onClickCancel">
+                Cancelar
+            </button>
+        </t>
+    </Dialog>
+</t>
