@@ -7,23 +7,27 @@ import { LocationSelectionDialog } from "./location_selection_dialog";
 
 patch(ControlButtons.prototype, {
     async clickNuevoBoton() {
-        const order = this.pos.get_order();
+         const order = this.pos.get_order();
 
-        if (!order || order.is_empty()) {
-            this.notification.add(_t("No hay productos en el pedido actual"), {
+    if (!order || order.is_empty()) {
+        this.notification.add(_t("No hay productos en el pedido actual"), {
+            type: "warning",
+        });
+        return;
+    }
+
+    try {
+        const partner = order.get_partner();
+        if (!partner) {
+            this.notification.add(_t("Por favor, selecciona un cliente para el pedido"), {
                 type: "warning",
             });
             return;
         }
 
-        try {
-            const partner = order.get_partner();
-            if (!partner) {
-                this.notification.add(_t("Por favor, selecciona un cliente para el pedido"), {
-                    type: "warning",
-                });
-                return;
-            }
+            // Usar la ubicación de stock del almacén asociado al punto de venta
+            let selectedLocation = this.pos.config.warehouse_id && this.pos.config.stock_location_id ?
+                {id: this.pos.config.stock_location_id[0]} : {id: false};
 
             // Guardar una referencia al pedido actual
             const currentOrder = order;
@@ -59,14 +63,15 @@ patch(ControlButtons.prototype, {
             }
 
             // Datos para venta estándar
-          const saleData = {
+         const saleData = {
             partner_id: partner.id,
             order_line: orderLines,
             origin: `POS ${this.pos.config?.name || 'Desconocido'}`,
             user_id: this.pos.user?.id || false,
             auto_validate_picking: true,
-            custom_location_id: selectedLocation.id  // Cambiar a custom_location_id
+            custom_location_id: selectedLocation.id
         };
+
 
         if (warehouseId) {
             saleData.warehouse_id = warehouseId;
@@ -80,7 +85,7 @@ patch(ControlButtons.prototype, {
         const resultado = await this.env.services.orm.call(
             'sale.order',
             'create_sale_from_pos',
-            [saleData, selectedLocation.id]  // Pasar la ubicación como parámetro separado
+            [saleData]  // Pasar la ubicación como parámetro separado
         );
 
             // Crear un nuevo pedido vacío primero
@@ -174,35 +179,27 @@ patch(ControlButtons.prototype, {
 
         // Intentar obtener inventario solo si el método existe
         try {
-            // Verificar primero si el método existe
-            const methodExists = await this.env.services.orm.call(
+            // Intenta llamar directamente al método sin verificar si existe
+            const allInventory = await this.env.services.orm.call(
                 'stock.quant',
-                'has_method',
-                ['get_products_in_all_locations'],
-                { silent: true }
-            ).catch(() => false);
+                'get_products_in_all_locations',
+                [productIds, locationIds],
+            );
+                console.log("Respuesta del servidor:", allInventory);
 
-            if (methodExists) {
-                const allInventory = await this.env.services.orm.call(
-                    'stock.quant',
-                    'get_products_in_all_locations',
-                    [productIds, locationIds]
-                );
-
-                if (allInventory && allInventory.length > 0) {
-                    for (const item of allInventory) {
-                        if (!inventoryData[item.location_id]) {
-                            inventoryData[item.location_id] = [];
-                        }
-                        inventoryData[item.location_id].push(item);
+            if (allInventory && allInventory.length > 0) {
+                for (const item of allInventory) {
+                    if (!inventoryData[item.location_id]) {
+                        inventoryData[item.location_id] = [];
                     }
+                    inventoryData[item.location_id].push(item);
                 }
-            } else {
-                console.log("El método get_products_in_all_locations no existe, continuando sin datos de inventario");
             }
         } catch (error) {
-            console.error("Error al obtener inventario:", error);
-            // Continuamos sin datos de inventario
+            console.error("Error detallado:", error);
+            if (error.data && error.data.debug) {
+                console.error("Stack trace del servidor:", error.data.debug);
+            }
         }
 
         // Usar promesa para manejar el diálogo
