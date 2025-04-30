@@ -41,3 +41,66 @@ class StockQuant(models.Model):
                 })
 
         return result
+
+    @api.model
+    def get_products_in_all_locations(self, product_ids, location_ids):
+        """Obtiene las cantidades disponibles de varios productos en múltiples ubicaciones
+
+        Args:
+            product_ids: Lista de IDs de productos
+            location_ids: Lista de IDs de ubicaciones
+
+        Returns:
+            Lista de diccionarios con la información de stock para cada combinación
+            producto-ubicación que exista
+        """
+        if not product_ids or not location_ids:
+            return []
+
+        # Buscar todos los quants que coinciden con los productos y ubicaciones
+        quants = self.search([
+            ('product_id', 'in', product_ids),
+            ('location_id', 'in', location_ids),
+        ])
+
+        result = []
+        # Primero procesamos los quants existentes
+        for quant in quants:
+            result.append({
+                'product_id': quant.product_id.id,
+                'product_name': quant.product_id.display_name,
+                'location_id': quant.location_id.id,
+                'location_name': quant.location_id.display_name,
+                'quantity': quant.quantity,
+                'available_quantity': quant.available_quantity,
+                'reserved_quantity': quant.reserved_quantity
+            })
+
+        # Luego añadimos entradas con cantidad 0 para combinaciones de producto-ubicación que no existan
+        # Esto permite tener una lista completa para mostrar en la interfaz
+        existing_combinations = {(item['product_id'], item['location_id']) for item in result}
+
+        Product = self.env['product.product']
+        Location = self.env['stock.location']
+        products = Product.browse(product_ids)
+        locations = Location.browse(location_ids)
+
+        for product in products:
+            for location in locations:
+                if (product.id, location.id) not in existing_combinations:
+                    result.append({
+                        'product_id': product.id,
+                        'product_name': product.display_name,
+                        'location_id': location.id,
+                        'location_name': location.display_name,
+                        'quantity': 0,
+                        'available_quantity': 0,
+                        'reserved_quantity': 0
+                    })
+
+        return result
+
+    @api.model
+    def has_method(self, method_name):
+        """Verifica si un método existe en este modelo"""
+        return hasattr(self, method_name)
