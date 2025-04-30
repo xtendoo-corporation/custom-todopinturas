@@ -1,5 +1,5 @@
 <t t-name="todopintura_pos_custom.LocationSelectionDialog" owl="1">
-    <Dialog title="props.title" size="'md'" bodyPadding="'p-0'">
+    <Dialog title="props.title" size="'md'" >
         <div class="modal-body p-3">
             <p t-if="props.bodyMessage" class="text-prewrap" t-out="props.bodyMessage"/>
             <div class="location-selection-container">

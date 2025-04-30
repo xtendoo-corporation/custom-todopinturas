@@ -219,11 +219,6 @@ patch(ControlButtons.prototype, {
                     dialogClosed = true;
                     resolve(null);
                 },
-                close: () => {
-                    if (!dialogClosed) {
-                        resolve(null);
-                    }
-                }
             });
         });
 
