@@ -37,3 +37,9 @@ class PosSession(models.Model):
                 print(f"Filter supplier ID procesado en by_product: {item['filter_supplier_id']}")
 
         return result
+
+    def _loader_params_stock_picking_type(self):
+        result = super()._loader_params_stock_picking_type()
+        result['search_params']['fields'].extend(['default_location_src_id', 'default_location_dest_id'])
+        return result
+

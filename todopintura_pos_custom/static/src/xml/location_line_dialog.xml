@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="todopintura_pos_custom.LocationLineDialog" owl="1">
+        <Dialog title="props.title" size="'md'">
+            <div class="p-3">
+                <p>Selecciona la ubicación para este producto:</p>
+                <select class="form-select mb-3" t-model.number="state.selectedLocationId">
+                    <t t-foreach="props.locations" t-as="loc" t-key="loc.id">
+                        <option t-att-value="loc.id">
+                            <t t-esc="loc.complete_name"/>
+                            <t t-if="hasStock(loc.id)"> (Stock: <t t-esc="getStock(loc.id)"/>)</t>
+                        </option>
+                    </t>
+                </select>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-secondary" t-on-click="onClickCancel">Cancelar</button>
+                <button class="btn btn-primary" t-on-click="onClickConfirm">Confirmar</button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

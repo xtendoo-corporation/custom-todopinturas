@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="todopintura_pos_custom.Orderline" t-inherit="point_of_sale.Orderline" t-inherit-mode="extension">
+        <xpath expr="//li[hasclass('price-per-unit')]" position="after">
+            <li t-if="props.line.locationName" class="location-name d-flex align-items-center">
+                <i class="fa fa-map-marker me-1" role="img" aria-label="Ubicación" title="Ubicación"/>
+                <span class="location-label">Ubicación: </span>
+                <span class="location-value ms-1" t-esc="props.line.locationName" />
+            </li>
+        </xpath>
+    </t>
+</templates>

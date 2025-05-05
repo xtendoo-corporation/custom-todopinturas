@@ -34,6 +34,8 @@ import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
 import { PartnerList } from "@point_of_sale/app/screens/partner_list/partner_list";
 const { DateTime } = luxon;
+const originalProcessServerData = PosStore.prototype.processServerData;
+
 patch(PosStore.prototype, {
     /**
      * Versión modificada que solo utiliza la lista de precios predeterminada
@@ -400,5 +402,22 @@ patch(PosStore.prototype, {
         }
 
         return result;
+    },
+
+    async getProductInfo(product, quantity, priceExtra = 0) {
+        const order = this.get_order();
+
+        // Mantenemos la llamada al backend para obtener información del producto
+        const productInfo = await this.data.call("product.product", "get_product_info_pos", [
+            [product.id],
+            product.get_price(order.pricelist_id, quantity, priceExtra),
+            quantity,
+            this.config.id,
+        ]);
+
+        // Solo devolvemos la información del producto que contiene datos de stock
+        return {
+            productInfo,
+        };
     },
 });

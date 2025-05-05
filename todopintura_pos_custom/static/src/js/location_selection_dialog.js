@@ -14,6 +14,7 @@ export class LocationSelectionDialog extends Dialog {
         orderProducts: { type: Array, optional: true },
         bodyMessage: { type: String, optional: true },
         slots: { type: Array, optional: true },
+        preassignedLocations: { type: Object, optional: true },
         onConfirm: { type: Function },
         onCancel: { type: Function, optional: true },
         close: { type: Function },
@@ -24,15 +25,22 @@ export class LocationSelectionDialog extends Dialog {
         console.log("setup LocationSelectionDialog");
         this.state = useState({
             productsByLocation: {},
-            selectedLocations: []
+            selectedLocations: [],
+            hasLocations: Object.keys(this.props.preassignedLocations || {}).length > 0
         });
 
-        // Inicializar todos los productos sin ubicación asignada
-        if (this.props.orderProducts) {
+        // Inicializar con las ubicaciones ya asignadas
+        if (this.props.preassignedLocations) {
+            this.state.productsByLocation = {...this.props.preassignedLocations};
+        } else if (this.props.orderProducts) {
+            // Inicializar productos sin ubicación asignada si no hay preasignaciones
             this.props.orderProducts.forEach(product => {
                 this.state.productsByLocation[product.id] = null;
             });
         }
+
+        // Actualizar las ubicaciones seleccionadas iniciales
+        this._updateSelectedLocations();
     }
 
     close() {
@@ -88,6 +96,13 @@ export class LocationSelectionDialog extends Dialog {
     }
 
     onClickConfirm() {
+        // Si no hay ubicaciones preseleccionadas, simplemente confirmar
+        if (!this.state.hasLocations) {
+            this.props.onConfirm({});
+            this.close();
+            return;
+        }
+
         const productsByLocation = this.getSelectedProductsByLocation();
 
         // Verificar productos sin asignar
