@@ -44,8 +44,8 @@ export class LocationLineDialog extends Dialog {
 
         if (selectedLocation) {
             this.props.confirm({
-                id: selectedLocation.id,
-                name: selectedLocation.complete_name
+                id: Number(selectedLocation.id),
+                name: String(selectedLocation.complete_name)
             });
             // Usamos props.close en lugar de this.close
             if (typeof this.props.close === 'function') {
