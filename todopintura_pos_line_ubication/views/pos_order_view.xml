@@ -1,0 +1,13 @@
+<odoo>
+    <record id="view_pos_pos_form_inherited" model="ir.ui.view">
+        <field name="name">pos.order.form.inherited</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/field[@name='state']" position="after">
+                <field name="state" widget="statusbar" invisible="state == 'cancel'"
+                       statusbar_visible="draft,to_credit,paid,done"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

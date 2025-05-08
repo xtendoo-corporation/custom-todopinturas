@@ -23,5 +23,8 @@
             'todopintura_pos_line_ubication/static/src/xml/orderline.xml',
         ],
     },
+    "data": [
+    "views/pos_order_view.xml",
+    ],
     'license': 'LGPL-3',
 }
