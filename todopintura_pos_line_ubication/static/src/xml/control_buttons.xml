@@ -8,11 +8,11 @@
                    title="Cambiar Ubicación de Línea"/>
                 Cambiar Ubicación de Línea
             </button>
-            <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.clickNuevoBotonAlmacen()">
-                <i class="fa fa-truck me-1" role="img" aria-label="Crear Pedido y Seleccionar Almacén"
-                   title="Crear Pedido y Seleccionar Almacén"/>
-                            Crear Pedido y Albarán
-            </button>
+<!--            <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.clickNuevoBotonAlmacen()">-->
+<!--                <i class="fa fa-truck me-1" role="img" aria-label="Crear Pedido y Seleccionar Almacén"-->
+<!--                   title="Crear Pedido y Seleccionar Almacén"/>-->
+<!--                            Crear Pedido y Albarán-->
+<!--            </button>-->
         </xpath>
     </t>
 </templates>

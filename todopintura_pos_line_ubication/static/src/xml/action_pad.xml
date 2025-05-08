@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="todopintura_pos_line_ubication.ActionPadExtension" t-inherit="point_of_sale.ActionpadWidget"
+       t-inherit-mode="extension">
+        <xpath expr="//button[hasclass('pay')]" position="after">
+            <button
+                class="button btn btn-primary btn-lg py-3 d-flex align-items-center justify-content-center flex-fill"
+                t-on-click="() => this.clickNuevoBotonAlmacen()">
+                            <span>Albarán</span>
+            </button>
+        </xpath>
+    </t>
+</templates>
