@@ -24,7 +24,6 @@
         ],
     },
     "data": [
-    "views/pos_order_view.xml",
     ],
     'license': 'LGPL-3',
 }

@@ -5,8 +5,6 @@ import { Component } from "@odoo/owl";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { LocationLineDialog } from "./location_line_dialog";
 import { LocationSelectionDialog } from "@todopintura_pos_custom/js/location_selection_dialog";
-import { registry } from "@web/core/registry";
-
 patch(ControlButtons.prototype, {
  async cambiarUbicacionLinea() {
         const order = this.pos.get_order();
@@ -102,40 +100,199 @@ patch(ControlButtons.prototype, {
             console.error("Error al cambiar ubicación:", error);
         }
     },
+    async clickNuevoBotonAlmacen() {
+        const order = this.pos.get_order();
 
-async crearPedidoyAlbaran() {
-    const pos = this.env.services.pos;
-    const order = pos.get_order();
-    if (!order) {
-        this.env.services.notification.add(_t("No hay pedido seleccionado."), { type: "danger" });
-        return;
-    }
+        if (!order || order.is_empty()) {
+            this.notification.add(_t("No hay productos en el pedido actual"), {
+                type: "warning",
+            });
+            return;
+        }
 
-    // Verificar conectividad antes de proceder
-    if (this.env.services.pos.data.network.offline) {
-        this.env.services.notification.add(_t("No se puede crear pedido a crédito en modo offline. Verifica tu conexión a internet."), { type: "danger" });
-        return;
-    }
+        try {
+            const partner = order.get_partner();
+            if (!partner) {
+                this.notification.add(_t("Por favor, selecciona un cliente para el pedido"), {
+                    type: "warning",
+                });
+                return;
+            }
 
-    try {
-        // Añadir flag para identificar como pedido a crédito
-        order.to_credit = true;
-        order.state = "to_credit";
+            // Obtener las líneas con ubicación asignada
+            const orderLinesWithLocation = order.get_orderlines().filter(line => {
+                return line.locationData &&
+                       line.locationData.id !== null &&
+                       line.locationData.id !== undefined &&
+                       line.locationData.name !== "";
+            });
 
-        // Asegurarse de que todas las líneas tengan datos necesarios
-        order.recomputeOrderData();
+            // Crear líneas de pedido (común para ambos casos)
+            const allOrderLines = [];
+            for (const line of order.get_orderlines()) {
+                const product = line.get_product();
+                const taxIds = [];
+                if (product.taxes_id && product.taxes_id.length) {
+                    for (const tax of product.taxes_id) {
+                        taxIds.push(typeof tax === 'object' ? tax.id : tax);
+                    }
+                }
 
-        // Forzar sincronización con el servidor
-        await pos.syncAllOrders({ orders: [order], throw: true });
+                allOrderLines.push([0, 0, {
+                    product_id: product.id,
+                    product_uom_qty: line.get_quantity(),
+                    price_unit: line.get_unit_price(),
+                    discount: line.get_discount(),
+                    tax_id: [[6, 0, taxIds]]
+                }]);
+            }
 
-        // Eliminar de la interfaz tras confirmación exitosa
-        pos.removePendingOrder(order);
-        pos.removeOrder(order, false);
+            // Obtener warehouse_id
+            let warehouseId = false;
+            if (this.pos.config && this.pos.config.warehouse_id) {
+                warehouseId = Array.isArray(this.pos.config.warehouse_id)
+                    ? this.pos.config.warehouse_id[0]
+                    : this.pos.config.warehouse_id;
+            }
 
-        this.env.services.notification.add(_t("Pedido confirmado como crédito y quitado de la sesión."), { type: "success" });
-    } catch (error) {
-        this.env.services.notification.add(_t("Error al procesar el pedido como crédito: ") + (error.message || error.data?.message || "Error desconocido"), { type: "danger" });
-        console.error("Error al crear pedido a crédito:", error);
-    }
-}
+            // Crear datos base para la venta
+            const saleData = {
+                partner_id: partner.id,
+                order_line: allOrderLines,
+                origin: `POS ${this.pos.config?.name || 'Desconocido'}`,
+                user_id: this.pos.user?.id || false,
+                auto_validate_picking: true
+            };
+
+            if (warehouseId) {
+                saleData.warehouse_id = warehouseId;
+            }
+
+            // Guardar referencia al pedido actual
+            const currentOrder = order;
+
+            // BIFURCACIÓN: Decidir qué método usar según si hay líneas con ubicación o no
+            if (orderLinesWithLocation.length === 0) {
+                // CASO 1: No hay líneas con ubicación - Crear venta estándar
+                const confirmed = await new Promise(resolve => {
+                    this.env.services.dialog.add(ConfirmationDialog, {
+                        title: _t("Crear venta estándar"),
+                        body: _t("No hay líneas con ubicación diferente. ¿Desea crear una venta estándar con un solo albarán?"),
+                        confirm: () => resolve(true),
+                        cancel: () => resolve(false)
+                    });
+                });
+
+                if (!confirmed) {
+                    this.notification.add(_t("Operación cancelada"), {
+                        type: "info"
+                    });
+                    return;
+                }
+
+                // Llamar al método para venta estándar
+                await this.env.services.orm.call(
+                    'sale.order',
+                    'create_sale_from_pos',
+                    [saleData]
+                );
+            } else {
+                // CASO 2: Hay líneas con ubicación - Crear venta con múltiples albaranes
+                // Obtener ubicaciones disponibles
+                let locations = [];
+                try {
+                    locations = await this.env.services.orm.call(
+                        'stock.location',
+                        'search_read',
+                        [[['usage', '=', 'internal'], ['active', '=', true]]],
+                        {fields: ['id', 'name', 'complete_name', 'warehouse_id']}
+                    );
+
+                    if (!locations || locations.length === 0) {
+                        this.notification.add(_t("No se encontraron ubicaciones disponibles"), {
+                            type: "warning",
+                        });
+                        return;
+                    }
+                } catch (rpcError) {
+                    console.error("Error al obtener ubicaciones:", rpcError);
+                    this.notification.add(_t("Error al obtener las ubicaciones"), {
+                        type: "danger",
+                    });
+                    return;
+                }
+
+                // Crear objeto de preasignaciones
+                const preassignedLocations = {};
+                orderLinesWithLocation.forEach(line => {
+                    preassignedLocations[line.get_product().id] = line.locationData?.id || null;
+                });
+
+                // Mostrar diálogo para confirmar ubicaciones
+                const dialogResult = await new Promise(resolve => {
+                    this.env.services.dialog.add(LocationSelectionDialog, {
+                        title: _t("Asignar productos a ubicaciones"),
+                        bodyMessage: _t("Confirme o modifique las ubicaciones de los productos:"),
+                        locations: locations,
+                        orderProducts: orderLinesWithLocation.map(line => ({
+                            id: line.get_product().id,
+                            name: line.get_product().display_name,
+                            quantity: line.get_quantity()
+                        })),
+                        preassignedLocations: preassignedLocations,
+                        onConfirm: (result) => {
+                            resolve({confirmed: true, data: result});
+                        },
+                        onCancel: () => {
+                            resolve({confirmed: false});
+                        },
+                    });
+                });
+
+                if (!dialogResult.confirmed) {
+                    this.notification.add(_t("Operación cancelada"), {
+                        type: "info",
+                    });
+                    return;
+                }
+
+                // Añadir las ubicaciones a los datos de venta
+                saleData.products_by_location = dialogResult.data;
+
+                // Llamar al método para venta con múltiples albaranes
+                await this.env.services.orm.call(
+                    'sale.order',
+                    'create_sale_with_multiple_pickings_from_pos',
+                    [saleData]
+                );
+            }
+
+            // Limpiar el pedido actual
+            this.pos.add_new_order();
+            if (this.pos.removeOrder) {
+                this.pos.removeOrder(currentOrder);
+            } else if (this.pos.delete_current_order) {
+                this.pos.delete_current_order();
+            }
+
+            if (this.pos.db && this.pos.db.remove_order) {
+                this.pos.db.remove_order(currentOrder.uid);
+            }
+
+            // Mensaje de éxito
+            const successMessage = orderLinesWithLocation.length > 0
+                ? _t("Venta creada con albaranes separados por ubicación")
+                : _t("Venta estándar creada correctamente");
+
+            this.notification.add(successMessage, {
+                type: "success",
+            });
+        } catch (error) {
+            this.notification.add(_t("Error en la operación: ") + (error.message || error), {
+                type: "danger",
+            });
+            console.error("Error general:", error);
+        }
+    },
+
  });

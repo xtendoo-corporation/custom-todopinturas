@@ -6,12 +6,12 @@
             <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.cambiarUbicacionLinea()">
                 <i class="fa fa-map-marker me-1" role="img" aria-label="Cambiar Ubicación de Línea"
                    title="Cambiar Ubicación de Línea"/>
-                   Cambiar Ubicación de Línea
+                Cambiar Ubicación de Línea
             </button>
-            <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.crearPedidoyAlbaran()">
-                <i class="fa fa-truck me-1" role="img" aria-label="Crear Pedido y Albaran"
-                   title="Crear Pedido y Albaran"/>
-                Crear Pedido y Albarán
+            <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.clickNuevoBotonAlmacen()">
+                <i class="fa fa-truck me-1" role="img" aria-label="Crear Pedido y Seleccionar Almacén"
+                   title="Crear Pedido y Seleccionar Almacén"/>
+                            Crear Pedido y Albarán
             </button>
         </xpath>
     </t>
