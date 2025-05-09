@@ -4,7 +4,7 @@
        t-inherit-mode="extension">
         <xpath expr="//button[hasclass('pay')]" position="after">
             <button
-                class="button btn btn-primary btn-lg py-3 d-flex align-items-center justify-content-center flex-fill"
+                class="button btn btn-light btn-lg py-3 d-flex align-items-center justify-content-center flex-fill o_colorlist_item_color_transparent_6"
                 t-on-click="() => this.clickNuevoBotonAlmacen()">
                             <span>Albarán</span>
             </button>

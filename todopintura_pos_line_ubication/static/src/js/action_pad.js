@@ -91,30 +91,14 @@ patch(ActionpadWidget.prototype, {
 
             // BIFURCACIÓN: Decidir qué método usar según si hay líneas con ubicación o no
             if (orderLinesWithLocation.length === 0) {
-                // CASO 1: No hay líneas con ubicación - Crear venta estándar
-                const confirmed = await new Promise(resolve => {
-                    this.dialog.add(ConfirmationDialog, {
-                        title: _t("Crear venta estándar"),
-                        body: _t("No hay líneas con ubicación diferente. ¿Desea crear una venta estándar con un solo albarán?"),
-                        confirm: () => resolve(true),
-                        cancel: () => resolve(false)
-                    });
-                });
-
-                if (!confirmed) {
-                    this.notification.add(_t("Operación cancelada"), {
-                        type: "info"
-                    });
-                    return;
-                }
-
                 // Llamar al método para venta estándar
                 await this.orm.call(
                     'sale.order',
                     'create_sale_from_pos',
                     [saleData]
                 );
-            } else {
+             }
+             else {
                 // CASO 2: Hay líneas con ubicación - Crear venta con múltiples albaranes
                 // Obtener ubicaciones disponibles
                 let locations = [];
@@ -140,42 +124,25 @@ patch(ActionpadWidget.prototype, {
                     return;
                 }
 
-                // Crear objeto de preasignaciones
+                // Crear objeto con formato invertido (locationId: [productIds])
                 const preassignedLocations = {};
                 orderLinesWithLocation.forEach(line => {
-                    preassignedLocations[line.get_product().id] = line.locationData?.id || null;
+                    const productId = line.get_product().id;
+                    const locationId = line.locationData?.id || null;
+
+                    if (locationId !== null) {
+                        // Crear array si no existe para esta ubicación
+                        if (!preassignedLocations[locationId]) {
+                            preassignedLocations[locationId] = [];
+                        }
+                        // Añadir el producto a esta ubicación
+                        preassignedLocations[locationId].push(productId);
+                    }
                 });
 
-                // Mostrar diálogo para confirmar ubicaciones
-                const dialogResult = await new Promise(resolve => {
-                    this.dialog.add(LocationSelectionDialog, {
-                        title: _t("Asignar productos a ubicaciones"),
-                        bodyMessage: _t("Confirme o modifique las ubicaciones de los productos:"),
-                        locations: locations,
-                        orderProducts: orderLinesWithLocation.map(line => ({
-                            id: line.get_product().id,
-                            name: line.get_product().display_name,
-                            quantity: line.get_quantity()
-                        })),
-                        preassignedLocations: preassignedLocations,
-                        onConfirm: (result) => {
-                            resolve({confirmed: true, data: result});
-                        },
-                        onCancel: () => {
-                            resolve({confirmed: false});
-                        },
-                    });
-                });
+                // Asignar directamente a los datos de venta sin mostrar diálogo
+                saleData.products_by_location = preassignedLocations;
 
-                if (!dialogResult.confirmed) {
-                    this.notification.add(_t("Operación cancelada"), {
-                        type: "info",
-                    });
-                    return;
-                }
-
-                // Añadir las ubicaciones a los datos de venta
-                saleData.products_by_location = dialogResult.data;
 
                 // Llamar al método para venta con múltiples albaranes
                 await this.orm.call(
