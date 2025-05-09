@@ -5,7 +5,7 @@
         <xpath expr="//button[hasclass('pay')]" position="after">
             <button
                 class="button btn btn-light btn-lg py-3 d-flex align-items-center justify-content-center flex-fill o_colorlist_item_color_transparent_6"
-                t-on-click="() => this.clickNuevoBotonAlmacen()">
+                t-on-click="() => this.clickNewButtonStore()">
                             <span>Albarán</span>
             </button>
         </xpath>

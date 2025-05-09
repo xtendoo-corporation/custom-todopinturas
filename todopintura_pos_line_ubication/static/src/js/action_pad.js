@@ -18,7 +18,7 @@ patch(ActionpadWidget.prototype, {
         this.orm = useService("orm");
     },
 
-    async clickNuevoBotonAlmacen() {
+    async clickNewButtonStore() {
         const order = this.pos.get_order();
 
         if (!order || order.is_empty()) {
