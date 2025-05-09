@@ -99,11 +99,3 @@ class StockQuant(models.Model):
                     })
 
         return result
-
-    @api.model
-    def has_method(self, method_name):
-        """Verifica si un método existe en este modelo de forma más robusta"""
-        try:
-            return hasattr(self.__class__, method_name) or method_name in dir(self)
-        except Exception:
-            return False
