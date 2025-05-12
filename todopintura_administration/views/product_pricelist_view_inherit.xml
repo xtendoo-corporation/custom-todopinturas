@@ -25,9 +25,6 @@
                 <field name="price_discount" invisible="not compute_price == 'formula'" string="Desc %"
                        optional="show"/>
             </xpath>
-            <xpath expr="///list/field[@name='min_quantity']" position="before">
-              <field name="filter_supplier_id" string="Proveedor" optional="show"/>
-            </xpath>
         </field>
     </record>
 </odoo>

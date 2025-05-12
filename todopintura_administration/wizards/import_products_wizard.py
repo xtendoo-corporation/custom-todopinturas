@@ -54,6 +54,13 @@ class ImportProductsWizard(models.TransientModel):
                 [('referencia_todopintura', '=', int(sheet.cell(row, 28).value))], limit=1)
             print(f"pos_categ: {pos_categ}")
             num_prov = int(sheet.cell(row, 30).value) if sheet.cell(row, 30).value else None
+            if num_prov:
+                print(f"Buscando proveedor con referencia: 0{num_prov}")
+                partner = self.env['res.partner'].search([('ref', '=', f'0{num_prov}')], limit=1)
+                if partner:
+                    print(f"Proveedor encontrado: {partner.name} (ID: {partner.id})")
+                else:
+                    print(f"No se encontró proveedor con referencia 0{num_prov}")
             cell_value = sheet.cell(row, 24).value
 
             if cell_value and isinstance(cell_value, str):
@@ -69,7 +76,8 @@ class ImportProductsWizard(models.TransientModel):
             observation7 = str(sheet.cell(row, 46).value).strip() if sheet.cell(row, 46).value is not None else ''
             observation8 = str(sheet.cell(row, 47).value).strip() if sheet.cell(row, 47).value is not None else ''
             observation9 = str(sheet.cell(row, 48).value).strip() if sheet.cell(row, 48).value is not None else ''
-            invoice_description = str(sheet.cell(row, 20).value).strip() if sheet.cell(row, 20).value is not None else ''
+            invoice_description = str(sheet.cell(row, 20).value).strip() if sheet.cell(row,
+                                                                                       20).value is not None else ''
 
             observations = [
                 description,
@@ -130,53 +138,55 @@ class ImportProductsWizard(models.TransientModel):
                 'available_in_pos': True,
                 'pos_categ_ids': [(6, 0, [pos_categ])] if pos_categ else [],
             }
+            print("*"*40)
+            print(f"Producto: {name} (ID: {num_prod})")
+            print("*"*40)
+            partner = None
+            if num_prov and price_last_buy:
+                partner = self.env['res.partner'].search([('ref', '=', f'0{num_prov}')], limit=1)
 
             if pos_categ:
-                  #crear una categoria normal igual que este de pos_categ
-                  #la ha creado con el nombre de la referencia todopintura de pos_Categ
-                    # category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
-                    # if not category:
-                    #     category = self.env['product.category'].create({'name': pos_categ.name})
-                    #     record['categ_id'] = category.id
-                    # else:
-                    #     record['categ_id'] = category.id
-                    # record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
-                    record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
-                    category = self.crear_categoria_con_padres(pos_categ)
-                    record['categ_id'] = category.id
-                    print(f"category: {category}")
-                    product = self._create_or_update_product(record)
-                    # Create or update product.supplierinfo
-                    product_variant = product.product_variant_id
-                    if product_variant:
-                        if num_prov and price_last_buy:
-                            partner = self.env['res.partner'].search([('ref', '=', f'0{num_prov}')], limit=1)
-                            if partner:
-                                supplierinfo = self.env['product.supplierinfo'].search([
-                                    ('product_id', '=', product_variant.id),
-                                    ('partner_id', '=', partner.id)
-                                ], limit=1)
-                                supplierinfo_vals = {
-                                    'partner_id': partner.id,
-                                    'product_id': product_variant.id,
-                                    'price': price_last_buy,
-                                }
-                                if supplierinfo:
-                                    supplierinfo.write(supplierinfo_vals)
-                                    print("Proveedor actualizado")
-                                else:
-                                    self.env['product.supplierinfo'].create(supplierinfo_vals)
-                                    print("Proveedor creado")
-                    # Crear o actualizar tarifas
-                    for i, tariff_name in enumerate(tariff_names):
-                        # Revisa si hay suficientes descuentos disponibles para la tarifa
-                        descuento = descuentos[i] if i < len(descuentos) else None
+                record['pos_categ_ids'] = [(6, 0, [pos_categ.id])]
+                category = self.crear_categoria_con_padres(pos_categ, partner)
+                record['categ_id'] = category.id
+                print(f"category: {category}")
+                product = self._create_or_update_product(record)
+                # Create or update product.supplierinfo
+                product_variant = product.product_variant_id
+                if product_variant:
+                    if num_prov and price_last_buy:
+                        partner = self.env['res.partner'].search([('ref', '=', f'0{num_prov}')], limit=1)
+                        if partner:
+                            supplierinfo = self.env['product.supplierinfo'].search([
+                                ('product_id', '=', product_variant.id),
+                                ('partner_id', '=', partner.id)
+                            ], limit=1)
+                            supplierinfo_vals = {
+                                'partner_id': partner.id,
+                                'product_id': product_variant.id,
+                                'price': price_last_buy,
+                            }
+                            if supplierinfo:
+                                supplierinfo.write(supplierinfo_vals)
+                                print("Proveedor actualizado")
+                            else:
+                                self.env['product.supplierinfo'].create(supplierinfo_vals)
+                                print("Proveedor creado")
+                # Crear o actualizar tarifas
+                for i, tariff_name in enumerate(tariff_names):
+                    # Revisa si hay suficientes descuentos disponibles para la tarifa
+                    descuento = descuentos[i] if i < len(descuentos) else None
 
-                        # Crea o actualiza la tarifa sólo si hay un descuento disponible
-                        if descuento is not None:
-                            self.create_or_update_tariffs(product, descuento, tariff_name)
+                    # Crea o actualiza la tarifa sólo si hay un descuento disponible
+                    if descuento is not None:
+                        self.create_or_update_tariffs(product, descuento, tariff_name)
 
             else:
+                if partner:
+                    category = self.env['product.category'].search([('name', '=', partner.name)], limit=1)
+                    if not category:
+                        category = self.env['product.category'].create({'name': partner.name})
+                    record['categ_id'] = category.id
                 product = self._create_or_update_product(record)
                 # Create or update product.supplierinfo
                 product_variant = product.product_variant_id
@@ -218,13 +228,16 @@ class ImportProductsWizard(models.TransientModel):
     def _create_or_update_product(self, record):
         if record['name']:
             product = self.env['product.template'].search([('default_code', '=', record['default_code'])], limit=1)
+
             if product:
                 product.write(record)
             else:
-                existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])], limit=1)
-                if existing_barcode_product:
+                # Para productos nuevos, usar la categoría calculada
+                existing_barcode_product = self.env['product.template'].search([('barcode', '=', record['barcode'])],
+                                                                               limit=1)
+                if existing_barcode_product and record['barcode']:
                     record['barcode'] = None
-                    print(f"Product with barcode {record['barcode']} already exists. Setting barcode to None.")
+                    print(f"Código de barras duplicado. Estableciendo a None.")
                 product = self.env['product.template'].create(record)
             return product
 
@@ -253,16 +266,50 @@ class ImportProductsWizard(models.TransientModel):
             else:
                 self.env['product.pricelist.item'].create(pricelist_item_vals)
 
-    def crear_categoria_con_padres(self, pos_categ):
-        category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
-        if not category:
-            # Si la categoría no existe, la creamos
-            category = self.env['product.category'].create({'name': pos_categ.name})
+    def crear_categoria_con_padres(self, pos_categ, partner=None):
+        """
+        Crea una estructura de categorías donde:
+        1. Si hay proveedor, crea/busca una categoría con su nombre
+        2. Crea una subcategoría específica para este proveedor+categoría
+        """
+        if not partner:
+            # Buscar categoría existente por nombre exacto
+            category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
+            if not category:
+                # Solo crear si no existe
+                category = self.env['product.category'].create({'name': pos_categ.name})
+                print(f"Categoría creada sin proveedor: {pos_categ.name}")
+            else:
+                print(f"Usando categoría existente: {pos_categ.name}")
 
-        # Iteramos para crear las categorías padres de la misma forma
-        parent_category = pos_categ.parent_id
-        if parent_category:
-            parent_category_record = self.crear_categoria_con_padres(parent_category)
-            category.write({'parent_id': parent_category_record.id})
+            # Preservar la estructura padre-hijo existente
+            parent_pos = pos_categ.parent_id
+            if parent_pos and not category.parent_id:
+                parent_category = self.crear_categoria_con_padres(parent_pos)
+                category.write({'parent_id': parent_category.id})
+                print(f"Actualizada jerarquía para: {category.name}")
 
-        return category
+            return category
+        else:
+            # Añadir protección adicional para categorías de proveedor
+            provider_category = self.env['product.category'].search([('name', '=', partner.name)], limit=1)
+            if not provider_category:
+                provider_category = self.env['product.category'].create({'name': partner.name})
+                print(f"Creada categoría de proveedor: {partner.name}")
+
+            # Búsqueda exacta de subcategoría por nombre y parent_id
+            specific_category = self.env['product.category'].search([
+                ('name', '=', pos_categ.name),
+                ('parent_id', '=', provider_category.id)
+            ], limit=1)
+
+            if not specific_category:
+                specific_category = self.env['product.category'].create({
+                    'name': pos_categ.name,
+                    'parent_id': provider_category.id
+                })
+                print(f"Creada subcategoría: {pos_categ.name} bajo proveedor: {partner.name}")
+            else:
+                print(f"Usando categoría existente: {pos_categ.name} bajo proveedor: {partner.name}")
+
+            return specific_category
