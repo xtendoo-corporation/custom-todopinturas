@@ -19,6 +19,7 @@
             'todopintura_pos_custom/static/src/js/pos_store.js',
             'todopintura_pos_custom/static/src/js/pos_order.js',
             'todopintura_pos_custom/static/src/js/partner_list.js',
+            'todopintura_pos_custom/static/src/xml/partner_list.xml',
             'todopintura_pos_custom/static/src/js/res_partner.js',
             'todopintura_pos_custom/static/src/js/location_selection_dialog.js',
             'todopintura_pos_custom/static/src/xml/location_selection_dialog.xml',
