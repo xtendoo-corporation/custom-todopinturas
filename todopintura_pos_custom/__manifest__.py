@@ -21,6 +21,7 @@
             'todopintura_pos_custom/static/src/js/partner_list.js',
             'todopintura_pos_custom/static/src/xml/partner_list.xml',
             'todopintura_pos_custom/static/src/js/res_partner.js',
+            'todopintura_pos_custom/static/src/js/payment_screen.js',
             'todopintura_pos_custom/static/src/js/location_selection_dialog.js',
             'todopintura_pos_custom/static/src/xml/location_selection_dialog.xml',
             # 'todopintura_pos_custom/static/src/js/select_contact_dialog.js',
@@ -31,6 +32,8 @@
     },
     "data": [
         "views/res_config_settings_view.xml",
+        "wizards/credit_limit_warning_wizard.xml",
+        'security/ir.model.access.csv',
     ],
     'license': 'LGPL-3',
 }

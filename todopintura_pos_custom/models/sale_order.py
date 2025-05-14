@@ -1,4 +1,4 @@
-from odoo import models, api, fields
+from odoo import models, api, fields, _
 from odoo.exceptions import UserError
 import logging
 
@@ -173,3 +173,64 @@ class SaleOrder(models.Model):
             'name': sale_order.name,
             'picking_ids': sale_order.picking_ids.ids
         }
+
+    def action_confirm(self):
+        """Sobreescribe el método de confirmación para validar el límite de crédito"""
+        for order in self:
+            partner = order.partner_id.commercial_partner_id
+
+            # Verificar si el cliente tiene configurado un límite de crédito
+            if partner.use_partner_credit_limit and partner.credit_limit > 0:
+                # Calcular el crédito usado (facturas pendientes)
+                credit_used = partner.credit
+
+                # Calcular el valor del pedido actual
+                order_amount = order.amount_total
+
+                # Verificar si el pedido sobrepasa el límite
+                if credit_used + order_amount > partner.credit_limit:
+                    # Mostrar wizard de advertencia
+                    return {
+                        'name': _('Advertencia de Límite de Crédito'),
+                        'type': 'ir.actions.act_window',
+                        'res_model': 'credit.limit.warning.wizard',
+                        'view_mode': 'form',
+                        'target': 'new',
+                        'context': {
+                            'default_partner_id': partner.id,
+                            'default_sale_order_id': order.id,
+                            'default_credit_limit': partner.credit_limit,
+                            'default_credit_used': credit_used,
+                            'default_order_amount': order_amount,
+                            'default_total_credit': credit_used + order_amount,
+                        }
+                    }
+
+        return super(SaleOrder, self).action_confirm()
+
+    @api.model
+    def check_credit_limit(self, partner_id, amount_total):
+        """Verifica si el cliente ha excedido su límite de crédito"""
+        if not partner_id:
+            return False
+
+        partner = self.env['res.partner'].browse(partner_id).commercial_partner_id
+
+        # Verificar si el cliente tiene configurado un límite de crédito
+        if partner.use_partner_credit_limit and partner.credit_limit > 0:
+            # Calcular el crédito usado (facturas pendientes)
+            credit_used = partner.credit
+
+            # Verificar si el pedido sobrepasa el límite
+            if credit_used + amount_total > partner.credit_limit:
+                return {
+                    'error': True,
+                    'credit_limit_exceeded': True,
+                    'partner_name': partner.name,
+                    'credit_limit': partner.credit_limit,
+                    'credit_used': credit_used,
+                    'order_amount': amount_total,
+                    'total_credit': credit_used + amount_total
+                }
+
+        return False

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_credit_limit_warning_wizard_form" model="ir.ui.view">
+        <field name="name">credit.limit.warning.wizard.form</field>
+        <field name="model">credit.limit.warning.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Advertencia de Límite de Crédito">
+                <div class="alert alert-warning" role="alert">
+                    <p><strong>¡ATENCIÓN!</strong> Este cliente ha superado su límite de crédito.</p>
+                    <ul>
+                        <li>Cliente: <field name="partner_id" readonly="1"/></li>
+                        <li>Límite de crédito: <field name="credit_limit" readonly="1"/> €</li>
+                        <li>Crédito ya utilizado: <field name="credit_used" readonly="1"/> €</li>
+                        <li>Importe del pedido actual: <field name="order_amount" readonly="1"/> €</li>
+                        <li><strong>Total crédito después de confirmar: <field name="total_credit" readonly="1"/> €</strong></li>
+                    </ul>
+                </div>
+                <footer>
+                    <button name="action_continue" string="Continuar de todas formas" type="object" class="btn-primary"/>
+                    <button name="action_cancel" string="Cancelar" type="object" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -5,7 +5,7 @@ import { patch } from "@web/core/utils/patch";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
-import { Component } from "@odoo/owl";
+import { Component, markup } from "@odoo/owl";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { LocationLineDialog } from "./location_line_dialog";
 import { LocationSelectionDialog } from "@todopintura_pos_custom/js/location_selection_dialog";
@@ -35,6 +35,53 @@ patch(ActionpadWidget.prototype, {
                     type: "warning",
                 });
                 return;
+            }
+            const creditCheckResult = await this.orm.call(
+                'sale.order',
+                'check_credit_limit',  // Ahora usa el método público sin guion bajo
+                [partner.id, order.get_total_with_tax()]
+            );
+
+            if (creditCheckResult && creditCheckResult.credit_limit_exceeded) {
+                // Mostrar diálogo de confirmación si se excede el límite
+                const { confirmed } = await new Promise(resolve => {
+                   this.dialog.add(ConfirmationDialog, {
+                        title: _t("Advertencia de Límite de Crédito"),
+                       body: markup(`
+                            <div style="background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; padding: 16px; margin-bottom: 10px;">
+                                 <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px;">
+                                    <i class="fa fa-exclamation-triangle" style="font-size: 24px; color: #856404;"></i>
+                                    <span style="color: #856404; font-size: 16px; font-weight: bold;">${_t("El cliente ")}${creditCheckResult.partner_name}${_t("ha superado su límite de crédito.")}</span>
+                                </div>
+                                <div style="margin-left: 34px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                        <span>${_t("Límite de crédito")}:</span>
+                                        <span style="font-weight: bold;">${creditCheckResult.credit_limit.toFixed(2)} €</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                        <span>${_t("Crédito ya utilizado")}:</span>
+                                        <span style="font-weight: bold;">${creditCheckResult.credit_used.toFixed(2)} €</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                        <span>${_t("Importe del pedido actual")}:</span>
+                                        <span style="font-weight: bold;">${creditCheckResult.order_amount.toFixed(2)} €</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; background-color: #ffecb5; padding: 6px; border-radius: 4px; margin-top: 8px;">
+                                        <span style="font-weight: bold;">${_t("Total crédito después de confirmar")}:</span>
+                                        <span style="font-weight: bold; color: #cc0000;">${creditCheckResult.total_credit.toFixed(2)} €</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="text-align: center; font-weight: bold; margin-top: 15px;">${_t("¿Desea continuar con el pedido de todas formas?")}</p>
+                        `),
+                        confirm: () => resolve({ confirmed: true }),
+                        cancel: () => resolve({ confirmed: false }),
+                    });
+                });
+
+                if (!confirmed) {
+                    return; // Cancelar la operación si el usuario no confirma
+                }
             }
 
             // Obtener las líneas con ubicación asignada

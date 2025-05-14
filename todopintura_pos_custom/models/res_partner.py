@@ -9,3 +9,4 @@ class ResPartner(models.Model):
         fields = super()._load_pos_data_fields(config_id)
         fields.append('assigned_person_ids')
         return fields
+
