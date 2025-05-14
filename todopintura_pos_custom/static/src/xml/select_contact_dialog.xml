@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="todopintura_pos_custom.SelectContactDialog" owl="1">
+        <Dialog title="title" size="'md'" footer="false">
+            <div class="p-3">
+                <div class="list-group mb-3">
+                    <t t-foreach="props.contacts" t-as="contact" t-key="contact.id">
+                        <div class="list-group-item list-group-item-action"
+                             t-att-class="{'active': state.selectedContact &amp;&amp; state.selectedContact.id === contact.id}"
+                             t-on-click="() => this.setSelectedContact(contact)">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1"><t t-esc="contact.name"/></h5>
+                            </div>
+                            <p class="mb-1" t-if="contact.email"><t t-esc="contact.email"/></p>
+                            <small t-if="contact.phone"><t t-esc="contact.phone"/></small>
+                        </div>
+                    </t>
+                </div>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-secondary me-2" t-on-click="close">
+                        Cancelar
+                    </button>
+                    <button class="btn btn-primary"
+                            t-on-click="confirm"
+                            t-att-disabled="!state.selectedContact">
+                        Seleccionar
+                    </button>
+                </div>
+            </div>
+        </Dialog>
+    </t>
+</templates>

@@ -23,9 +23,14 @@
             'todopintura_pos_custom/static/src/js/res_partner.js',
             'todopintura_pos_custom/static/src/js/location_selection_dialog.js',
             'todopintura_pos_custom/static/src/xml/location_selection_dialog.xml',
+            # 'todopintura_pos_custom/static/src/js/select_contact_dialog.js',
+            # 'todopintura_pos_custom/static/src/xml/select_contact_dialog.xml',
             'todopintura_pos_custom/static/src/js/product_info_popup.js',
             'todopintura_pos_custom/static/src/xml/product_info_popup.xml',
         ],
     },
+    "data": [
+        "views/res_config_settings_view.xml",
+    ],
     'license': 'LGPL-3',
 }

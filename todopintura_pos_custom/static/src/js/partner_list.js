@@ -14,7 +14,7 @@ patch(PartnerList.prototype, {
         originalSetup.call(this);
 
          this.state.isLoading = false;
-        this.state.visibleLimit = 20; // Mostrar solo 20 resultados inicialmente
+        this.state.visibleLimit = 50; // Mostrar solo 20 resultados inicialmente
 
         // Optimización del debounce
         this.debouncedSearch = debounce(this.performSearch.bind(this), 300);
@@ -69,7 +69,7 @@ patch(PartnerList.prototype, {
     },
 
     async getNewPartners() {
-        const limit = 20; // Siempre limitamos a 20 para mejor rendimiento
+        const limit = 50; // Siempre limitamos a 20 para mejor rendimiento
         let domain = [];
 
         if (this.state.query) {

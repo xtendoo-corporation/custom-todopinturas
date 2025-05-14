@@ -6,17 +6,26 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='internal_notes']" position="after">
-
-                <page name="assigned_persons" string="Personas asignadas"
-                      modifiers="{'invisible': [('is_company', '=', False)]}">
+                <page name="assigned_persons" string="Personas asignadas" invisible="not is_company">
+                    <group>
+                        <field name="contact_to_assign_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Seleccione contactos a asignar"/>
+                        <button string="Asignar contactos seleccionados"
+                                name="action_add_existing_contacts"
+                                type="object"
+                                class="btn-primary"
+                                invisible="not contact_to_assign_ids"/>
+                    </group>
+                    <separator string="Personas actualmente asignadas"/>
                     <field name="assigned_person_ids" context="{'default_parent_id': id}" mode="tree,form">
-                        <list string="Assigned Persons">
+                        <list>
                             <field name="name"/>
                             <field name="email"/>
                             <field name="phone"/>
                             <field name="vat"/>
                         </list>
-                        <form string="Assigned Person">
+                        <form>
                             <sheet>
                                 <group>
                                     <field name="name"/>

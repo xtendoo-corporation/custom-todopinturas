@@ -33,6 +33,7 @@ import { openCustomerDisplay } from "@point_of_sale/customer_display/utils";
 import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
 import { PartnerList } from "@point_of_sale/app/screens/partner_list/partner_list";
+
 const { DateTime } = luxon;
 const originalProcessServerData = PosStore.prototype.processServerData;
 
