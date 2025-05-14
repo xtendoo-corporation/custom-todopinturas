@@ -10,6 +10,11 @@
                     <field name="pos_load_all_pricelists"/>
                 </setting>
             </xpath>
+            <xpath
+                expr="//block[@id='pos_pricing_section']/setting[@id='multiple_prices_setting']/div[@class='content-group']"
+                position="attributes">
+                <attribute name="invisible">pos_load_all_pricelists</attribute>
+            </xpath>
         </field>
     </record>
 </odoo>
