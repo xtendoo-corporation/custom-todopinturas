@@ -74,7 +74,7 @@ patch(ActionpadWidget.prototype, {
         }
     },
 
-    async clickNewButtonStore() {
+       async clickNewButtonStore() {
         const order = this.pos.get_order();
 
         if (!order || order.is_empty()) {
@@ -176,13 +176,26 @@ patch(ActionpadWidget.prototype, {
                     : this.pos.config.warehouse_id;
             }
 
+            // Obtener el cajero actual del TPV
+           const currentCashier = this.pos.get_cashier();
+            let cashierId = false;
+
+            // Enviamos el ID del empleado directamente
+            if (currentCashier && currentCashier.id) {
+                cashierId = currentCashier.id;  // ID del empleado (no del usuario)
+                console.log("ID del empleado cajero:", cashierId);
+            } else {
+                console.warn("No se pudo obtener el ID del cajero:", currentCashier);
+            }
+
             // Crear datos base para la venta
             const saleData = {
                 partner_id: partner.id,
                 order_line: allOrderLines,
                 origin: `POS ${this.pos.config?.name || 'Desconocido'}`,
-                user_id: this.pos.user?.id || false,
-                auto_validate_picking: true
+                auto_validate_picking: true,
+                // Enviar ID del empleado
+                employee_cashier_id: cashierId  // Renombramos para distinguirlo del user_id
             };
 
             if (warehouseId) {
@@ -245,7 +258,6 @@ patch(ActionpadWidget.prototype, {
 
                 // Asignar directamente a los datos de venta sin mostrar diálogo
                 saleData.products_by_location = preassignedLocations;
-
 
                 // Llamar al método para venta con múltiples albaranes
                 await this.orm.call(

@@ -15,18 +15,53 @@ class SaleOrder(models.Model):
         auto_validate = sale_data.pop('auto_validate_picking', False)
         custom_location_id = sale_data.pop('custom_location_id', False)
 
+        # Extraer ID del empleado cajero
+        employee_cashier_id = sale_data.pop('employee_cashier_id', False)
+
+        # Convertir ID de empleado a ID de usuario
+        cashier_id = False
+        if employee_cashier_id:
+            employee = self.env['hr.employee'].browse(employee_cashier_id)
+            if employee.exists() and employee.user_id:
+                cashier_id = employee.user_id.id
+                _logger.info(f"Empleado {employee.name} convertido a usuario {cashier_id}")
+                # Asignar el usuario cajero al comercial de la venta
+                sale_data['user_id'] = cashier_id
+            else:
+                _logger.warning(f"No se pudo encontrar usuario para empleado ID {employee_cashier_id}")
+
         # Guardar warehouse_id antes de crear la orden
         warehouse_id = sale_data.get('warehouse_id', False)
 
-        # Crear la venta
-        sale_order = self.create(sale_data)
+        # Contexto para evitar notificaciones por correo
+        no_mail_context = {
+            'mail_auto_subscribe_no_notify': True,
+            'mail_create_nosubscribe': True,
+            'tracking_disable': True,
+            'mail_notrack': True,
+            'mail_activity_automation_skip': True
+        }
 
-        # Confirmar la venta para crear el albarán
-        sale_order.action_confirm()
+        # Si tenemos un cajero específico, creamos el pedido como ese usuario
+        if cashier_id:
+            sale_order = self.with_user(cashier_id).with_context(**no_mail_context).create(sale_data)
+        else:
+            sale_order = self.with_context(**no_mail_context).create(sale_data)
+
+        # Confirmar la venta para crear el albarán sin enviar correos
+        if cashier_id:
+            sale_order.with_user(cashier_id).with_context(**no_mail_context).action_confirm()
+        else:
+            sale_order.with_context(**no_mail_context).action_confirm()
 
         # Si se requiere validación automática del albarán
         if auto_validate and sale_order.picking_ids:
             for picking in sale_order.picking_ids:
+                # Si hay un cajero específico, asignarlo como responsable del albarán
+                if cashier_id:
+                    picking.user_id = cashier_id
+                    picking.write({'user_id': cashier_id})
+
                 # Si se especificó una ubicación personalizada, la usamos directamente
                 if custom_location_id:
                     custom_location = self.env['stock.location'].browse(custom_location_id)
@@ -49,7 +84,10 @@ class SaleOrder(models.Model):
                                     move.location_id = stock_location.id
 
                 # Continuar con la reserva y validación
-                picking.action_assign()
+                if cashier_id:
+                    picking.with_user(cashier_id).with_context(**no_mail_context).action_assign()
+                else:
+                    picking.with_context(**no_mail_context).action_assign()
 
                 # Asignar cantidades en los movimientos principales
                 for move in picking.move_ids:
@@ -57,20 +95,34 @@ class SaleOrder(models.Model):
                         if hasattr(move, 'quantity'):
                             move.quantity = move.product_uom_qty
 
-                # Validar el albarán
+                # Validar el albarán sin enviar correos
                 if picking.state not in ['done', 'cancel']:
                     try:
-                        picking.with_context(skip_backorder=True, immediate_transfer=True).button_validate()
+                        # Si hay un cajero específico, validar el albarán como ese usuario
+                        if cashier_id:
+                            picking.with_user(cashier_id).with_context(
+                                skip_backorder=True,
+                                immediate_transfer=True,
+                                **no_mail_context
+                            ).button_validate()
+                        else:
+                            picking.with_context(
+                                skip_backorder=True,
+                                immediate_transfer=True,
+                                **no_mail_context
+                            ).button_validate()
                     except UserError as e:
                         _logger.warning(f"Error al validar albarán: {e}")
-                        picking.button_validate()
+                        if cashier_id:
+                            picking.with_user(cashier_id).with_context(**no_mail_context).button_validate()
+                        else:
+                            picking.with_context(**no_mail_context).button_validate()
 
         return {
             'id': sale_order.id,
             'name': sale_order.name,
             'picking_ids': sale_order.picking_ids.ids
         }
-
 
     @api.model
     def create_sale_with_multiple_pickings_from_pos(self, sale_data):
@@ -79,19 +131,54 @@ class SaleOrder(models.Model):
         auto_validate = sale_data.pop('auto_validate_picking', False)
         products_by_location = sale_data.pop('products_by_location', {})
 
+        # Extraer ID del empleado cajero
+        employee_cashier_id = sale_data.pop('employee_cashier_id', False)
+
+        # Convertir ID de empleado a ID de usuario
+        cashier_id = False
+        if employee_cashier_id:
+            employee = self.env['hr.employee'].browse(employee_cashier_id)
+            if employee.exists() and employee.user_id:
+                cashier_id = employee.user_id.id
+                _logger.info(f"Empleado {employee.name} convertido a usuario {cashier_id}")
+                # Asignar el usuario cajero al comercial de la venta
+                sale_data['user_id'] = cashier_id
+            else:
+                _logger.warning(f"No se pudo encontrar usuario para empleado ID {employee_cashier_id}")
+
+        # Contexto para evitar notificaciones por correo
+        no_mail_context = {
+            'mail_auto_subscribe_no_notify': True,
+            'mail_create_nosubscribe': True,
+            'tracking_disable': True,
+            'mail_notrack': True,
+            'mail_activity_automation_skip': True
+        }
+
         # Logging para diagnóstico
         _logger.info(f"Productos por ubicación: {products_by_location}")
 
-        # Crear la orden de venta
-        sale_order = self.create(sale_data)
+        # Crear la orden de venta con el usuario cajero si está disponible
+        if cashier_id:
+            sale_order = self.with_user(cashier_id).with_context(**no_mail_context).create(sale_data)
+        else:
+            sale_order = self.with_context(**no_mail_context).create(sale_data)
 
-        # Confirmar la venta para crear el albarán inicial
-        sale_order.action_confirm()
+        # Confirmar la venta para crear el albarán inicial sin enviar correos
+        if cashier_id:
+            sale_order.with_user(cashier_id).with_context(**no_mail_context).action_confirm()
+        else:
+            sale_order.with_context(**no_mail_context).action_confirm()
 
         # Verificar si hay mapeo de productos por ubicación y que no esté vacío
         if sale_order.picking_ids and products_by_location:
             # Obtener el albarán original
             original_picking = sale_order.picking_ids[0]
+
+            # Si hay un cajero específico, asignarlo al albarán original
+            if cashier_id:
+                original_picking.user_id = cashier_id
+                original_picking.write({'user_id': cashier_id})
 
             # Mapeo para nuevos albaranes por ubicación
             pickings_by_location = {}
@@ -122,12 +209,26 @@ class SaleOrder(models.Model):
 
                             # Crear nuevo albarán si no existe para esta ubicación
                             if loc_id not in pickings_by_location:
-                                new_picking = original_picking.copy({
+                                new_picking_vals = {
                                     'move_ids': [],
                                     'move_line_ids': [],
                                     'location_id': loc_id,
-                                    'origin': sale_order.name
-                                })
+                                    'origin': sale_order.name,
+                                    'user_id': cashier_id if cashier_id else False
+                                }
+
+                                # Usar contexto sin correo para crear el nuevo albarán
+                                if cashier_id:
+                                    new_picking = original_picking.with_user(cashier_id).with_context(
+                                        **no_mail_context).copy(new_picking_vals)
+                                else:
+                                    new_picking = original_picking.with_context(**no_mail_context).copy(
+                                        new_picking_vals)
+
+                                # Forzar la actualización del usuario responsable
+                                if cashier_id:
+                                    new_picking.write({'user_id': cashier_id})
+
                                 pickings_by_location[loc_id] = new_picking
                                 _logger.info(f"Creado nuevo albarán para ubicación {loc_id}: {new_picking.name}")
 
@@ -137,22 +238,35 @@ class SaleOrder(models.Model):
 
             # Ahora movemos los productos a sus nuevos albaranes
             for move, loc_id in moves_to_relocate:
-                move.picking_id = pickings_by_location[loc_id].id
-                move.location_id = loc_id
+                if cashier_id:
+                    move.with_user(cashier_id).with_context(**no_mail_context).picking_id = pickings_by_location[
+                        loc_id].id
+                    move.with_user(cashier_id).with_context(**no_mail_context).location_id = loc_id
+                else:
+                    move.with_context(**no_mail_context).picking_id = pickings_by_location[loc_id].id
+                    move.with_context(**no_mail_context).location_id = loc_id
                 _logger.info(f"Movido producto {move.product_id.name} al albarán para ubicación {loc_id}")
 
             # Solo cancelamos el albarán original si TODAS las líneas fueron movidas
             remaining_moves = original_picking.move_ids.filtered(lambda m: m.state not in ['done', 'cancel'])
             if not remaining_moves and moves_processed:
                 _logger.info(f"Cancelando albarán original {original_picking.name} por estar vacío")
-                original_picking.action_cancel()
+                if cashier_id:
+                    original_picking.with_user(cashier_id).with_context(**no_mail_context).action_cancel()
+                else:
+                    original_picking.with_context(**no_mail_context).action_cancel()
             else:
                 _logger.info(f"Albarán original {original_picking.name} mantiene {len(remaining_moves)} líneas")
 
         # Procesar todos los albaranes (tanto si hay múltiples como uno solo)
         if auto_validate:
             for picking in sale_order.picking_ids.filtered(lambda p: p.state != 'cancel'):
-                picking.action_assign()
+                # Asegurar nuevamente que el usuario sea el cajero
+                if cashier_id:
+                    picking.write({'user_id': cashier_id})
+                    picking.with_user(cashier_id).with_context(**no_mail_context).action_assign()
+                else:
+                    picking.with_context(**no_mail_context).action_assign()
 
                 # Asignar cantidades a mover
                 for move in picking.move_ids:
@@ -160,13 +274,28 @@ class SaleOrder(models.Model):
                         if hasattr(move, 'quantity'):
                             move.quantity = move.product_uom_qty
 
-                # Validar albarán
+                # Validar albarán sin enviar correos
                 if picking.state not in ['done', 'cancel']:
                     try:
-                        picking.with_context(skip_backorder=True, immediate_transfer=True).button_validate()
+                        # Si hay un cajero específico, validar el albarán como ese usuario
+                        if cashier_id:
+                            picking.with_user(cashier_id).with_context(
+                                skip_backorder=True,
+                                immediate_transfer=True,
+                                **no_mail_context
+                            ).button_validate()
+                        else:
+                            picking.with_context(
+                                skip_backorder=True,
+                                immediate_transfer=True,
+                                **no_mail_context
+                            ).button_validate()
                     except UserError as e:
                         _logger.warning(f"Error al validar albarán: {e}")
-                        picking.button_validate()
+                        if cashier_id:
+                            picking.with_user(cashier_id).with_context(**no_mail_context).button_validate()
+                        else:
+                            picking.with_context(**no_mail_context).button_validate()
 
         return {
             'id': sale_order.id,
