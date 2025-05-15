@@ -4,11 +4,73 @@ import { useService } from "@web/core/utils/hooks";
 import { patch } from "@web/core/utils/patch";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { Component, markup } from "@odoo/owl";
+import { NumberPopup } from "@point_of_sale/app/utils/input_popups/number_popup";
+import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
+import { floatIsZero, roundPrecision } from "@web/core/utils/numbers";
 
 patch(PaymentScreen.prototype, {
     setup() {
         super.setup();
         this.orm = useService("orm");
+    },
+     async _askForPin(intentos = 0) {
+        // Limitar intentos para evitar recursión infinita
+        if (intentos >= 5) {
+            this.notification.add(_t("Demasiados intentos fallidos"), {
+                type: "warning",
+                title: _t("Error de PIN")
+            });
+            return;
+        }
+
+        try {
+            // Mostrar el diálogo de PIN
+            const inputPin = await makeAwaitable(this.dialog, NumberPopup, {
+                formatDisplayedValue: (x) => x.replace(/./g, "•"),
+                title: _t("Ingrese PIN de cajero"),
+            });
+
+            // Si el usuario cancela
+            if (!inputPin) {
+                this.notification.add(_t("Operación de PIN cancelada"), {
+                    type: "info",
+                });
+                return;
+            }
+
+            // Verificar el PIN con los empleados disponibles
+            const allEmployees = this.pos.models["hr.employee"];
+            const hashedPin = Sha1.hash(inputPin);
+            const matchedEmployee = allEmployees.find(
+                (employee) => employee._pin === hashedPin
+            );
+
+            if (matchedEmployee) {
+                // PIN correcto
+                this.pos.hasLoggedIn = true;
+                this.pos.set_cashier(matchedEmployee);
+                this.notification.add(_t("Cajero seleccionado: ") + matchedEmployee.name, {
+                    type: "success",
+                });
+            } else {
+                // PIN incorrecto
+                this.notification.add(_t("PIN no encontrado"), {
+                    type: "warning",
+                    title: _t("PIN incorrecto"),
+                });
+
+                // Reintento con setTimeout para evitar recursión directa
+                setTimeout(() => {
+                    this._askForPin(intentos + 1);
+                }, 800);
+            }
+        } catch (error) {
+            console.error("Error al procesar el PIN:", error);
+            // Reintentar con setTimeout para evitar recursión directa
+            setTimeout(() => {
+                this._askForPin(intentos + 1);
+            }, 800);
+        }
     },
 
    async _isOrderValid(isForceValidate) {
@@ -43,9 +105,6 @@ patch(PaymentScreen.prototype, {
         }
         return false;
     }
-
-    // Mostrar todos los métodos de pago disponibles
-    this.logPaymentMethods();
 
     // Verificamos si hay algún método de pago tipo "cuenta cliente" (pay_later)
     const hasCustomerAccountPayment = this.paymentLines.some(
@@ -186,29 +245,16 @@ patch(PaymentScreen.prototype, {
 
     return true;
 },
-logPaymentMethods() {
-    console.log('TODOS LOS MÉTODOS DE PAGO:');
-    this.payment_methods_from_config.forEach(method => {
-        console.log({
-            id: method.id,
-            nombre: method.name,
-            tipo: method.type,          // Aquí verás "pay_later", "cash", etc.
-            secuencia: method.sequence,
-            terminal: method.use_payment_terminal ? "Sí" : "No",
-            efectivo: method.is_cash_count ? "Sí" : "No"
-        });
-    });
+ async afterOrderValidation(syncedOrders) {
+        // Ejecutamos el código original primero
+        await super.afterOrderValidation(syncedOrders);
 
-    // Verificar qué método está seleccionado actualmente
-    if (this.paymentLines.length > 0) {
-        console.log('LÍNEAS DE PAGO ACTUALES:');
-        this.paymentLines.forEach(line => {
-            console.log({
-                método: line.payment_method_id.name,
-                tipo: line.payment_method_id.type,
-                importe: line.amount
-            });
-        });
+        // NUEVO: Mostrar diálogo PIN después de finalizar el pago
+        if (this.pos && this.pos.config.module_pos_hr) {
+            setTimeout(() => {
+                this._askForPin(0);  // Iniciar con cero intentos
+            }, 1000);
+        }
     }
-}
+
 });
