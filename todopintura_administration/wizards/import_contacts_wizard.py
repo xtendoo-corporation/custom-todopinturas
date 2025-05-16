@@ -163,8 +163,9 @@ class ImportContactsWizard(models.TransientModel):
                 }
 
                 if credit_limit is not None:
+                    record['use_partner_credit_limit'] = True
                     record['credit_limit'] = credit_limit
-
+                    print(f"Límite de crédito establecido: {credit_limit} para {name}")
                 if forma_pago in payment_terms:
                     print(f"Forma de pago encontrada: {forma_pago} - {payment_terms[forma_pago]}")
                     payment_term = self.env['account.payment.term'].search(
