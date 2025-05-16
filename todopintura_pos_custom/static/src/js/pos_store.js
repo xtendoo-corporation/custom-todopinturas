@@ -33,6 +33,7 @@ import { openCustomerDisplay } from "@point_of_sale/customer_display/utils";
 import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
 import { PartnerList } from "@point_of_sale/app/screens/partner_list/partner_list";
+import { CouponAndAssignedPeopleDialog } from "./coupon_and_assigned_people";
 
 const { DateTime } = luxon;
 const originalProcessServerData = PosStore.prototype.processServerData;
@@ -323,13 +324,49 @@ patch(PosStore.prototype, {
             getPayload: (newPartner) => currentOrder.set_partner(newPartner),
         });
 
+
         let newPartner = false;
-        if (payload) {
-            currentOrder.set_partner(payload);
-            newPartner = payload;
-        } else {
-            currentOrder.set_partner(false);
+         if (payload) {
+    // Verificar si el cliente tiene personas asignadas
+    console.log("Payload:", payload);
+    const tienePersonasAsignadas = payload.assigned_person_ids && payload.assigned_person_ids.length > 0;
+    console.log("Tiene personas asignadas:", tienePersonasAsignadas);
+
+    if (tienePersonasAsignadas) {
+        try {
+            // Verificamos qué servicios están disponibles
+            console.log("this.dialog:", this.dialog);
+            console.log("this.env:", this.env);
+            console.log("this.env?.services:", this.env?.services);
+
+           const option = await new Promise(resolve => {
+                this.dialog.add(CouponAndAssignedPeopleDialog, {
+                    partner: payload,
+                    confirm: resolve,
+                    close: () => resolve(false)
+                });
+            });
+
+            if (option === 'coupon') {
+                console.log("Cliente con vale seleccionado");
+            } else if (option === 'assigned_people') {
+                console.log("Personas asignadas seleccionadas");
+            }
+        } catch (error) {
+            console.error("Error al mostrar el diálogo:", error);
+            // Opcionalmente, mostrar un diálogo de alerta con el error
+            this.dialog.add(AlertDialog, {
+                title: _t("Error"),
+                body: _t("No se pudo mostrar el diálogo: ") + (error.message || error),
+            });
         }
+    }
+
+    newPartner = payload;
+    currentOrder.set_partner(newPartner);
+} else {
+    currentOrder.set_partner(false);
+}
 
         if (newPartner) {
             const customerPricelist = this.models["product.pricelist"].find(

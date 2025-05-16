@@ -61,4 +61,12 @@ patch(PosOrder.prototype, {
             );
         });
     },
+
+       set_partner_option(option) {
+        this.partner_option = option;
+    },
+
+    get_partner_option() {
+        return this.partner_option || false;
+    }
 });
