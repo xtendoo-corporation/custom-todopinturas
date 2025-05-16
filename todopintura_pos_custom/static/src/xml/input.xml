@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="todopintura_pos_custom.Input"
+       t-inherit="point_of_sale.input"
+       t-inherit-mode="extension"
+       owl="1">
+        <xpath expr="//input" position="attributes">
+            <attribute name="t-on-focus">onFocus</attribute>
+            <attribute name="t-on-blur">onBlur</attribute>
+        </xpath>
+    </t>
+</templates>
