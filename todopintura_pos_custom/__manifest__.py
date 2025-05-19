@@ -27,8 +27,6 @@
             'todopintura_pos_custom/static/src/xml/location_selection_dialog.xml',
             'todopintura_pos_custom/static/src/js/coupon_and_assigned_people.js',
             'todopintura_pos_custom/static/src/xml/coupon_and_assigned_people.xml',
-            'todopintura_pos_custom/static/src/js/input.js',
-            'todopintura_pos_custom/static/src/xml/input.xml',
             # 'todopintura_pos_custom/static/src/js/select_contact_dialog.js',
             # 'todopintura_pos_custom/static/src/xml/select_contact_dialog.xml',
             'todopintura_pos_custom/static/src/js/product_info_popup.js',
