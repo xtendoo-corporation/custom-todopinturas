@@ -331,7 +331,11 @@ patch(PosStore.prototype, {
     console.log("Payload:", payload);
     const tienePersonasAsignadas = payload.assigned_person_ids && payload.assigned_person_ids.length > 0;
     console.log("Tiene personas asignadas:", tienePersonasAsignadas);
-
+    console.log("Campo voucher:", payload.voucher);
+    console.log("Campo assigned_persons:", payload.assigned_persons);
+    console.log("Campo credit_sale:", payload.credit_sale);
+    console.log("Tipo:", typeof payload.credit_location_id);
+    console.log("Campo credit_location_id:", payload.credit_location_id);
     if (tienePersonasAsignadas) {
         try {
             // Verificamos qué servicios están disponibles

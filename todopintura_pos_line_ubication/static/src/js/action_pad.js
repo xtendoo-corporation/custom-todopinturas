@@ -19,60 +19,6 @@ patch(ActionpadWidget.prototype, {
         this.dialog = useService("dialog");
         this.orm = useService("orm");
     },
-      async _askForPin(attemptCount = 0) {
-        // Limitar intentos para evitar recursión infinita
-        if (attemptCount >= 5) {
-            this.notification.add(_t("Se alcanzó el máximo de intentos"), {
-                type: "warning",
-            });
-            return;
-        }
-
-        try {
-            const inputPin = await makeAwaitable(this.dialog, NumberPopup, {
-                formatDisplayedValue: (x) => x.replace(/./g, "•"),
-                title: _t("Ingrese PIN de cajero"),
-            });
-
-            // Si cancela el diálogo
-            if (!inputPin) {
-                this.notification.add(_t("Operación de PIN cancelada"), {
-                    type: "info",
-                });
-                return;
-            }
-
-            // Verificar PIN con los empleados
-            const allEmployees = this.pos.models["hr.employee"];
-            const hashedPin = Sha1.hash(inputPin);
-            const matchedEmployee = allEmployees.find(
-                (employee) => employee._pin === hashedPin
-            );
-
-            if (matchedEmployee) {
-                this.pos.hasLoggedIn = true;
-                this.pos.set_cashier(matchedEmployee);
-                this.notification.add(_t("Cajero seleccionado: ") + matchedEmployee.name, {
-                    type: "success",
-                });
-            } else {
-                this.notification.add(_t("PIN no encontrado"), {
-                    type: "warning",
-                    title: _t("PIN incorrecto"),
-                });
-
-                // Usar setTimeout para evitar recursión directa
-                setTimeout(() => {
-                    this._askForPin(attemptCount + 1);
-                }, 800);
-            }
-        } catch (error) {
-            console.error("Error al procesar el PIN:", error);
-            setTimeout(() => {
-                this._askForPin(attemptCount + 1);
-            }, 800);
-        }
-    },
 
        async clickNewButtonStore() {
         const order = this.pos.get_order();
@@ -283,13 +229,6 @@ patch(ActionpadWidget.prototype, {
             this.notification.add(successMessage, {
                 type: "success",
             });
-
-            // NUEVO: Mostrar diálogo PIN después de finalizar la venta
-            if (this.pos && this.pos.config.module_pos_hr) {
-                setTimeout(() => {
-                    this._askForPin(0);  // Iniciar con cero intentos
-                }, 1000);
-            }
 
         } catch (error) {
             this.notification.add(_t("Error en la operación: ") + (error.message || error), {

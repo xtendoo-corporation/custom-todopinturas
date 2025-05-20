@@ -20,7 +20,7 @@
         'views/pos_category.xml',
         'views/product_pricelist_view_inherit.xml',
         'security/ir.model.access.csv',
-        'views/res_partner_views.xml',
+        # 'views/res_partner_views.xml',
         'views/stock_orderpoint_views.xml',
         'views/stock_min_date_views.xml',
     ],

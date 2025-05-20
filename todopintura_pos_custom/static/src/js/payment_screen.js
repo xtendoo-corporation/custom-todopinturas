@@ -7,70 +7,11 @@ import { Component, markup } from "@odoo/owl";
 import { NumberPopup } from "@point_of_sale/app/utils/input_popups/number_popup";
 import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
 import { floatIsZero, roundPrecision } from "@web/core/utils/numbers";
-
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 patch(PaymentScreen.prototype, {
     setup() {
         super.setup();
         this.orm = useService("orm");
-    },
-     async _askForPin(intentos = 0) {
-        // Limitar intentos para evitar recursión infinita
-        if (intentos >= 5) {
-            this.notification.add(_t("Demasiados intentos fallidos"), {
-                type: "warning",
-                title: _t("Error de PIN")
-            });
-            return;
-        }
-
-        try {
-            // Mostrar el diálogo de PIN
-            const inputPin = await makeAwaitable(this.dialog, NumberPopup, {
-                formatDisplayedValue: (x) => x.replace(/./g, "•"),
-                title: _t("Ingrese PIN de cajero"),
-            });
-
-            // Si el usuario cancela
-            if (!inputPin) {
-                this.notification.add(_t("Operación de PIN cancelada"), {
-                    type: "info",
-                });
-                return;
-            }
-
-            // Verificar el PIN con los empleados disponibles
-            const allEmployees = this.pos.models["hr.employee"];
-            const hashedPin = Sha1.hash(inputPin);
-            const matchedEmployee = allEmployees.find(
-                (employee) => employee._pin === hashedPin
-            );
-
-            if (matchedEmployee) {
-                // PIN correcto
-                this.pos.hasLoggedIn = true;
-                this.pos.set_cashier(matchedEmployee);
-                this.notification.add(_t("Cajero seleccionado: ") + matchedEmployee.name, {
-                    type: "success",
-                });
-            } else {
-                // PIN incorrecto
-                this.notification.add(_t("PIN no encontrado"), {
-                    type: "warning",
-                    title: _t("PIN incorrecto"),
-                });
-
-                // Reintento con setTimeout para evitar recursión directa
-                setTimeout(() => {
-                    this._askForPin(intentos + 1);
-                }, 800);
-            }
-        } catch (error) {
-            console.error("Error al procesar el PIN:", error);
-            // Reintentar con setTimeout para evitar recursión directa
-            setTimeout(() => {
-                this._askForPin(intentos + 1);
-            }, 800);
-        }
     },
 
    async _isOrderValid(isForceValidate) {
@@ -248,13 +189,6 @@ patch(PaymentScreen.prototype, {
  async afterOrderValidation(syncedOrders) {
         // Ejecutamos el código original primero
         await super.afterOrderValidation(syncedOrders);
-
-        // NUEVO: Mostrar diálogo PIN después de finalizar el pago
-        if (this.pos && this.pos.config.module_pos_hr) {
-            setTimeout(() => {
-                this._askForPin(0);  // Iniciar con cero intentos
-            }, 1000);
-        }
     }
 
 });

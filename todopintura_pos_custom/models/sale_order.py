@@ -15,6 +15,15 @@ class SaleOrder(models.Model):
         auto_validate = sale_data.pop('auto_validate_picking', False)
         custom_location_id = sale_data.pop('custom_location_id', False)
 
+        # Verificar si el cliente tiene venta a crédito habilitada
+        partner_id = sale_data.get('partner_id')
+        skip_validation = False
+        if partner_id:
+            partner = self.env['res.partner'].browse(partner_id)
+            if partner.exists() and partner.credit_sale:
+                skip_validation = True
+                _logger.info(f"Cliente {partner.name} tiene venta a crédito activada, no se validará el albarán")
+
         # Extraer ID del empleado cajero
         employee_cashier_id = sale_data.pop('employee_cashier_id', False)
 
@@ -54,8 +63,8 @@ class SaleOrder(models.Model):
         else:
             sale_order.with_context(**no_mail_context).action_confirm()
 
-        # Si se requiere validación automática del albarán
-        if auto_validate and sale_order.picking_ids:
+        # Si se requiere validación automática del albarán y el cliente no tiene venta a crédito
+        if auto_validate and sale_order.picking_ids and not skip_validation:
             for picking in sale_order.picking_ids:
                 # Si hay un cajero específico, asignarlo como responsable del albarán
                 if cashier_id:
@@ -117,6 +126,39 @@ class SaleOrder(models.Model):
                             picking.with_user(cashier_id).with_context(**no_mail_context).button_validate()
                         else:
                             picking.with_context(**no_mail_context).button_validate()
+        # Si el cliente tiene venta a crédito, solo reservamos pero no validamos
+        elif auto_validate and sale_order.picking_ids and skip_validation:
+            for picking in sale_order.picking_ids:
+                # Asignar responsable y ubicación igual que antes
+                if cashier_id:
+                    picking.user_id = cashier_id
+                    picking.write({'user_id': cashier_id})
+
+                # Configurar ubicación igual que antes
+                if custom_location_id:
+                    custom_location = self.env['stock.location'].browse(custom_location_id)
+                    if custom_location.exists():
+                        picking.location_id = custom_location.id
+                        for move in picking.move_ids:
+                            if move.state not in ('done', 'cancel'):
+                                move.location_id = custom_location.id
+                elif warehouse_id:
+                    warehouse = self.env['stock.warehouse'].browse(warehouse_id)
+                    if warehouse.exists():
+                        stock_location = warehouse.lot_stock_id
+                        if stock_location:
+                            picking.location_id = stock_location.id
+                            for move in picking.move_ids:
+                                if move.state not in ('done', 'cancel'):
+                                    move.location_id = stock_location.id
+
+                # Solo reservar pero no validar
+                if cashier_id:
+                    picking.with_user(cashier_id).with_context(**no_mail_context).action_assign()
+                else:
+                    picking.with_context(**no_mail_context).action_assign()
+
+                _logger.info(f"Albarán {picking.name} reservado pero no validado por venta a crédito")
 
         return {
             'id': sale_order.id,
@@ -363,3 +405,112 @@ class SaleOrder(models.Model):
                 }
 
         return False
+
+    @api.model
+    def create_credit_sale(self, sale_data):
+        """Crea una orden de venta a crédito desde el POS con albarán sin confirmar"""
+        # Extraer ID del empleado cajero si existe
+        employee_cashier_id = sale_data.pop('employee_cashier_id', False)
+
+        # Convertir ID de empleado a ID de usuario
+        cashier_id = False
+        if employee_cashier_id:
+            employee = self.env['hr.employee'].browse(employee_cashier_id)
+            if employee.exists() and employee.user_id:
+                cashier_id = employee.user_id.id
+                _logger.info(f"Empleado {employee.name} convertido a usuario {cashier_id}")
+                # Asignar el usuario cajero al comercial de la venta
+                sale_data['user_id'] = cashier_id
+            else:
+                _logger.warning(f"No se pudo encontrar usuario para empleado ID {employee_cashier_id}")
+
+        # Guardar warehouse_id antes de crear la orden
+        warehouse_id = sale_data.get('warehouse_id', False)
+
+        # Contexto para evitar notificaciones por correo
+        no_mail_context = {
+            'mail_auto_subscribe_no_notify': True,
+            'mail_create_nosubscribe': True,
+            'tracking_disable': True,
+            'mail_notrack': True,
+            'mail_activity_automation_skip': True
+        }
+
+        # Si tenemos un cajero específico, creamos el pedido como ese usuario
+        if cashier_id:
+            sale_order = self.with_user(cashier_id).with_context(**no_mail_context).create(sale_data)
+        else:
+            sale_order = self.with_context(**no_mail_context).create(sale_data)
+
+        # Buscar o crear la etiqueta "Venta a crédito"
+        credit_tag = self.env['crm.tag'].search([('name', '=', 'Venta a crédito')], limit=1)
+        if not credit_tag:
+            credit_tag = self.env['crm.tag'].create({'name': 'Venta a crédito'})
+
+        # Asignar la etiqueta a la venta
+        sale_order.tag_ids = [(4, credit_tag.id)]
+
+        # Confirmar la venta para crear el albarán sin enviar correos
+        if cashier_id:
+            sale_order.with_user(cashier_id).with_context(**no_mail_context).action_confirm()
+        else:
+            sale_order.with_context(**no_mail_context).action_confirm()
+
+        # Si hay albaranes, asignar usuario pero NO validar
+        if sale_order.picking_ids:
+            for picking in sale_order.picking_ids:
+                # Asignar responsable
+                if cashier_id:
+                    picking.user_id = cashier_id
+                    picking.write({'user_id': cashier_id})
+
+                # Configurar ubicación si hay warehouse_id
+                if warehouse_id:
+                    warehouse = self.env['stock.warehouse'].browse(warehouse_id)
+                    if warehouse.exists():
+                        stock_location = warehouse.lot_stock_id
+                        if stock_location:
+                            picking.location_id = stock_location.id
+                            for move in picking.move_ids:
+                                if move.state not in ('done', 'cancel'):
+                                    move.location_id = stock_location.id
+
+                # Solo reservar productos, no validar el albarán
+                if cashier_id:
+                    picking.with_user(cashier_id).with_context(**no_mail_context).action_assign()
+                else:
+                    picking.with_context(**no_mail_context).action_assign()
+
+        return {
+            'sale_id': sale_order.id,
+            'name': sale_order.name,
+            'picking_ids': sale_order.picking_ids.ids
+        }
+
+    @api.model
+    def get_partner_pending_orders(self, partner_id):
+        """Obtiene órdenes de venta del cliente sin albarán confirmado"""
+        domain = [
+            ('partner_id', '=', partner_id),
+            ('state', 'in', ['sale', 'done']),
+            ('invoice_status', '!=', 'invoiced'),
+        ]
+
+        # Filtrar órdenes que no tienen albaranes confirmados
+        orders = self.search(domain)
+        pending_orders = []
+
+        for order in orders:
+            # Verificar si tiene albaranes sin confirmar
+            pickings_confirmed = all(p.state == 'done' for p in order.picking_ids)
+            if not pickings_confirmed:
+                pending_orders.append({
+                    'id': order.id,
+                    'name': order.name,
+                    'date_order': fields.Datetime.to_string(order.date_order),
+                    'amount_total': order.amount_total,
+                    'state': order.state,
+                    'picking_status': 'pending' if order.picking_ids else 'no_picking'
+                })
+
+        return pending_orders
