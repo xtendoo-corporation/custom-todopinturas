@@ -326,16 +326,45 @@ patch(PosStore.prototype, {
 
 
         let newPartner = false;
-         if (payload) {
-    // Verificar si el cliente tiene personas asignadas
-    console.log("Payload:", payload);
-    const tienePersonasAsignadas = payload.assigned_person_ids && payload.assigned_person_ids.length > 0;
-    console.log("Tiene personas asignadas:", tienePersonasAsignadas);
-    console.log("Campo voucher:", payload.voucher);
-    console.log("Campo assigned_persons:", payload.assigned_persons);
-    console.log("Campo credit_sale:", payload.credit_sale);
-    console.log("Tipo:", typeof payload.credit_location_id);
-    console.log("Campo credit_location_id:", payload.credit_location_id);
+        if (payload) {
+        // Verificar si el cliente tiene personas asignadas
+        console.log("Payload:", payload);
+        const tienePersonasAsignadas = payload.assigned_person_ids && payload.assigned_person_ids.length > 0;
+        console.log("Tiene personas asignadas:", tienePersonasAsignadas);
+        console.log("Campo voucher:", payload.voucher);
+        console.log("Campo assigned_persons:", payload.assigned_persons);
+        console.log("Campo credit_sale:", payload.credit_sale);
+        console.log("Nombre de ubicación:", payload.credit_location_id_name);
+        if (payload.credit_sale) {
+            console.log("Cliente con venta a crédito", payload.credit_location_id_name);
+
+            try {
+                const result = await this.env.services.orm.call(
+                    'res.partner',
+                    'check_credit_location_matches_pos',
+                    [[payload.id], this.config.id]
+                );
+
+                console.log("Resultado verificación de ubicación:", result);
+
+                // Guardar la información de coincidencia en el objeto cliente
+                payload.credit_location_mismatch = !result.matches;
+
+                if (!result.matches) {
+                    this.dialog.add(AlertDialog, {
+                        title: _t("Ubicación incorrecta"),
+                        body: _t("La ubicación de crédito del cliente (" + result.partner_location_name +
+                              ") no coincide con la ubicación de esta caja (" + result.pos_location_name + ")."),
+                    });
+                }
+            } catch (error) {
+                console.error("Error al verificar ubicación:", error);
+                this.dialog.add(AlertDialog, {
+                    title: _t("Error"),
+                    body: _t("No se pudo verificar la ubicación de crédito."),
+                });
+            }
+        }
     if (tienePersonasAsignadas) {
         try {
             // Verificamos qué servicios están disponibles
