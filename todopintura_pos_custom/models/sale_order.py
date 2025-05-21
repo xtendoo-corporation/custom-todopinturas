@@ -20,9 +20,10 @@ class SaleOrder(models.Model):
         skip_validation = False
         if partner_id:
             partner = self.env['res.partner'].browse(partner_id)
-            if partner.exists() and partner.credit_sale:
+            if partner.exists() and partner.credit_sale and partner.credit_location_id:
                 skip_validation = True
-                _logger.info(f"Cliente {partner.name} tiene venta a crédito activada, no se validará el albarán")
+                _logger.info(
+                    f"Cliente {partner.name} tiene venta a crédito y ubicación asignada, no se validará el albarán")
 
         # Extraer ID del empleado cajero
         employee_cashier_id = sale_data.pop('employee_cashier_id', False)

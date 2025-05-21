@@ -352,9 +352,9 @@ patch(PosStore.prototype, {
 
                 if (!result.matches) {
                     this.dialog.add(AlertDialog, {
-                        title: _t("Ubicación incorrecta"),
+                        title: _t("Ubicación incorrecta para realizar venta a crédito"),
                         body: _t("La ubicación de crédito del cliente (" + result.partner_location_name +
-                              ") no coincide con la ubicación de esta caja (" + result.pos_location_name + ")."),
+                              ") no coincide con la ubicación de esta caja (" + result.pos_location_name + "). En esta tienda no se puede realizar venta a crédito a este cliente."),
                     });
                 }
             } catch (error) {

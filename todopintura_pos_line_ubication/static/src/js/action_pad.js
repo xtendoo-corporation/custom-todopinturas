@@ -11,16 +11,47 @@ import { LocationLineDialog } from "./location_line_dialog";
 import { LocationSelectionDialog } from "@todopintura_pos_custom/js/location_selection_dialog";
 import { NumberPopup } from "@point_of_sale/app/utils/input_popups/number_popup";
 import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
-
+import { useState, useEffect } from "@odoo/owl";
 patch(ActionpadWidget.prototype, {
     setup() {
         super.setup();
         this.notification = useService("notification");
         this.dialog = useService("dialog");
         this.orm = useService("orm");
+        this.state = useState({ canCreateAlbaran: false, loading: false });
+           // Solo se ejecuta cuando cambia el prop partner
+        useEffect(() => {
+            this._checkAlbaranButtonState();
+        }, () => [this.props.partner]);
+    },
+
+      async _checkAlbaranButtonState() {
+        this.state.loading = true;
+        const order = this.pos.get_order();
+        const partner = order && order.get_partner();
+        if (!partner || !partner.credit_sale) {
+            this.state.canCreateAlbaran = false;
+            this.state.loading = false;
+            return;
+        }
+        try {
+            const result = await this.orm.call(
+                "res.partner",
+                "check_credit_location_matches_pos",
+                [partner.id, this.pos.config.id]
+            );
+            this.state.canCreateAlbaran = !!(result && result.matches);
+        } catch (e) {
+            this.state.canCreateAlbaran = false;
+        }
+        this.state.loading = false;
     },
 
        async clickNewButtonStore() {
+         if (!this.state.canCreateAlbaran) {
+            this.notification.add(_t("No puedes crear albarán para este cliente o caja."), { type: "warning" });
+            return;
+        }
         const order = this.pos.get_order();
 
         if (!order || order.is_empty()) {

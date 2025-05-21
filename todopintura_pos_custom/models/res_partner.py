@@ -35,17 +35,17 @@ class ResPartner(models.Model):
     @api.model
     def check_credit_location_matches_pos(self, partner_id, pos_config_id):
         """
-        Verifica si la ubicación de crédito del cliente coincide con la ubicación
-        de origen del tipo de operación de la caja POS.
+        Permite ventas a crédito si el cliente no tiene ubicación asignada.
+        Solo bloquea si tiene una ubicación y es distinta a la de la caja.
         """
         partner = self.browse(partner_id)
         pos_config = self.env['pos.config'].browse(pos_config_id)
 
-        # Verificar si el cliente tiene una ubicación de crédito definida
+        # Si el cliente NO tiene ubicación de crédito, permitir la venta
         if not partner.credit_location_id:
             return {
-                'matches': False,
-                'error': 'Cliente sin ubicación de crédito definida',
+                'matches': True,
+                'error': '',
                 'partner_location_name': '',
                 'pos_location_name': pos_config.picking_type_id.default_location_src_id.name if pos_config.picking_type_id and pos_config.picking_type_id.default_location_src_id else ''
             }

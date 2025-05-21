@@ -13,8 +13,6 @@
                        string="Ubicación para venta a crédito"
                        invisible_depends="credit_sale"
                        invisible="not credit_sale"
-                       required_depends="credit_sale"
-                       required="credit_sale"
                        options="{'no_create': True}"/>
             </field>
         </field>
