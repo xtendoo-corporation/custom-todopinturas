@@ -34,10 +34,10 @@ import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
 import { PartnerList } from "@point_of_sale/app/screens/partner_list/partner_list";
 import { CouponAndAssignedPeopleDialog } from "./coupon_and_assigned_people";
-
+import { browser } from "@web/core/browser/browser";
 const { DateTime } = luxon;
 const originalProcessServerData = PosStore.prototype.processServerData;
-
+const originalSetup = PosStore.prototype.setup;
 patch(PosStore.prototype, {
     /**
      * Versión modificada que solo utiliza la lista de precios predeterminada
@@ -458,5 +458,34 @@ patch(PosStore.prototype, {
         return {
             productInfo,
         };
+    },
+     get firstScreen() {
+        if (odoo.from_backend) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("from_backend");
+            window.history.replaceState({}, "", url);
+
+            // Asigna el cajero automáticamente si no está asignado
+            if (!this.config.module_pos_hr || !this.cashier) {
+                this.set_cashier(this.user);
+            }
+        }
+        return "ProductScreen";
+    },
+    async setup() {
+        await originalSetup.call(this, ...arguments);
+        // Asigna el cajero automáticamente si no está asignado
+        if (this.config.module_pos_hr && !this.cashier) {
+            this.set_cashier(this.user);
+        }
+        this.employeeBuffer = [];
+        window.addEventListener("online", () => {
+            this.employeeBuffer.forEach((employee) =>
+                this.data.write("pos.session", [this.config.current_session_id.id], {
+                    employee_id: employee.id,
+                })
+            );
+            this.employeeBuffer = [];
+        });
     },
 });
