@@ -1,0 +1,7 @@
+<templates xml:space="preserve">
+    <t t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <xpath expr="//Input" position="attributes">
+            <attribute name="t-if">!this.isBasicUser &amp;&amp; pos.showSearchButton()</attribute>
+        </xpath>
+    </t>
+</templates>
