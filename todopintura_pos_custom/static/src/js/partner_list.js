@@ -69,13 +69,17 @@ patch(PartnerList.prototype, {
     },
 
     async getNewPartners() {
-        const limit = 50; // Siempre limitamos a 20 para mejor rendimiento
+        const limit = 50;
         let domain = [];
 
         if (this.state.query) {
-            domain = [["name", "ilike", this.state.query + "%"]];
+            domain = [
+                "|", "|",
+                ["name", "ilike", this.state.query + "%"],
+                ["vat", "ilike", this.state.query + "%"],
+                ["ref", "ilike", this.state.query + "%"]
+            ];
         } else {
-            // Si no hay búsqueda, mostrar menos resultados o lista vacía
             return [];
         }
 

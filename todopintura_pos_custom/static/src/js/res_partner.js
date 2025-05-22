@@ -5,7 +5,15 @@ patch(ResPartner.prototype, {
     get searchString() {
         const fields = [
             "name",
+            "vat",
+            "ref",
         ];
-        return this.name || "";
+        return fields
+            .map((field) => {
+                const value = this[field];
+                return value ? `${field}:${value}` : "";
+            })
+            .filter(Boolean)
+            .join(" ");
     }
 });
