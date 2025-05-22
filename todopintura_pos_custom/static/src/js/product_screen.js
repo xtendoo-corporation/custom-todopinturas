@@ -35,12 +35,30 @@ patch(ProductScreen.prototype, {
         super.setup();
 
         // Añadimos el hook onMounted para ejecutar _askForPin al cargar
-        onMounted(() => {
-            // Pequeño retraso para asegurar que todo esté cargado
+ onMounted(() => {
+    const order = this.pos.get_order?.();
+    if (order) {
+        // Intenta acceder a order.lines
+        let lines = [];
+        if (order.lines) {
+            if (typeof order.lines.toArray === "function") {
+                lines = order.lines.toArray();
+            } else if (Array.isArray(order.lines)) {
+                lines = order.lines;
+            }
+        }
+        console.log("Líneas del pedido:", lines);
+
+        // Ahora puedes usar lines.length para tu lógica
+        if (lines.length === 0) {
             setTimeout(() => {
                 this._askForPin();
             }, 100);
-        });
+        }
+    } else {
+        console.log("No hay pedido activo.");
+    }
+});
 
         // Obtener servicios necesarios si no están disponibles
         this.dialog = this.dialog || useService("dialog");
