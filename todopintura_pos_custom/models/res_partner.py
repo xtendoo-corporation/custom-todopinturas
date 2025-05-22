@@ -26,6 +26,14 @@ class ResPartner(models.Model):
 
     @api.model
     def _load_pos_data_fields(self, config_id):
+        return [
+            'id', 'name', 'vat', 'phone', 'zip', 'mobile', 'email',
+            'barcode', 'write_date', 'property_account_position_id', 'property_product_pricelist', 'parent_name',
+            'contact_address',
+        ]
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
         print("Loading POS data fields for ResPartner")
         fields = super()._load_pos_data_fields(config_id)
         fields.extend(['voucher', 'assigned_persons', 'credit_sale', 'credit_location_id','credit_location_id_name'])
@@ -68,3 +76,5 @@ class ResPartner(models.Model):
             'partner_location_name': partner.credit_location_id.name,
             'pos_location_name': pos_location.name
         }
+
+
