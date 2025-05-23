@@ -28,6 +28,7 @@ import { patch } from "@web/core/utils/patch";
 import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
 import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
 import { NumberPopup } from "@point_of_sale/app/utils/input_popups/number_popup";
+import { CustomPricePopup } from "./custom_price_popup";
 
 patch(ProductScreen.prototype, {
     setup() {
@@ -159,4 +160,75 @@ patch(ProductScreen.prototype, {
             }, 800);
         }
     },
+async addProductToOrder(product) {
+    const order = this.pos.get_order();
+    const pricelist = order?.pricelist || this.pos.config.pricelist;
+    const partner = order?.partner;
+    const price = product.get_price(pricelist, partner);
+
+    console.log("Producto:", product.display_name || product.name);
+    console.log("Precio original:", price);
+
+    if (price === 0.01 || price === 0) {
+        try {
+            // Obtener el precio base (sin descuentos) y calcular porcentaje
+            const precioBase = product.lst_price || product.list_price || 0;
+            let descuentoInfo = "";
+
+            // Si tenemos un cliente seleccionado, calculamos su descuento
+            if (partner && precioBase > 0) {
+                // Obtener el precio con descuentos que se aplicaría
+                const precioCliente = this.pos.get_price(product, partner, pricelist);
+                console.log("Precio cliente:", precioCliente);
+                if (precioCliente < precioBase && precioCliente > 0) {
+                    const porcentajeDescuento = Math.round((1 - (precioCliente / precioBase)) * 100);
+                    console.log("Precio cliente:", precioCliente);
+                    console.log("Precio base:", precioBase);
+                    console.log("Porcentaje descuento:", porcentajeDescuento);
+                    descuentoInfo = ` (Descuento habitual: ${porcentajeDescuento}%)`;
+                    console.log("Descuento habitual:", porcentajeDescuento);
+                }
+            }
+
+            const inputPrice = await makeAwaitable(this.dialog, NumberPopup, {
+                title: _t("Ingrese precio para") + ` ${product.display_name || product.name}${descuentoInfo}`,
+                startingValue: "",
+            });
+
+            if (!inputPrice) {
+                this.notification.add(_t("Operación cancelada"), { type: "info" });
+                return;
+            }
+
+            const precio = parseFloat(inputPrice);
+            if (!isNaN(precio) && precio > 0) {
+                console.log("Añadiendo producto con precio:", precio);
+
+                const result = await reactive(this.pos).addLineToCurrentOrder({
+                    product_id: product.id
+                }, {});
+
+                const orderLines = this.pos.get_order().get_orderlines();
+                const lastLine = orderLines[orderLines.length - 1];
+
+                if (lastLine) {
+                    console.log("Actualizando precio de línea:", lastLine);
+                    lastLine.set_unit_price(precio);
+                    lastLine.price_manually_set = true;
+                    this.pos.get_order().select_orderline(lastLine);
+                }
+
+                this.notification.add(_t("Producto añadido con precio personalizado"), { type: "success" });
+            } else {
+                this.notification.add(_t("Precio inválido"), { type: "warning" });
+            }
+        } catch (error) {
+            console.error("Error en el proceso:", error);
+            this.notification.add(_t("Error al procesar el precio"), { type: "danger" });
+        }
+        return;
+    }
+
+    await reactive(this.pos).addLineToCurrentOrder({ product_id: product }, {});
+}
 });

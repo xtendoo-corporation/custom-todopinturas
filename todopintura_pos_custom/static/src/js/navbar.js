@@ -18,5 +18,11 @@ patch(Navbar.prototype, {
             },
             () => [this.pos.get_cashier?.() && this.pos.get_cashier().id]
         );
+
+        const originalCloseSession = this.pos.closeSession;
+        this.pos.closeSession = function() {
+            // Mantiene la funcionalidad original pero sin restricciones de permisos
+            return originalCloseSession.apply(this, arguments);
+        };
     },
 });
