@@ -39,6 +39,7 @@
             'todopintura_pos_custom/static/src/xml/navbar.xml',
             'todopintura_pos_custom/static/src/js/custom_price_popup.js',
             'todopintura_pos_custom/static/src/xml/custom_price_popup.xml',
+            'todopintura_pos_custom/static/src/js/chrome.js',
 
         ],
     },
