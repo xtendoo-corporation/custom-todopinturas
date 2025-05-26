@@ -6,6 +6,10 @@ class ResPartner(models.Model):
 
     voucher = fields.Boolean(string="Vale")
     assigned_persons = fields.Boolean(string="Personas asignadas")
+    assigned_persons_info = fields.Text(
+        string="Información de personas asignadas",
+        help="Ingrese detalles sobre las personas asignadas a este cliente"
+    )
     credit_sale = fields.Boolean(string="Venta a crédito")
     credit_location_id = fields.Many2one(
         'stock.location',
@@ -31,7 +35,7 @@ class ResPartner(models.Model):
             'id', 'name', 'vat', 'phone', 'zip', 'mobile', 'email',
             'barcode', 'write_date', 'property_account_position_id', 'property_product_pricelist', 'parent_name',
             'contact_address', 'ref',
-            'voucher', 'assigned_persons', 'credit_sale', 'credit_location_id', 'credit_location_id_name'
+            'voucher', 'assigned_persons','assigned_persons_info', 'credit_sale', 'credit_location_id', 'credit_location_id_name'
         ]
         print("Fields loaded:", fields)
         return fields

@@ -8,6 +8,10 @@
             <field name="property_product_pricelist" position="after">
                 <field name="voucher" string="Vale"/>
                 <field name="assigned_persons" string="Personas asignadas"/>
+                <field name="assigned_persons_info"
+                       invisible="not assigned_persons"
+                       required="assigned_persons"
+                       placeholder="Información sobre las personas asignadas"/>
                 <field name="credit_sale" string="Venta a crédito"/>
                 <field name="credit_location_id"
                        string="Ubicación para venta a crédito"

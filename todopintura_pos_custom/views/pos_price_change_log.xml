@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_pos_price_change_log_list" model="ir.ui.view">
+        <field name="name">pos.price.change.log.list</field>
+        <field name="model">pos.price.change.log</field>
+        <field name="arch" type="xml">
+            <list string="Logs de cambio de precio en POS">
+                <field name="date"/>
+                <field name="order_reference"/>
+                <field name="product_id"/>
+                <field name="original_price"/>
+                <field name="new_price"/>
+                <field name="user_id"/>
+                <field name="employee_id"/>
+                <field name="session_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_pos_price_change_log_form" model="ir.ui.view">
+        <field name="name">pos.price.change.log.form</field>
+        <field name="model">pos.price.change.log</field>
+        <field name="arch" type="xml">
+            <form string="Log de cambio de precio en POS">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="order_reference"/>
+                            <field name="product_id"/>
+                            <field name="original_price"/>
+                            <field name="new_price"/>
+                        </group>
+                        <group>
+                            <field name="user_id"/>
+                            <field name="employee_id"/>
+                            <field name="session_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search view -->
+    <record id="view_pos_price_change_log_search" model="ir.ui.view">
+        <field name="name">pos.price.change.log.search</field>
+        <field name="model">pos.price.change.log</field>
+        <field name="arch" type="xml">
+            <search string="Buscar logs de cambio de precio">
+                <field name="order_reference"/>
+                <field name="product_id"/>
+                <field name="user_id"/>
+                <field name="employee_id"/>
+                <filter string="Hoy" name="today" domain="[('date','&gt;=',time.strftime('%Y-%m-%d 00:00:00')),('date','&lt;=',time.strftime('%Y-%m-%d 23:59:59'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Producto" name="group_by_product" context="{'group_by':'product_id'}"/>
+                    <filter string="Usuario" name="group_by_user" context="{'group_by':'user_id'}"/>
+                    <filter string="Empleado" name="group_by_employee" context="{'group_by':'employee_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Acción para abrir los logs -->
+    <record id="action_pos_price_change_log" model="ir.actions.act_window">
+        <field name="name">Cambios de precio en POS</field>
+        <field name="res_model">pos.price.change.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+
+    <!-- Añadir al menú de informes -->
+    <menuitem id="menu_pos_price_change_log"
+              name="Registro de cambios de precio"
+              action="action_pos_price_change_log"
+              parent="point_of_sale.menu_point_rep"
+              sequence="100"/>
+</odoo>
