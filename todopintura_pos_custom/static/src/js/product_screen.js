@@ -164,29 +164,49 @@ async addProductToOrder(product) {
     const order = this.pos.get_order();
     const pricelist = order?.pricelist || this.pos.config.pricelist;
     const partner = order?.partner;
-    const price = product.get_price(pricelist, partner);
+
+    // Obtener precio base (sin descuentos)
+    const precioBase = product.lst_price || product.list_price || 0;
+
+    // Obtener precio calculado con reglas de tarifa
+    let precioCalculado = product.get_price(pricelist, partner);
 
     console.log("Producto:", product.display_name || product.name);
-    console.log("Precio original:", price);
+    console.log("Precio base:", precioBase);
+    console.log("Precio calculado:", precioCalculado);
 
-    if (price === 0.01 || price === 0) {
+    // Comprobar si existe una regla de tarifa para este producto específico
+    const productId = product.id;
+    let precioReal = precioCalculado;
+
+    // Intentar obtener el precio real de la interfaz utilizando las reglas de tarifa
+    try {
+        if (pricelist && pricelist.items) {
+            const tarifaItem = pricelist.items.find(item =>
+                item.product_id && item.product_id[0] === productId);
+
+            if (tarifaItem && tarifaItem.fixed_price) {
+                precioReal = tarifaItem.fixed_price;
+                console.log("Precio desde regla de tarifa:", precioReal);
+            } else if (tarifaItem && tarifaItem.percent_price) {
+                precioReal = precioBase * (1 - tarifaItem.percent_price / 100);
+                console.log("Precio calculado con porcentaje:", precioReal);
+            }
+        }
+    } catch (error) {
+        console.log("Error al buscar regla de tarifa:", error);
+    }
+
+    // Caso especial para productos con precio 0 o 0.01
+    if (precioCalculado === 0.01 || precioCalculado === 0) {
         try {
-            // Obtener el precio base (sin descuentos) y calcular porcentaje
-            const precioBase = product.lst_price || product.list_price || 0;
+            // Código existente para productos con precio especial...
             let descuentoInfo = "";
-
-            // Si tenemos un cliente seleccionado, calculamos su descuento
             if (partner && precioBase > 0) {
-                // Obtener el precio con descuentos que se aplicaría
                 const precioCliente = this.pos.get_price(product, partner, pricelist);
-                console.log("Precio cliente:", precioCliente);
                 if (precioCliente < precioBase && precioCliente > 0) {
                     const porcentajeDescuento = Math.round((1 - (precioCliente / precioBase)) * 100);
-                    console.log("Precio cliente:", precioCliente);
-                    console.log("Precio base:", precioBase);
-                    console.log("Porcentaje descuento:", porcentajeDescuento);
                     descuentoInfo = ` (Descuento habitual: ${porcentajeDescuento}%)`;
-                    console.log("Descuento habitual:", porcentajeDescuento);
                 }
             }
 
@@ -202,8 +222,6 @@ async addProductToOrder(product) {
 
             const precio = parseFloat(inputPrice);
             if (!isNaN(precio) && precio > 0) {
-                console.log("Añadiendo producto con precio:", precio);
-
                 const result = await reactive(this.pos).addLineToCurrentOrder({
                     product_id: product.id
                 }, {});
@@ -212,7 +230,6 @@ async addProductToOrder(product) {
                 const lastLine = orderLines[orderLines.length - 1];
 
                 if (lastLine) {
-                    console.log("Actualizando precio de línea:", lastLine);
                     lastLine.set_unit_price(precio);
                     lastLine.price_manually_set = true;
                     this.pos.get_order().select_orderline(lastLine);
@@ -229,6 +246,45 @@ async addProductToOrder(product) {
         return;
     }
 
-    await reactive(this.pos).addLineToCurrentOrder({ product_id: product }, {});
+    // Añadir el producto al pedido
+    await reactive(this.pos).addLineToCurrentOrder({ product_id: product.id }, {});
+
+    // Siempre aplicar la visualización del descuento si hay diferencia
+    const usarPrecio = Math.min(precioCalculado, precioReal);
+    if (precioBase > usarPrecio && Math.abs(precioBase - usarPrecio) > 0.0001) {
+        // Calcular el porcentaje de descuento
+        const porcentajeDescuento = Math.round((1 - (usarPrecio / precioBase)) * 100 * 100) / 100;
+
+        console.log("Aplicando descuento visual:", porcentajeDescuento + "%");
+
+        // Obtener la línea recién añadida
+        const orderLines = order.get_orderlines();
+        const lastLine = orderLines[orderLines.length - 1];
+
+        if (lastLine) {
+            // Establecer precio base y aplicar descuento
+            lastLine.set_unit_price(precioBase);
+            lastLine.set_discount(porcentajeDescuento);
+            console.log("Precio base establecido:", precioBase);
+            console.log("Descuento aplicado:", porcentajeDescuento + "%");
+        }
+    } else {
+        // Verificar directamente el precio en la línea añadida para detectar discrepancias
+        const orderLines = order.get_orderlines();
+        const lastLine = orderLines[orderLines.length - 1];
+
+        if (lastLine) {
+            const precioLinea = lastLine.get_unit_price();
+            console.log("Precio en línea de pedido:", precioLinea);
+
+            if (precioBase > precioLinea && Math.abs(precioBase - precioLinea) > 0.0001) {
+                const porcentajeDescuento = Math.round((1 - (precioLinea / precioBase)) * 100 * 100) / 100;
+                console.log("Aplicando descuento basado en precio línea:", porcentajeDescuento + "%");
+
+                lastLine.set_unit_price(precioBase);
+                lastLine.set_discount(porcentajeDescuento);
+            }
+        }
+    }
 }
 });
