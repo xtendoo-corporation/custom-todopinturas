@@ -176,7 +176,11 @@ patch(ActionpadWidget.prototype, {
                 // Enviar ID del empleado
                 employee_cashier_id: cashierId  // Renombramos para distinguirlo del user_id
             };
-
+            // Añadir la nota general del pedido POS a los datos de la venta
+            if (order.general_note) {
+                saleData.general_note = order.general_note;
+                console.log("Añadiendo nota general a la venta:", order.general_note);
+            }
             if (warehouseId) {
                 saleData.warehouse_id = warehouseId;
             }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_order_form_with_general_notes" model="ir.ui.view">
+        <field name="name">sale.order.form.general.notes</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='customer_signature']" position="after">
+                <page string="Notas generales" name="general_notes">
+                    <group>
+                        <field name="general_note" nolabel="1" placeholder="Escriba aquí las notas generales..." widget="html"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

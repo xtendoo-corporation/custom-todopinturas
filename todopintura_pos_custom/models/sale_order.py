@@ -8,6 +8,8 @@ _logger = logging.getLogger(__name__)
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    general_note = fields.Html(string='Nota general')
+
     @api.model
     def create_sale_from_pos(self, sale_data):
         """Crea una orden de venta desde el POS y valida el albarán"""
