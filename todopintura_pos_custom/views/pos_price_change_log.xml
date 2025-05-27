@@ -4,15 +4,14 @@
         <field name="name">pos.price.change.log.list</field>
         <field name="model">pos.price.change.log</field>
         <field name="arch" type="xml">
-            <list string="Logs de cambio de precio en POS">
-                <field name="date"/>
-                <field name="order_reference"/>
-                <field name="product_id"/>
-                <field name="original_price"/>
-                <field name="new_price"/>
-                <field name="user_id"/>
-                <field name="employee_id"/>
-                <field name="session_id"/>
+            <list string="Logs de cambio de precio en POS" create="0" edit="0" delete="0">
+                <field name="date" readonly="1"/>
+                <field name="order_reference" readonly="1"/>
+                <field name="product_id" readonly="1"/>
+                <field name="original_price" readonly="1"/>
+                <field name="new_price" readonly="1"/>
+                <field name="user_id" readonly="1"/>
+                <field name="employee_id" readonly="1"/>
             </list>
         </field>
     </record>
@@ -21,21 +20,20 @@
         <field name="name">pos.price.change.log.form</field>
         <field name="model">pos.price.change.log</field>
         <field name="arch" type="xml">
-            <form string="Log de cambio de precio en POS">
+            <form string="Log de cambio de precio en POS" create="0" edit="0" delete="0">
                 <sheet>
                     <group>
                         <group>
-                            <field name="date"/>
-                            <field name="order_reference"/>
-                            <field name="product_id"/>
-                            <field name="original_price"/>
-                            <field name="new_price"/>
+                            <field name="date" readonly="1"/>
+                            <field name="order_reference" readonly="1"/>
+                            <field name="product_id" readonly="1"/>
+                            <field name="original_price" readonly="1"/>
+                            <field name="new_price" readonly="1"/>
                         </group>
                         <group>
-                            <field name="user_id"/>
-                            <field name="employee_id"/>
-                            <field name="session_id"/>
-                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="user_id" readonly="1"/>
+                            <field name="employee_id" readonly="1"/>
+                            <field name="company_id" readonly="1" groups="base.group_multi_company"/>
                         </group>
                     </group>
                 </sheet>

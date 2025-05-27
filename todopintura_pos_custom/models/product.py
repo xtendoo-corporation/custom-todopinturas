@@ -72,3 +72,19 @@ class ProductProductInherit(models.Model):
             'available_in_pos', 'attribute_line_ids', 'active', 'image_128', 'combo_ids',
             'product_template_variant_value_ids',
         ]
+
+    @api.model
+    def get_partner_prices(self, product_ids, partner_id, pricelist_id=False):
+        """Obtiene los precios que deberían tener los productos según las reglas de precio"""
+        result = {}
+        partner = self.env['res.partner'].browse(partner_id)
+        pricelist = pricelist_id and self.env['product.pricelist'].browse(
+            pricelist_id) or partner.property_product_pricelist
+
+        if not pricelist:
+            return result
+
+        products = self.browse(product_ids)
+        prices = pricelist.get_products_price(products, [1.0] * len(products), partner)
+
+        return prices

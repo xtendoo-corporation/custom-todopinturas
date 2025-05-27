@@ -71,6 +71,93 @@ patch(ActionpadWidget.prototype, {
                 });
                 return;
             }
+
+            // NUEVO: Detectar cambios de precio
+            try {
+                console.log("Iniciando verificación de cambios de precio...");
+                const orderLines = order.get_orderlines();
+                console.log("Líneas de pedido encontradas:", orderLines.length);
+
+                if (orderLines.length > 0) {
+                    const partner = order.get_partner();
+                    const productIds = orderLines.map(line => line.get_product().id);
+
+                    // Obtener la lista de precios del cliente
+                    let pricelistId = null;
+                    if (partner && partner.property_product_pricelist) {
+                        if (typeof partner.property_product_pricelist === 'number') {
+                            pricelistId = partner.property_product_pricelist;
+                        } else if (Array.isArray(partner.property_product_pricelist)) {
+                            pricelistId = partner.property_product_pricelist[0];
+                        } else if (partner.property_product_pricelist.id) {
+                            pricelistId = partner.property_product_pricelist.id;
+                        }
+                        console.log("Usando lista de precios del cliente (ID):", pricelistId);
+                    } else if (this.pos && this.pos.config && this.pos.config.pricelist_id) {
+                        if (typeof this.pos.config.pricelist_id === 'number') {
+                            pricelistId = this.pos.config.pricelist_id;
+                        } else if (Array.isArray(this.pos.config.pricelist_id)) {
+                            pricelistId = this.pos.config.pricelist_id[0];
+                        } else if (this.pos.config.pricelist_id.id) {
+                            pricelistId = this.pos.config.pricelist_id.id;
+                        }
+                        console.log("Usando lista de precios del POS (ID):", pricelistId);
+                    }
+
+                    // Obtener precios según tarifa del cliente
+                    let partnerPrices = {};
+                    try {
+                        partnerPrices = await this.orm.call(
+                            'product.product',
+                            'get_partner_prices',
+                            [productIds, partner.id, pricelistId]
+                        );
+                        console.log("Precios según tarifa obtenidos:", partnerPrices);
+                    } catch (priceError) {
+                        console.warn("Error al obtener precios según tarifa:", priceError);
+                    }
+
+                    // Registrar cambios de precio uno por uno
+                    for (const line of orderLines) {
+                        const product = line.get_product();
+                        const actualPrice = line.get_unit_price();
+
+                        // Usar precio de tarifa si existe, o precio base como fallback
+                        const expectedPrice = partnerPrices[product.id] || product.lst_price;
+
+                        console.log(`Producto ${product.id} (${product.display_name}): Precio actual ${actualPrice} vs Esperado ${expectedPrice}`);
+
+                        // Solo procesar líneas con diferencia de precio
+                        if (Math.abs(actualPrice - expectedPrice) > 0.01) {
+                            console.log(`⚠️ Diferencia de precio en ${product.display_name}: ${expectedPrice} → ${actualPrice}`);
+
+                            // Datos mínimos
+                            const priceData = {
+                                product_id: product.id,
+                                original_price: expectedPrice,
+                                new_price: actualPrice,
+                                order_reference: order.name || 'Sin referencia'
+                            };
+
+                            // Registrar cambio
+                            try {
+                                const result = await this.orm.call(
+                                    'pos.price.change.log',
+                                    'create',
+                                    [[priceData]]
+                                );
+                                console.log(`✅ Cambio registrado para producto ${product.id}: ${result}`);
+                            } catch (lineError) {
+                                console.error(`Error al registrar cambio para producto ${product.id}:`, lineError);
+                            }
+                        }
+                    }
+                }
+                console.log("Verificación de precios completada");
+            } catch (priceError) {
+                console.error("❌ Error general en verificación de precios:", priceError);
+            }
+
             const creditCheckResult = await this.orm.call(
                 'sale.order',
                 'check_credit_limit',
@@ -272,79 +359,79 @@ patch(ActionpadWidget.prototype, {
             });
 
             // Mostrar diálogo para imprimir albaranes si hay albaranes disponibles
-if (pickingIds && pickingIds.length > 0) {
-    const { action } = await new Promise(resolve => {
-        this.dialog.add(ConfirmationDialog, {
-            title: _t("Albaranes generados"),
-            body: markup(`
-                <div class="py-2 text-center">
-                    <p class="mb-3">${_t("La venta se ha creado correctamente.")}</p>
-                    <p>${pickingIds.length > 1
-                        ? _t("Se han generado ") + pickingIds.length + _t(" albaranes.")
-                        : _t("Se ha generado un albarán.")}</p>
-                    <p class="mt-3">${_t("¿Qué deseas hacer con los albaranes?")}</p>
-                </div>
-            `),
-            confirmLabel: _t("Ver albaranes"),
-            cancelLabel: _t("Cerrar"),
-            confirm: () => resolve({ action: 'view' }),
-            cancel: () => resolve({ action: 'close' }),
-        });
-    });
-
-    if (action === 'view') {
-        try {
-            // Mostrar diálogo para elegir entre ver o imprimir
-            const { selectedAction } = await new Promise(resolve => {
-                this.dialog.add(ConfirmationDialog, {
-                    title: _t("Opciones de albaranes"),
-                    body: _t("¿Deseas ver o imprimir los albaranes?"),
-                    confirmLabel: _t("Ver"),
-                    cancelLabel: _t("Imprimir"),
-                    confirm: () => resolve({ selectedAction: 'view' }),
-                    cancel: () => resolve({ selectedAction: 'print' })
+            if (pickingIds && pickingIds.length > 0) {
+                const { action } = await new Promise(resolve => {
+                    this.dialog.add(ConfirmationDialog, {
+                        title: _t("Albaranes generados"),
+                        body: markup(`
+                            <div class="py-2 text-center">
+                                <p class="mb-3">${_t("La venta se ha creado correctamente.")}</p>
+                                <p>${pickingIds.length > 1
+                                    ? _t("Se han generado ") + pickingIds.length + _t(" albaranes.")
+                                    : _t("Se ha generado un albarán.")}</p>
+                                <p class="mt-3">${_t("¿Qué deseas hacer con los albaranes?")}</p>
+                            </div>
+                        `),
+                        confirmLabel: _t("Ver albaranes"),
+                        cancelLabel: _t("Cerrar"),
+                        confirm: () => resolve({ action: 'view' }),
+                        cancel: () => resolve({ action: 'close' }),
+                    });
                 });
-            });
 
-            if (selectedAction === 'view') {
-                // Código para ver albaranes
-                let viewAction;
-                if (pickingIds.length === 1) {
-                    viewAction = {
-                        type: 'ir.actions.act_window',
-                        res_model: 'stock.picking',
-                        res_id: pickingIds[0],
-                        views: [[false, 'form']],
-                        target: 'current',
-                    };
-                } else {
-                    viewAction = {
-                        type: 'ir.actions.act_window',
-                        res_model: 'stock.picking',
-                        domain: [['id', 'in', pickingIds]],
-                        views: [[false, 'list'], [false, 'form']],
-                        target: 'current',
-                    };
+                if (action === 'view') {
+                    try {
+                        // Mostrar diálogo para elegir entre ver o imprimir
+                        const { selectedAction } = await new Promise(resolve => {
+                            this.dialog.add(ConfirmationDialog, {
+                                title: _t("Opciones de albaranes"),
+                                body: _t("¿Deseas ver o imprimir los albaranes?"),
+                                confirmLabel: _t("Ver"),
+                                cancelLabel: _t("Imprimir"),
+                                confirm: () => resolve({ selectedAction: 'view' }),
+                                cancel: () => resolve({ selectedAction: 'print' })
+                            });
+                        });
+
+                        if (selectedAction === 'view') {
+                            // Código para ver albaranes
+                            let viewAction;
+                            if (pickingIds.length === 1) {
+                                viewAction = {
+                                    type: 'ir.actions.act_window',
+                                    res_model: 'stock.picking',
+                                    res_id: pickingIds[0],
+                                    views: [[false, 'form']],
+                                    target: 'current',
+                                };
+                            } else {
+                                viewAction = {
+                                    type: 'ir.actions.act_window',
+                                    res_model: 'stock.picking',
+                                    domain: [['id', 'in', pickingIds]],
+                                    views: [[false, 'list'], [false, 'form']],
+                                    target: 'current',
+                                };
+                            }
+                            await this.action.doAction(viewAction);
+                        } else {
+                            // Código corregido para imprimir albaranes
+                            // Código para imprimir albaranes - versión corregida
+            const printAction = {
+                type: 'ir.actions.act_url',
+                url: '/report/pdf/todopintura_pos_custom.report_sale_credit_slip/' + pickingIds.join(','),
+                target: 'new'
+            };
+            await this.action.doAction(printAction);
+                        }
+                    } catch (error) {
+                        console.error("Error con los albaranes:", error);
+                        this.notification.add(_t("Ha ocurrido un error"), {
+                            type: "warning",
+                        });
+                    }
                 }
-                await this.action.doAction(viewAction);
-            } else {
-                // Código corregido para imprimir albaranes
-                // Código para imprimir albaranes - versión corregida
-const printAction = {
-    type: 'ir.actions.act_url',
-    url: '/report/pdf/todopintura_pos_custom.report_sale_credit_slip/' + pickingIds.join(','),
-    target: 'new'
-};
-await this.action.doAction(printAction);
-            }
-        } catch (error) {
-            console.error("Error con los albaranes:", error);
-            this.notification.add(_t("Ha ocurrido un error"), {
-                type: "warning",
-            });
-        }
-    }
-} // Cierre del if pickingIds
+            } // Cierre del if pickingIds
         } catch (error) { // Este catch cierra el try principal del método
             console.error("Error al crear la venta:", error);
             this.notification.add(_t("Error al crear la venta"), {

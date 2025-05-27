@@ -2,7 +2,9 @@ from odoo import models, api
 import logging
 import time
 from odoo.exceptions import AccessError
+
 _logger = logging.getLogger(__name__)
+
 
 class PosSession(models.Model):
     _inherit = 'pos.session'
@@ -39,3 +41,16 @@ class PosSession(models.Model):
                 self._load_pos_data_relations(model, response)
 
         return response
+
+    # @api.model
+    # def _load_pos_data_models(self, config_id):
+    #     return ['pos.config', 'pos.order', 'pos.order.line', 'pos.pack.operation.lot', 'pos.payment',
+    #             'pos.payment.method', 'pos.printer',
+    #             'pos.category', 'pos.bill', 'res.company', 'account.tax', 'account.tax.group', 'product.product',
+    #             'product.attribute', 'product.attribute.custom.value',
+    #             'product.template.attribute.line', 'product.template.attribute.value', 'product.combo',
+    #             'product.combo.item', 'product.packaging', 'res.users', 'res.partner',
+    #             'decimal.precision', 'uom.uom', 'uom.category', 'res.country', 'res.country.state', 'res.lang',
+    #             'product.pricelist', 'product.pricelist.item', 'product.category',
+    #             'account.cash.rounding', 'account.fiscal.position', 'account.fiscal.position.tax', 'stock.picking.type',
+    #             'res.currency', 'pos.note', 'ir.ui.view', 'product.tag', 'ir.module.module', 'pos.price.change.log']
