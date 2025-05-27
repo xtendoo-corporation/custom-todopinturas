@@ -358,80 +358,19 @@ patch(ActionpadWidget.prototype, {
                 type: "success",
             });
 
-            // Mostrar diálogo para imprimir albaranes si hay albaranes disponibles
-            if (pickingIds && pickingIds.length > 0) {
-                const { action } = await new Promise(resolve => {
-                    this.dialog.add(ConfirmationDialog, {
-                        title: _t("Albaranes generados"),
-                        body: markup(`
-                            <div class="py-2 text-center">
-                                <p class="mb-3">${_t("La venta se ha creado correctamente.")}</p>
-                                <p>${pickingIds.length > 1
-                                    ? _t("Se han generado ") + pickingIds.length + _t(" albaranes.")
-                                    : _t("Se ha generado un albarán.")}</p>
-                                <p class="mt-3">${_t("¿Qué deseas hacer con los albaranes?")}</p>
-                            </div>
-                        `),
-                        confirmLabel: _t("Ver albaranes"),
-                        cancelLabel: _t("Cerrar"),
-                        confirm: () => resolve({ action: 'view' }),
-                        cancel: () => resolve({ action: 'close' }),
-                    });
-                });
-
-                if (action === 'view') {
-                    try {
-                        // Mostrar diálogo para elegir entre ver o imprimir
-                        const { selectedAction } = await new Promise(resolve => {
-                            this.dialog.add(ConfirmationDialog, {
-                                title: _t("Opciones de albaranes"),
-                                body: _t("¿Deseas ver o imprimir los albaranes?"),
-                                confirmLabel: _t("Ver"),
-                                cancelLabel: _t("Imprimir"),
-                                confirm: () => resolve({ selectedAction: 'view' }),
-                                cancel: () => resolve({ selectedAction: 'print' })
-                            });
-                        });
-
-                        if (selectedAction === 'view') {
-                            // Código para ver albaranes
-                            let viewAction;
-                            if (pickingIds.length === 1) {
-                                viewAction = {
-                                    type: 'ir.actions.act_window',
-                                    res_model: 'stock.picking',
-                                    res_id: pickingIds[0],
-                                    views: [[false, 'form']],
-                                    target: 'current',
-                                };
-                            } else {
-                                viewAction = {
-                                    type: 'ir.actions.act_window',
-                                    res_model: 'stock.picking',
-                                    domain: [['id', 'in', pickingIds]],
-                                    views: [[false, 'list'], [false, 'form']],
-                                    target: 'current',
-                                };
-                            }
-                            await this.action.doAction(viewAction);
-                        } else {
-                            // Código corregido para imprimir albaranes
-                            // Código para imprimir albaranes - versión corregida
             const printAction = {
                 type: 'ir.actions.act_url',
                 url: '/report/pdf/todopintura_pos_custom.report_sale_credit_slip/' + pickingIds.join(','),
                 target: 'new'
             };
-            await this.action.doAction(printAction);
-                        }
-                    } catch (error) {
-                        console.error("Error con los albaranes:", error);
-                        this.notification.add(_t("Ha ocurrido un error"), {
-                            type: "warning",
-                        });
-                    }
-                }
-            } // Cierre del if pickingIds
+            try {
+                await this.action.doAction(printAction);
+            } catch (error) {
+                console.error("Error al imprimir albaranes:", error);
+                this.notification.add(_t("Error al imprimir albaranes"), {
+                    type: "warning",
+                });
+            }
         } catch (error) { // Este catch cierra el try principal del método
             console.error("Error al crear la venta:", error);
             this.notification.add(_t("Error al crear la venta"), {
