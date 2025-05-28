@@ -15,6 +15,8 @@ patch(PaymentScreen.prototype, {
     },
 
    async _isOrderValid(isForceValidate) {
+   console.log("Comprobamos cambios de precios antes de validar el pedido...");
+   this._checkAndLogPriceChanges();
     console.log("Validando el pedido...");
     // Primero validamos con la lógica original
     if (this.currentOrder.get_orderlines().length === 0 && this.currentOrder.is_to_invoice()) {
@@ -189,6 +191,90 @@ patch(PaymentScreen.prototype, {
  async afterOrderValidation(syncedOrders) {
         // Ejecutamos el código original primero
         await super.afterOrderValidation(syncedOrders);
+    },
+ async _checkAndLogPriceChanges() {
+        try {
+            console.log("Verificando cambios de precio antes del pago...");
+            const order = this.pos.get_order();
+            if (!order) return;
+
+            const orderLines = order.get_orderlines();
+            console.log("Líneas de pedido encontradas:", orderLines.length);
+
+            if (orderLines.length > 0) {
+                const partner = order.get_partner();
+                const productIds = orderLines.map(line => line.get_product().id);
+
+                // Obtener la lista de precios del cliente o POS
+                let pricelistId = null;
+                if (partner && partner.property_product_pricelist) {
+                    if (typeof partner.property_product_pricelist === 'number') {
+                        pricelistId = partner.property_product_pricelist;
+                    } else if (Array.isArray(partner.property_product_pricelist)) {
+                        pricelistId = partner.property_product_pricelist[0];
+                    } else if (partner.property_product_pricelist.id) {
+                        pricelistId = partner.property_product_pricelist.id;
+                    }
+                } else if (this.pos.config.pricelist_id) {
+                    if (typeof this.pos.config.pricelist_id === 'number') {
+                        pricelistId = this.pos.config.pricelist_id;
+                    } else if (Array.isArray(this.pos.config.pricelist_id)) {
+                        pricelistId = this.pos.config.pricelist_id[0];
+                    } else if (this.pos.config.pricelist_id.id) {
+                        pricelistId = this.pos.config.pricelist_id.id;
+                    }
+                }
+
+                // Obtener precios según tarifa del cliente
+                let partnerPrices = {};
+                try {
+                    partnerPrices = await this.orm.call(
+                        'product.product',
+                        'get_partner_prices',
+                        [productIds, partner ? partner.id : false, pricelistId]
+                    );
+                } catch (priceError) {
+                    console.warn("Error al obtener precios según tarifa:", priceError);
+                }
+
+                // Registrar cambios de precio
+                for (const line of orderLines) {
+                    const product = line.get_product();
+                    const actualPrice = line.get_unit_price();
+
+                    // Usar precio de tarifa si existe, o precio base como fallback
+                    const expectedPrice = partnerPrices[product.id] || product.lst_price;
+
+                    // Solo procesar líneas con diferencia de precio
+                    if (Math.abs(actualPrice - expectedPrice) > 0.01) {
+                        console.log(`⚠️ Diferencia de precio en ${product.display_name}: ${expectedPrice} → ${actualPrice}`);
+
+                        // Datos para el registro
+                        const priceData = {
+                            product_id: product.id,
+                            original_price: expectedPrice,
+                            new_price: actualPrice,
+                            order_reference: order.name || 'POS ' + order.uid
+                        };
+
+                        // Registrar cambio
+                        try {
+                            const result = await this.orm.call(
+                                'pos.price.change.log',
+                                'create',
+                                [[priceData]]
+                            );
+                            console.log(`✅ Cambio registrado para producto ${product.id}: ${result}`);
+                        } catch (lineError) {
+                            console.error(`Error al registrar cambio para producto ${product.id}:`, lineError);
+                        }
+                    }
+                }
+            }
+            console.log("Verificación de precios completada");
+        } catch (error) {
+            console.error("❌ Error general en verificación de precios:", error);
+        }
     }
 
 });
