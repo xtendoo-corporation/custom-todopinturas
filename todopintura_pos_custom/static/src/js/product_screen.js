@@ -198,80 +198,6 @@ async addProductToOrder(product) {
         console.log("Error al buscar regla de tarifa:", error);
     }
 
-//// Caso especial para productos con precio 0, 0.01 o cercano a 1 euro
-//if (precioCalculado === 0.01 || precioCalculado === 0 || (precioCalculado >= 0.99 && precioCalculado <= 1.01)) {
-//    try {
-//        // PRIMERO: Añadir el producto al pedido usando el flujo normal
-//        // para aprovechar el cálculo de descuento automático
-//        await reactive(this.pos).addLineToCurrentOrder({ product_id: product.id }, {});
-//
-//        // Obtener la línea recién añadida
-//        const orderLines = order.get_orderlines();
-//        const lastLine = orderLines[orderLines.length - 1];
-//
-//        if (!lastLine) {
-//            console.error("No se pudo obtener la línea del producto");
-//            return;
-//        }
-//
-//        // Obtener el descuento que se aplicó automáticamente
-//        const descuentoAplicado = lastLine.get_discount ?
-//            lastLine.get_discount() : lastLine.discount || 0;
-//
-//        console.log("Descuento aplicado automáticamente:", descuentoAplicado + "%");
-//
-//        // Mostrar diálogo para entrada de precio manual
-//        const descuentoInfo = descuentoAplicado > 0 ?
-//            ` (Descuento: ${descuentoAplicado}%)` : "";
-//
-//        console.log("📝 Mostrando diálogo para entrada de precio manual");
-//        const inputPrice = await makeAwaitable(this.dialog, CustomPricePopup, {
-//            title: _t("Ingrese precio para") + ` ${product.display_name || product.name}${descuentoInfo}`,
-//            startingValue: "",
-//        });
-//
-//        console.log("💰 Precio ingresado:", inputPrice);
-//
-//        if (!inputPrice) {
-//            // Si el usuario cancela, eliminar la línea
-//            if (lastLine) {
-//                order.remove_orderline(lastLine);
-//            }
-//            this.notification.add(_t("Operación cancelada"), { type: "info" });
-//            return;
-//        }
-//
-//        const precio = parseFloat(inputPrice);
-//        if (!isNaN(precio) && precio > 0) {
-//            // Actualizar el precio manteniendo el descuento
-//            lastLine.set_unit_price(precio);
-//            lastLine.price_manually_set = true;
-//
-//            // Si había un descuento, asegurarse de que se mantenga
-//            if (descuentoAplicado > 0) {
-//                lastLine.set_discount(descuentoAplicado);
-//            }
-//
-//            this.pos.get_order().select_orderline(lastLine);
-//
-//            const mensajeDescuento = descuentoAplicado > 0 ?
-//                ` con descuento ${descuentoAplicado}%` : "";
-//            this.notification.add(_t("Producto añadido con precio personalizado") + mensajeDescuento,
-//                { type: "success" });
-//        } else {
-//            // Si el precio es inválido, eliminar la línea
-//            if (lastLine) {
-//                order.remove_orderline(lastLine);
-//            }
-//            this.notification.add(_t("Precio inválido"), { type: "warning" });
-//        }
-//    } catch (error) {
-//        console.error("❌ Error en el proceso:", error);
-//        this.notification.add(_t("Error al procesar el precio"), { type: "danger" });
-//    }
-//    return;
-//}
-
     // Añadir el producto al pedido
     await reactive(this.pos).addLineToCurrentOrder({ product_id: product.id }, {});
 
@@ -338,6 +264,22 @@ async addProductToOrder(product) {
                 }
             }
         }
+    }
+},
+get isBasicUser() {
+    // Si la función get_cashier no existe o no devuelve nada, permitir acceso
+    if (!this.pos.get_cashier) {
+        return false; // No hay cajero, permitir acceso
+    }
+
+    const cashier = this.pos.get_cashier();
+
+    // Si el usuario es manager, devuelve false (no es usuario básico)
+    if (cashier && cashier._role === 'manager') {
+        return false;
+    }
+    else if (cashier && cashier._role === 'cashier') {
+        return true;
     }
 }
 });

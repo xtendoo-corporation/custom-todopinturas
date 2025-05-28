@@ -23,6 +23,7 @@
             'todopintura_pos_custom/static/src/js/res_partner.js',
             'todopintura_pos_custom/static/src/js/payment_screen.js',
             'todopintura_pos_custom/static/src/js/product_screen.js',
+            'todopintura_pos_custom/static/src/xml/product_screen.xml',
             'todopintura_pos_custom/static/src/js/location_selection_dialog.js',
             'todopintura_pos_custom/static/src/xml/location_selection_dialog.xml',
             'todopintura_pos_custom/static/src/js/coupon_and_assigned_people.js',
