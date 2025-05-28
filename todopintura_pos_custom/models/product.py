@@ -5,6 +5,13 @@ from odoo import api, fields, models
 class ProductProductInherit(models.Model):
     _inherit = 'product.product'
 
+    manual_price = fields.Boolean(
+        related='product_tmpl_id.manual_price',
+        string='Precio Manual',
+        store=False,
+        help='Indica si el producto requiere ingreso manual de precio en el TPV'
+    )
+
     def get_product_info_pos(self, price, quantity, pos_config_id):
         self.ensure_one()
         config = self.env['pos.config'].browse(pos_config_id)
@@ -70,7 +77,7 @@ class ProductProductInherit(models.Model):
             'default_code', 'to_weight', 'uom_id', 'product_tmpl_id', 'tracking',
             'type', 'is_storable',
             'available_in_pos', 'attribute_line_ids', 'active', 'image_128', 'combo_ids',
-            'product_template_variant_value_ids',
+            'product_template_variant_value_ids', 'manual_price',
         ]
 
     @api.model

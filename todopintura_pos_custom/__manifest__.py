@@ -49,6 +49,7 @@
         "views/res_partner_views.xml",
         "views/report_sale_credit_document.xml",
         "views/pos_price_change_log.xml",
+        "views/product_template_form_view.xml",
         "views/sale_views.xml",
         "wizards/credit_limit_warning_wizard.xml",
         'security/ir.model.access.csv',
