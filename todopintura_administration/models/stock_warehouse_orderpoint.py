@@ -10,6 +10,17 @@ class StockWarehouseOrderpoint(models.Model):
         help="When the virtual stock goes below the Min Quantity specified for this field, Odoo generates "
              "a procurement to bring the forecasted quantity to the Max Quantity.",
         compute='_compute_product_min_qty', store=True)
+    is_below_min = fields.Boolean(
+        string="Bajo mínimos",
+        compute="_compute_is_below_min",
+        store=True,
+        help="Indica si la cantidad disponible es menor que la cantidad mínima"
+    )
+
+    @api.depends('product_id.qty_available', 'product_min_qty')
+    def _compute_is_below_min(self):
+        for record in self:
+            record.is_below_min = record.product_id.qty_available < record.product_min_qty
 
     @api.depends('stock_min_dates_ids')
     def _compute_product_min_qty(self):
