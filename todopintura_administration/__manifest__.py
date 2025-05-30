@@ -23,6 +23,7 @@
         # 'views/res_partner_views.xml',
         'views/stock_orderpoint_views.xml',
         'views/stock_min_date_views.xml',
+        'views/stock_quant_views.xml',
     ],
     "installable": True,
 }
