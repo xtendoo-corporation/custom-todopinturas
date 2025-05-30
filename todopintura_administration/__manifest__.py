@@ -24,6 +24,7 @@
         'views/stock_orderpoint_views.xml',
         'views/stock_min_date_views.xml',
         'views/stock_quant_views.xml',
+        'views/report_delivery_document.xml',
     ],
     "installable": True,
 }
