@@ -15,6 +15,8 @@
         'wizards/import_client_tariffs_wizard_view.xml',
         'wizards/import_stock_min_wizard_view.xml',
         'wizards/import_stock_in_hand_wizard_view.xml',
+        'wizards/stock_count_wizard_view.xml',
+        'wizards/stock_count_compare_views.xml',
         'views/menu.xml',
         'views/product_template.xml',
         'views/pos_category.xml',
@@ -23,8 +25,8 @@
         # 'views/res_partner_views.xml',
         'views/stock_orderpoint_views.xml',
         'views/stock_min_date_views.xml',
-        'views/stock_quant_views.xml',
         'views/report_delivery_document.xml',
+        'views/stock_count.xml',
     ],
     "installable": True,
 }

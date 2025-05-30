@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_stock_count_compare_form" model="ir.ui.view">
+        <field name="name">stock.count.compare.wizard.form</field>
+        <field name="model">stock.count.compare.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Comparación de Conteos">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="count_id_1"/>
+                        </group>
+                        <group>
+                            <field name="count_id_2"/>
+                        </group>
+                    </group>
+                    <field name="line_ids">
+                        <list decoration-success="match" decoration-danger="not match" editable="bottom">
+                            <field name="product_id"/>
+                            <field name="quantity_1"/>
+                            <field name="quantity_2"/>
+                            <field name="match" string="Coincide"/>
+                            <field name="real_quantity"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button name="action_apply_real_quantities" string="Aplicar Cantidades Reales" type="object"
+                            class="btn-primary"/>
+                    <button string="Cerrar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Acción de servidor para la comparación -->
+    <record id="action_stock_count_compare" model="ir.actions.server">
+        <field name="name">Comparar Conteos</field>
+        <field name="model_id" ref="model_stock_count"/>
+        <field name="binding_model_id" ref="model_stock_count"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+            action = records.action_compare_counts()
+        </field>
+    </record>
+</odoo>
