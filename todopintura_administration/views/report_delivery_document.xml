@@ -21,13 +21,17 @@
 
         <xpath expr="//table[@name='stock_move_table']/tbody/tr/td[3]" position="after">
             <td t-if="o.partner_id.valued_picking" class="text-end">
-                <span t-esc="move.sale_line_id.price_unit * (1 - (move.sale_line_id.discount or 0.0) / 100)" t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                <span t-esc="move.sale_line_id.price_unit * (1 - (move.sale_line_id.discount or 0.0) / 100)"
+                      t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
             </td>
             <td t-if="o.partner_id.valued_picking" class="text-end">
-                <span t-esc="move.sale_line_id.price_unit * (1 - (move.sale_line_id.discount or 0.0) / 100)" t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                <span t-esc="move.sale_line_id.price_unit * (1 - (move.sale_line_id.discount or 0.0) / 100)"
+                      t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
             </td>
             <td t-if="o.partner_id.valued_picking" class="text-end">
-                <span t-esc="move.sale_line_id.price_unit * move.product_uom_qty * (1 - (move.sale_line_id.discount or 0.0) / 100)" t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                <span
+                    t-esc="move.sale_line_id.price_unit * move.product_uom_qty * (1 - (move.sale_line_id.discount or 0.0) / 100)"
+                    t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
             </td>
         </xpath>
 
@@ -40,36 +44,141 @@
     </template>
 
     <!-- 2. Herencia del template para líneas con números de serie -->
-    <template id="stock_report_delivery_has_serial_move_line_custom" inherit_id="stock.stock_report_delivery_has_serial_move_line">
+    <template id="stock_report_delivery_has_serial_move_line_custom"
+              inherit_id="stock.stock_report_delivery_has_serial_move_line">
         <xpath expr="//td[@name='move_line_lot_quantity']" position="after">
             <td t-if="o.partner_id.valued_picking" class="text-center">
-                <span t-esc="move_line.move_id.sale_line_id.price_unit * (1 - (move_line.move_id.sale_line_id.discount or 0.0) / 100)" t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                <span
+                    t-esc="move_line.move_id.sale_line_id.price_unit * (1 - (move_line.move_id.sale_line_id.discount or 0.0) / 100)"
+                    t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
             </td>
             <td t-if="o.partner_id.valued_picking" class="text-center">
-                <span t-esc="move_line.move_id.sale_line_id.price_unit * (1 - (move_line.move_id.sale_line_id.discount or 0.0) / 100)" t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                <span
+                    t-esc="move_line.move_id.sale_line_id.price_unit * (1 - (move_line.move_id.sale_line_id.discount or 0.0) / 100)"
+                    t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
             </td>
             <td t-if="o.partner_id.valued_picking" class="text-center">
-                <span t-esc="move_line.move_id.sale_line_id.price_unit * move_line.qty_done * (1 - (move_line.move_id.sale_line_id.discount or 0.0) / 100)" t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                <span
+                    t-esc="move_line.move_id.sale_line_id.price_unit * move_line.qty_done * (1 - (move_line.move_id.sale_line_id.discount or 0.0) / 100)"
+                    t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
             </td>
         </xpath>
     </template>
 
     <!-- 3. Herencia del template para líneas agregadas -->
-    <template id="stock_report_delivery_aggregated_move_lines_custom" inherit_id="stock.stock_report_delivery_aggregated_move_lines">
+    <template id="stock_report_delivery_aggregated_move_lines_custom"
+              inherit_id="stock.stock_report_delivery_aggregated_move_lines">
         <xpath expr="//td[@name='move_line_aggregated_quantity']" position="after">
             <td t-if="o.partner_id.valued_picking" class="text-center">
-                <t t-set="move" t-value="env['stock.move'].search([('product_id', '=', aggregated_lines[line]['product'].id), ('picking_id', '=', o.id)], limit=1)"/>
+                <t t-set="move"
+                   t-value="env['stock.move'].search([('product_id', '=', aggregated_lines[line]['product'].id), ('picking_id', '=', o.id)], limit=1)"/>
                 <t t-set="price_unit" t-value="move.sale_line_id.price_unit if move.sale_line_id else 0.0"/>
                 <t t-set="discount" t-value="move.sale_line_id.discount if move.sale_line_id else 0.0"/>
                 <t t-set="price_with_discount" t-value="price_unit * (1 - discount / 100) if discount else price_unit"/>
-                <span t-esc="price_with_discount" t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                <span t-esc="price_with_discount"
+                      t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
             </td>
             <td t-if="o.partner_id.valued_picking" class="text-center">
-                <span t-esc="price_with_discount" t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                <span t-esc="price_with_discount"
+                      t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
             </td>
             <td t-if="o.partner_id.valued_picking" class="text-center">
-                <span t-esc="price_with_discount * aggregated_lines[line]['qty_done']" t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                <span t-esc="price_with_discount * aggregated_lines[line]['qty_done']"
+                      t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
             </td>
         </xpath>
     </template>
+
+
+    <template id="todopintura_administration.report_delivery_header_footer">
+        <div class="header">
+            <table width="100%" class="table-borderless" style="border: none; margin-bottom: 20px;">
+                <tr>
+                    <td width="30%">
+                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height: 80px;"/>
+                    </td>
+                    <td width="70%" style="font-size:10px; text-align: right;">
+                        <strong>SEVILLA</strong>
+                        <br/>
+                        Pino Montano - C\/ Parque Torcal de Antequera, Esq. Parque de Grazalema. 41015 Sevilla - Tel.:
+                        954 955 012
+                        <br/>
+                        Sevilla Este - Plaza de la Acogida, Local 1-2-3. 41020 Sevilla - Tel.: 954 253 750
+                        <br/>
+                        Ronda de Tamarguillo - Avd. Poeta Manuel Benítez Carrasco B 10-12, Local 4-5. 41013 Sevilla -
+                        Tel.: 954 626 797
+                        <br/>
+                        Los Bermejales - Avda Alemania 46. 41012 Sevilla - Tel.: 954 617 483
+                        <br/>
+                        Cantillana - Ntra. Sra. De la Soledad, 2. 41320 Cantillana - Tel.: 955 730 600
+                        <br/>
+                        Sanlúcar La Mayor - C\/ Estrella Polar, 1. 41800 Sanlúcar la Mayor - Tel.: 955 701 477
+                        <br/>
+                        Lora del Río - C\/ Marcos Orbaneja, 3. 41440 Lora del Río - Tel.: 955 549 167
+                        <br/>
+                        <strong>HUELVA</strong>
+                        <br/>
+                        Delegación Huelva - Avda. Alemania, 116. 21002 Huelva - Tel.: 959 251 331
+                        <br/>
+                        Ayamonte - C\/ Río Tinto, 1. 21400 Ayamonte - Tel.: 959 101 254
+                        <br/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Separador -->
+        <div class="separator"></div>
+
+        <!-- Pie de página -->
+        <div class="footer" style="font-size: 8px;">
+            Sus datos personales serán usados para nuestra relación y poder prestarle nuestros servicios.
+            Dichos datos son necesarios para poder relacionarnos con usted, lo que nos permite el uso de su
+            información dentro de la legalidad.
+            Asimismo, podrán tener conocimiento de su información aquellas entidades que necesiten tener
+            acceso a la misma para que podamos prestarle nuestros servicios. Conservaremos sus datos durante
+            nuestra relación y mientras nos obliguen las leyes aplicables. En cualquier momento puede
+            dirigirse a nosotros para saber qué información tenemos sobre usted, rectificarla si fuese
+            incorrecta y eliminarla una vez finalizada nuestra relación. También tiene derecho a solicitar
+            el traspaso de su información a otra entidad (portabilidad).
+            Para solicitar alguno de estos derechos, deberá realizar una solicitud escrita a nuestra
+            dirección, junto con una fotocopia de su DNI: TODO PINTURA SL, C\/. Rafael Beca Mateo, 42, POL.
+            IND. CARRETERA AMARILLA, CP 41007, Sevilla (Sevilla).
+            En caso de que entienda que sus derechos han sido desatendidos, puede formular una reclamación
+            en la Agencia Española de Protección de Datos (www.aepd.es).
+            EL RESPONSABLE DE LA ENTREGA DEL RESIDUO DE ENVASE O ENVASE USADO PARA SU CORRECTA GESTIÓN
+            AMBIENTAL SERÁ EL POSEEDOR FINAL (LEY 11\/1997)
+            Todo Pintura S.L. Inscrita en el registro Mercantil de Sevilla. Tomo 505. libro 79. Sección 2º
+            de Sociedades Folio 31. Hoja 6425. Inscripción 1º. 14-12-b1 - C.I.F.: B-41089947
+        </div>
+    </template>
+    <template id="todopintura_administration.report_deliveryslip_custom">
+        <t t-foreach="docs" t-as="o">
+            <t t-set="company" t-value="o.company_id"/>
+            <t t-set="display_address" t-value="o.partner_id._display_address()"/>
+            <html>
+                <head>
+                </head>
+                <body>
+                    <!-- Se llama al template base (header y footer) -->
+                    <t t-call="todopintura_administration.report_delivery_header_footer"/>
+                    <!-- Contenedor del contenido del albarán -->
+                    <div class="page-content" style="margin-top: 120px;">
+                        <t t-call="stock.report_delivery_document"/>
+                    </div>
+                </body>
+            </html>
+        </t>
+    </template>
+
+    <record id="action_custom_delivery_report" model="ir.actions.report">
+        <field name="name">Albarán Personalizado</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">todopintura_administration.report_deliveryslip_custom</field>
+        <field name="report_file">todopintura_administration.report_deliveryslip_custom</field>
+        <field name="print_report_name">'Albarán Personalizado - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_type">report</field>
+    </record>
 </odoo>
