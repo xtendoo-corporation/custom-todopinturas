@@ -42,7 +42,9 @@
             'todopintura_pos_custom/static/src/xml/custom_price_popup.xml',
             'todopintura_pos_custom/static/src/js/chrome.js',
             'todopintura_pos_custom/static/src/js/numpad.js',
-
+            'todopintura_pos_custom/static/src/xml/order_receipt.xml',
+            'todopintura_pos_custom/static/src/js/receipt_order.js',
+            'todopintura_pos_custom/static/src/xml/receipt_order.xml',
         ],
     },
     "data": [

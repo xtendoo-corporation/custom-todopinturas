@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="todopintura_pos_custom.OrderReceipt" t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
+        <xpath expr="//div[contains(@class, 'pos-receipt-contact')]" position="replace">
+            <div class="custom-header">
+                <div class="company-info" style="text-align: center;">
+                    <div t-if="props.data.company.name" t-esc="props.data.company.name"/>
+                    <div t-if="props.data.company.street" t-esc="props.data.company.street"/>
+                    <div t-if="props.data.company.city" t-esc="props.data.company.city"/>
+                    <div t-if="props.data.company.zip" t-esc="props.data.company.zip"/>
+                    <div t-if="props.data.company.country_id and props.data.company.country_id[1]"
+                         t-esc="props.data.company.country_id[1]"/>
+                    <div t-if="props.data.company.phone">Tel: <t t-esc="props.data.company.phone"/></div>
+                    <div t-if="props.data.cashier"><t t-esc="props.data.cashier"/></div>
+                </div>
+            </div>
+        </xpath>
+    </t>
+</templates>
