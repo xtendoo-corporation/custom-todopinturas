@@ -60,6 +60,7 @@ class StockCount(models.Model):
             'target': 'new',
             'context': {'default_count_id': self.id},
         }
+
     def action_compare_counts(self):
         if len(self) != 2:
             raise ValidationError(_("Debe seleccionar exactamente dos conteos para comparar."))
@@ -77,12 +78,23 @@ class StockCount(models.Model):
         # Crear líneas de comparación
         compare_lines = []
         for product in all_products:
-            quantity_1 = sum(self[0].line_ids.filtered(lambda l: l.product_id == product).mapped('quantity'))
-            quantity_2 = sum(self[1].line_ids.filtered(lambda l: l.product_id == product).mapped('quantity'))
+            # Obtener líneas correspondientes a este producto en cada conteo
+            lines_1 = self[0].line_ids.filtered(lambda l: l.product_id == product)
+            lines_2 = self[1].line_ids.filtered(lambda l: l.product_id == product)
+
+            quantity_1 = sum(lines_1.mapped('quantity'))
+            quantity_2 = sum(lines_2.mapped('quantity'))
+
+            # Obtener la fecha más reciente de cada conteo para este producto
+            scan_datetime_1 = lines_1 and max(lines_1.mapped('scan_datetime')) or False
+            scan_datetime_2 = lines_2 and max(lines_2.mapped('scan_datetime')) or False
+
             compare_lines.append((0, 0, {
                 'product_id': product.id,
                 'quantity_1': quantity_1,
                 'quantity_2': quantity_2,
+                'scan_datetime_1': scan_datetime_1,
+                'scan_datetime_2': scan_datetime_2,
             }))
 
         wizard.write({'line_ids': compare_lines})
@@ -95,7 +107,6 @@ class StockCount(models.Model):
             'res_id': wizard.id,
             'target': 'new',
         }
-
     def action_done(self):
         self.write({
             'state': 'done',
@@ -108,6 +119,24 @@ class StockCount(models.Model):
     def action_draft(self):
         self.write({'state': 'draft'})
 
+    def action_reopen(self):
+        """Permite volver a poner en progreso un conteo finalizado"""
+        self.ensure_one()
+        if self.state != 'done':
+            raise ValidationError(_("Solo se pueden reabrir conteos finalizados."))
+
+        self.write({'state': 'in_progress'})
+
+        # Opcional: Abrimos el wizard para continuar el conteo
+        return {
+            'name': _('Conteo de productos'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.count.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_count_id': self.id},
+        }
+
 class StockCountLine(models.Model):
     _name = 'stock.count.line'
     _description = 'Línea de Conteo de Inventario'
@@ -115,3 +144,4 @@ class StockCountLine(models.Model):
     count_id = fields.Many2one('stock.count', string='Conteo', required=True, ondelete='cascade')
     product_id = fields.Many2one('product.product', string='Producto', required=True)
     quantity = fields.Float('Unidades', default=1.0, required=True)
+    scan_datetime = fields.Datetime('Fecha y hora de escaneo', default=fields.Datetime.now, readonly=True)

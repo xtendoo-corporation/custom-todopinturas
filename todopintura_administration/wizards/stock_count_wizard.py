@@ -31,21 +31,6 @@ class StockCountWizard(models.TransientModel):
             'context': {'default_count_id': self.count_id.id},
         }
 
-    def action_finish(self):
-        self.ensure_one()
-
-        # Si hay un producto seleccionado, agregarlo antes de finalizar
-        if self.product_id:
-            self.env['stock.count.line'].create({
-                'count_id': self.count_id.id,
-                'product_id': self.product_id.id,
-                'quantity': self.quantity,
-            })
-
-        # Finalizar el conteo
-        self.count_id.action_done()
-        return {'type': 'ir.actions.act_window_close'}
-
     def action_pause(self):
         # Cambiamos el estado a pausado y cerramos el wizard
         self.count_id.write({'state': 'in_progress'})

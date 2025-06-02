@@ -18,7 +18,6 @@
                 </group>
                 <footer>
                     <button name="action_add_product" string="Añadir y Continuar" type="object" class="btn-primary"/>
-                    <button name="action_finish" string="Finalizar Conteo" type="object" class="btn-secondary"/>
                     <button name="action_pause" string="Pausar" type="object" class="btn-secondary"/>
                     <button string="Cancelar" class="btn-secondary" special="cancel"/>
                 </footer>

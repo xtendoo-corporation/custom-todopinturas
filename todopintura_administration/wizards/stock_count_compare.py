@@ -67,7 +67,9 @@ class StockCountCompareLine(models.TransientModel):
     quantity_2 = fields.Float('Cantidad en Conteo 2', readonly=True, digits='Product Unit of Measure')
     match = fields.Boolean('Coincide', compute='_compute_match', store=True)
     real_quantity = fields.Float('Cantidad Real', readonly=False, store=True,
-                                 digits='Product Unit of Measure')
+                                digits='Product Unit of Measure')
+    scan_datetime_1 = fields.Datetime('Fecha escaneo C1', readonly=True)
+    scan_datetime_2 = fields.Datetime('Fecha escaneo C2', readonly=True)
 
     @api.depends('quantity_1', 'quantity_2')
     def _compute_match(self):
@@ -76,4 +78,3 @@ class StockCountCompareLine(models.TransientModel):
             # Si coinciden y está activado el auto-rellenado, actualiza real_quantity
             if line.match:
                 line.real_quantity = line.quantity_1
-
