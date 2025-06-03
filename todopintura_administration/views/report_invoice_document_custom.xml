@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Template principal que envuelve la factura con tu cabecera y pie personalizado -->
+    <template id="report_invoice_custom" inherit_id="account.report_invoice" primary="True">
+        <xpath expr="//t[@t-call='web.html_container']" position="replace">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-set="company" t-value="o.company_id"/>
+                    <t t-set="display_address" t-value="o.partner_id._display_address()"/>
+                    <!-- Aquí usamos nuestro header y footer personalizado -->
+                    <t t-call="todopintura_administration.report_delivery_header_footer"/>
+
+                    <!-- El contenido de la factura debe estar dentro de main -->
+                    <main>
+                        <t t-call="account.report_invoice_document" t-lang="lang"/>
+                    </main>
+                </t>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- Registro del informe personalizado en el sistema -->
+    <record id="action_report_invoice_custom" model="ir.actions.report">
+        <field name="name">Factura Personalizada</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">todopintura_administration.report_invoice_custom</field>
+        <field name="report_file">todopintura_administration.report_invoice_custom</field>
+        <field name="print_report_name">'Factura - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>
