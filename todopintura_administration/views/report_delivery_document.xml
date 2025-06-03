@@ -97,8 +97,8 @@
                     <td width="30%">
                         <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height: 80px;"/>
                     </td>
-                    <td width="70%" style="font-size:10px; text-align: right;">
-                        <strong>SEVILLA</strong>
+                    <td width="70%" style="font-size:9px; text-align: right;">
+               W         <strong>SEVILLA</strong>
                         <br/>
                         Pino Montano - C\/ Parque Torcal de Antequera, Esq. Parque de Grazalema. 41015 Sevilla - Tel.:
                         954 955 012
