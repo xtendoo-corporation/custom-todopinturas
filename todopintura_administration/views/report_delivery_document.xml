@@ -94,11 +94,34 @@
         <div class="header">
             <table width="100%" class="table-borderless" style="border: none; margin-bottom: 20px;">
                 <tr>
-                    <td width="30%">
-                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height: 80px;"/>
+                    <td width="45%">
+                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height: 100px;"/>
+                        <br/>
+                        <br/>
+                        <table style="width: 100%; border: none; border-collapse: collapse;">
+                            <tr>
+                                <td style="width: 40%; vertical-align: top; padding: 0;">
+                                    <img src="/todopintura_administration/static/img/aenor.png"
+                                         style="max-height: 60px; margin-right: 5px;"/>
+                                    <img src="/todopintura_administration/static/img/iqnet.png"
+                                         style="max-height: 60px;"/>
+                                </td>
+                                <td style="width: 60%; vertical-align: top; padding: 0;">
+                                    <p style="font-size: 8px; line-height: 1.1; margin: 0; padding: 0;">
+                                        Oficinas y Almacén Central:
+                                        <br/>
+                                        C/ Rafael Beca Mateos, 42. 41007 Sevilla.
+                                        <br/>
+                                        Tel.: 954 521 022
+                                        <br/>
+                                        todopintura@todopintura.es
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
                     </td>
-                    <td width="70%" style="font-size:9px; text-align: right;">
-               W         <strong>SEVILLA</strong>
+                    <td width="55%" style="font-size:9px;">
+                        <strong>SEVILLA</strong>
                         <br/>
                         Pino Montano - C\/ Parque Torcal de Antequera, Esq. Parque de Grazalema. 41015 Sevilla - Tel.:
                         954 955 012
