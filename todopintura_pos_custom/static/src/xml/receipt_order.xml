@@ -6,7 +6,7 @@
                 <div class="company-info" style="text-align: center;">
                     <div t-if="props.data.company.name" t-esc="props.data.company.name"/>
                     <div t-if="props.data.company.street" t-esc="props.data.company.street"/>
-                    <div t-if="props.data.company.city" t-esc="props.data.company.city"/>
+                    <div t-if="props.data.company.state_id.name" t-esc="props.data.company.state_id.name"/>
                     <div t-if="props.data.company.zip" t-esc="props.data.company.zip"/>
                     <div t-if="props.data.company.country_id and props.data.company.country_id[1]"
                          t-esc="props.data.company.country_id[1]"/>
