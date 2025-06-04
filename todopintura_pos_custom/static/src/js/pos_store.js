@@ -395,29 +395,88 @@ patch(PosStore.prototype, {
         currentOrder.set_partner(false);
     }
 
-        if (newPartner) {
-            const customerPricelist = this.models["product.pricelist"].find(
-                (pricelist) => pricelist.id === newPartner.property_product_pricelist?.id
-            );
+     if (newPartner) {
+    const customerPricelist = this.models["product.pricelist"].find(
+        (pricelist) => pricelist.id === newPartner.property_product_pricelist?.id
+    );
 
-            const products = this.models["product.product"].getAll();
-            products.forEach(product => {
-                product.prices = {};
-                product.cachedPricelistRules = {};
-            });
+    const products = this.models["product.product"].getAll();
+    products.forEach(product => {
+        product.prices = {};
+        product.cachedPricelistRules = {};
+    });
 
-            await this.selectPricelist(customerPricelist);
+    await this.selectPricelist(customerPricelist);
 
-            setTimeout(() => {
-                if (this.tempScreen?.name === 'ProductScreen') {
-                    const productScreen = this.tempScreen.component;
-                    if (productScreen.productListWidget) {
-                        productScreen.productListWidget.render();
+    // Solo recalcular si hay líneas en el pedido
+    if (currentOrder.get_orderlines().length > 0) {
+        // Recalcular precio para cada línea existente
+        for (const orderline of currentOrder.get_orderlines()) {
+            const product = orderline.get_product();
+
+            // Guardar si el precio y descuento fueron establecidos manualmente
+            const priceManuallySet = orderline.price_manually_set;
+            const discountManuallySet = orderline.discount_manually_set;
+
+            // Obtener precio base (sin descuentos)
+            const precioBase = product.lst_price || product.list_price || 0;
+
+            // Obtener precio calculado con la nueva tarifa
+            const precioCalculado = product.get_price(currentOrder.pricelist_id, orderline.get_quantity());
+
+            let precioReal = precioCalculado;
+
+            // Buscar reglas específicas de tarifa para este producto
+            try {
+                if (customerPricelist && customerPricelist.items) {
+                    const tarifaItem = customerPricelist.items.find(item =>
+                        item.product_id && item.product_id[0] === product.id);
+
+                    if (tarifaItem && tarifaItem.fixed_price) {
+                        precioReal = tarifaItem.fixed_price;
+                    } else if (tarifaItem && tarifaItem.percent_price) {
+                        precioReal = precioBase * (1 - tarifaItem.percent_price / 100);
                     }
                 }
-            }, 200);
+            } catch (error) {
+                console.log("Error al buscar regla de tarifa:", error);
+            }
+
+            // Usar el precio más bajo entre calculado y real
+            const usarPrecio = Math.min(precioCalculado, precioReal);
+
+            // Si hay diferencia entre precio base y calculado, aplicar descuento visual
+            if (precioBase > usarPrecio && Math.abs(precioBase - usarPrecio) > 0.0001) {
+                // Calcular porcentaje de descuento
+                const porcentajeDescuento = Math.round((1 - (usarPrecio / precioBase)) * 100 * 100) / 100;
+
+                // Solo modificar si no fueron establecidos manualmente
+                if (!priceManuallySet) {
+                    orderline.set_unit_price(precioBase);
+                }
+
+                if (!discountManuallySet) {
+                    orderline.set_discount(porcentajeDescuento);
+                }
+            }
         }
-        return currentPartner;
+
+        this.notification.add(
+            _t("Productos y descuentos recalculados automáticamente"),
+            { type: "info" }
+        );
+    }
+
+    setTimeout(() => {
+        if (this.tempScreen?.name === 'ProductScreen') {
+            const productScreen = this.tempScreen.component;
+            if (productScreen.productListWidget) {
+                productScreen.productListWidget.render();
+            }
+        }
+    }, 200);
+}
+return currentPartner;
     },
     async ready() {
         const result = await this._super(...arguments);
