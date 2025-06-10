@@ -15,5 +15,11 @@
                 </div>
             </div>
         </xpath>
+        <xpath expr="//img" position="replace">
+        </xpath>
+        <xpath expr="//div[contains(@class, 'custom-header')]" position="attributes">
+        <attribute
+            name="style">font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px;</attribute>
+    </xpath>
     </t>
 </templates>
