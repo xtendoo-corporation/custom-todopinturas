@@ -11,10 +11,6 @@
                             class="oe_highlight" invisible="state != 'draft'"/>
                     <button name="action_done" string="Finalizar" type="object"
                             class="oe_highlight" invisible="state != 'in_progress'"/>
-                    <button name="action_resume" string="Reanudar" type="object"
-                            class="oe_highlight" invisible="state != 'in_progress'"/>
-                     <button name="action_reopen" string="Volver a En Progreso" type="object"
-                        class="oe_highlight" invisible="state != 'done'"/>
                     <button name="action_cancel" string="Cancelar" type="object"
                             invisible="state not in ['draft', 'in_progress']"/>
                     <button name="action_draft" string="Volver a Borrador" type="object"
@@ -86,7 +82,6 @@
                 <field name="location_id"/>
                 <filter string="No completados" name="not_done" domain="[('state','!=','done')]"/>
                 <filter string="Borrador" name="draft" domain="[('state','=','draft')]"/>
-                <filter string="En Progreso" name="in_progress" domain="[('state','=','in_progress')]"/>
                 <filter string="Completado" name="done" domain="[('state','=','done')]"/>
                 <filter string="Cancelado" name="cancel" domain="[('state','=','cancel')]"/>
                 <group expand="0" string="Agrupar por">

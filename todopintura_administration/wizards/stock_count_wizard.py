@@ -12,9 +12,6 @@ class StockCountWizard(models.TransientModel):
 
     def action_add_product(self):
         self.ensure_one()
-        if self.count_id.state != 'in_progress':
-            raise ValidationError(_("El conteo debe estar en progreso para añadir productos."))
-
         # Crear la línea de conteo
         self.env['stock.count.line'].create({
             'count_id': self.count_id.id,

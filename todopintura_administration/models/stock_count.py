@@ -13,7 +13,6 @@ class StockCount(models.Model):
     date_end = fields.Datetime('Fecha/Hora Fin')
     state = fields.Selection([
         ('draft', 'Borrador'),
-        ('in_progress', 'En Progreso'),
         ('done', 'Completado'),
         ('cancel', 'Cancelado')
     ], string='Estado', default='draft')
@@ -30,28 +29,6 @@ class StockCount(models.Model):
         return super().create(vals_list)
 
     def action_start(self):
-        self.write({
-            'state': 'in_progress',
-            'date_start': fields.Datetime.now(),
-        })
-
-        # Abrir el wizard para comenzar a añadir productos
-        return {
-            'name': _('Conteo de productos'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'stock.count.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_count_id': self.id},
-        }
-
-    def action_resume(self):
-        """Reanudar un conteo pausado"""
-        self.ensure_one()
-        if self.state != 'in_progress':
-            raise ValidationError(_("Solo se pueden reanudar conteos que estén pausados."))
-
-        # Abrimos el wizard para continuar el conteo
         return {
             'name': _('Conteo de productos'),
             'type': 'ir.actions.act_window',
@@ -62,40 +39,44 @@ class StockCount(models.Model):
         }
 
     def action_compare_counts(self):
-        if len(self) != 2:
-            raise ValidationError(_("Debe seleccionar exactamente dos conteos para comparar."))
+        if len(self) < 2 or len(self) % 2 != 0:
+            raise ValidationError(_("Debe seleccionar un número par de conteos (al menos dos) para comparar."))
 
+        # Crear wizard con todos los conteos seleccionados
         wizard = self.env['stock.count.compare.wizard'].create({
-            'count_id_1': self[0].id,
-            'count_id_2': self[1].id,
+            'count_ids': [(6, 0, self.ids)],
         })
 
-        # Obtener todos los productos que aparecen en ambos conteos
-        products_1 = self[0].line_ids.mapped('product_id')
-        products_2 = self[1].line_ids.mapped('product_id')
-        all_products = products_1 | products_2
+        # Obtener todos los productos que aparecen en cualquiera de los conteos
+        all_products = self.env['product.product']
+        for count in self:
+            all_products |= count.line_ids.mapped('product_id')
 
         # Crear líneas de comparación
         compare_lines = []
         for product in all_products:
-            # Obtener líneas correspondientes a este producto en cada conteo
-            lines_1 = self[0].line_ids.filtered(lambda l: l.product_id == product)
-            lines_2 = self[1].line_ids.filtered(lambda l: l.product_id == product)
-
-            quantity_1 = sum(lines_1.mapped('quantity'))
-            quantity_2 = sum(lines_2.mapped('quantity'))
-
-            # Obtener la fecha más reciente de cada conteo para este producto
-            scan_datetime_1 = lines_1 and max(lines_1.mapped('scan_datetime')) or False
-            scan_datetime_2 = lines_2 and max(lines_2.mapped('scan_datetime')) or False
-
-            compare_lines.append((0, 0, {
+            line_vals = {
                 'product_id': product.id,
-                'quantity_1': quantity_1,
-                'quantity_2': quantity_2,
-                'scan_datetime_1': scan_datetime_1,
-                'scan_datetime_2': scan_datetime_2,
-            }))
+                'count_value_ids': [],
+            }
+
+            # Crear un valor para cada conteo
+            for count in self:
+                # Obtener líneas correspondientes a este producto en el conteo actual
+                count_lines = count.line_ids.filtered(lambda l: l.product_id.id == product.id)
+                quantity = sum(count_lines.mapped('quantity'))
+
+                # Obtener la fecha más reciente para este producto en este conteo
+                scan_datetime = count_lines and max(count_lines.mapped('scan_datetime')) or False
+
+                # Agregar valor para este conteo
+                line_vals['count_value_ids'].append((0, 0, {
+                    'count_id': count.id,
+                    'quantity': quantity,
+                    'scan_datetime': scan_datetime,
+                }))
+
+            compare_lines.append((0, 0, line_vals))
 
         wizard.write({'line_ids': compare_lines})
 
@@ -119,23 +100,6 @@ class StockCount(models.Model):
     def action_draft(self):
         self.write({'state': 'draft'})
 
-    def action_reopen(self):
-        """Permite volver a poner en progreso un conteo finalizado"""
-        self.ensure_one()
-        if self.state != 'done':
-            raise ValidationError(_("Solo se pueden reabrir conteos finalizados."))
-
-        self.write({'state': 'in_progress'})
-
-        # Opcional: Abrimos el wizard para continuar el conteo
-        return {
-            'name': _('Conteo de productos'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'stock.count.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_count_id': self.id},
-        }
 
 class StockCountLine(models.Model):
     _name = 'stock.count.line'

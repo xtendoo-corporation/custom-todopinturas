@@ -1,5 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+    <!-- Vista de formulario para los valores de conteo -->
+    <record id="view_stock_count_value_form" model="ir.ui.view">
+        <field name="name">stock.count.value.wizard.form</field>
+        <field name="model">stock.count.value.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Detalle de Conteo">
+                <sheet>
+                    <group>
+                        <field name="count_id"/>
+                        <field name="quantity"/>
+                        <field name="scan_datetime"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_stock_count_value_tree" model="ir.ui.view">
+        <field name="name">stock.count.value.wizard.tree</field>
+        <field name="model">stock.count.value.wizard</field>
+        <field name="arch" type="xml">
+            <list string="Valores de Conteo" create="false" edit="false">
+                <field name="count_id"/>
+                <field name="quantity"/>
+                <field name="scan_datetime"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vista principal modificada -->
     <record id="view_stock_count_compare_form" model="ir.ui.view">
         <field name="name">stock.count.compare.wizard.form</field>
         <field name="model">stock.count.compare.wizard</field>
@@ -7,22 +37,15 @@
             <form string="Comparación de Conteos">
                 <sheet>
                     <group>
-                        <group>
-                            <field name="count_id_1" string="Conteo C2"/>
-                        </group>
-                        <group>
-                            <field name="count_id_2" string="Conteo C2"/>
-                        </group>
+                        <field name="count_ids" widget="many2many_tags"/>
+                        <field name="count_count" invisible="1"/>
                     </group>
                     <field name="line_ids">
                         <list decoration-success="match" decoration-danger="not match" editable="bottom">
                             <field name="product_id"/>
-                            <field name="quantity_1" string="Cantidad C1"/>
-                            <field name="scan_datetime_1" string="Fecha C1"/>
-                            <field name="quantity_2" string="Cantidad C2"/>
-                            <field name="scan_datetime_2" string="Fecha C2"/>
                             <field name="match" string="Coincide"/>
                             <field name="real_quantity"/>
+                            <field name="count_values_display" widget="text"/>
                         </list>
                     </field>
                 </sheet>
