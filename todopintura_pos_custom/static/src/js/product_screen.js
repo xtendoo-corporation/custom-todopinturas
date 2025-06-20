@@ -101,65 +101,56 @@ patch(ProductScreen.prototype, {
             `,
         }));
     },
-    async _askForPin(intentos = 0) {
-        // Limitar intentos para evitar recursión infinita
-        if (intentos >= 5) {
-            this.notification.add(_t("Demasiados intentos fallidos"), {
-                type: "warning",
-                title: _t("Error de PIN")
+    async _askForPin() {
+    try {
+        // Mostrar el diálogo de PIN
+        const inputPin = await makeAwaitable(this.dialog, NumberPopup, {
+            formatDisplayedValue: (x) => x.replace(/./g, "•"),
+            title: _t("Ingrese PIN de cajero"),
+        });
+
+        // Si el usuario cancela, volver a pedir el PIN
+        if (!inputPin) {
+            this.notification.add(_t("Operación de PIN cancelada"), {
+                type: "info",
             });
+            setTimeout(() => {
+                this._askForPin();
+            }, 500);
             return;
         }
 
-        try {
-            // Mostrar el diálogo de PIN
-            const inputPin = await makeAwaitable(this.dialog, NumberPopup, {
-                formatDisplayedValue: (x) => x.replace(/./g, "•"),
-                title: _t("Ingrese PIN de cajero"),
+        // Verificar el PIN con los empleados disponibles
+        const allEmployees = this.pos.models["hr.employee"];
+        const hashedPin = Sha1.hash(inputPin);
+        const matchedEmployee = allEmployees.find(
+            (employee) => employee._pin === hashedPin
+        );
+
+        if (matchedEmployee) {
+            // PIN correcto
+            this.pos.hasLoggedIn = true;
+            this.pos.set_cashier(matchedEmployee);
+            this.notification.add(_t("Cajero seleccionado: ") + matchedEmployee.name, {
+                type: "success",
             });
-
-            // Si el usuario cancela
-            if (!inputPin) {
-                this.notification.add(_t("Operación de PIN cancelada"), {
-                    type: "info",
-                });
-                return;
-            }
-
-            // Verificar el PIN con los empleados disponibles
-            const allEmployees = this.pos.models["hr.employee"];
-            const hashedPin = Sha1.hash(inputPin);
-            const matchedEmployee = allEmployees.find(
-                (employee) => employee._pin === hashedPin
-            );
-
-            if (matchedEmployee) {
-                // PIN correcto
-                this.pos.hasLoggedIn = true;
-                this.pos.set_cashier(matchedEmployee);
-                this.notification.add(_t("Cajero seleccionado: ") + matchedEmployee.name, {
-                    type: "success",
-                });
-            } else {
-                // PIN incorrecto
-                this.notification.add(_t("PIN no encontrado"), {
-                    type: "warning",
-                    title: _t("PIN incorrecto"),
-                });
-
-                // Reintento con setTimeout para evitar recursión directa
-                setTimeout(() => {
-                    this._askForPin(intentos + 1);
-                }, 800);
-            }
-        } catch (error) {
-            console.error("Error al procesar el PIN:", error);
-            // Reintentar con setTimeout para evitar recursión directa
+        } else {
+            // PIN incorrecto
+            this.notification.add(_t("PIN no encontrado"), {
+                type: "warning",
+                title: _t("PIN incorrecto"),
+            });
             setTimeout(() => {
-                this._askForPin(intentos + 1);
+                this._askForPin();
             }, 800);
         }
-    },
+    } catch (error) {
+        console.error("Error al procesar el PIN:", error);
+        setTimeout(() => {
+            this._askForPin();
+        }, 800);
+    }
+},
 async addProductToOrder(product) {
     const order = this.pos.get_order();
     const pricelist = order?.pricelist || this.pos.config.pricelist;

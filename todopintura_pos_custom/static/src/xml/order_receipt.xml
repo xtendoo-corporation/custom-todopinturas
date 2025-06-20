@@ -13,9 +13,24 @@
                 <div id="order-date" t-esc="props.data.date"/>
             </div>
         </xpath>
- <!-- Para aplicar el estilo a todo el recibo -->
-        <xpath expr="//div[contains(@class, 'pos-receipt')]" position="attributes">
+            <!-- Para aplicar el estilo a todo el recibo -->
+            <xpath expr="//div[contains(@class, 'pos-receipt')]" position="attributes">
             <attribute name="style">font-family: 'Courier New', monospace !important; font-weight: bold !important; letter-spacing: 0.5px !important;</attribute>
         </xpath>
+
+<!--            <xpath expr="//div[contains(@class, 'pos-receipt-taxes')]" position="replace">-->
+<!--</xpath>-->
+
+            <!-- Modificar el total para que muestre "TOTAL (IVA INCLUIDO)" -->
+<!--            <xpath expr="//div[contains(@class, 'receipt-total')]" position="replace">-->
+<!--            <div class="pos-receipt-amount receipt-total">-->
+<!--        TOTAL-->
+<!--        <span t-esc="props.formatCurrency(taxTotals.order_sign * taxTotals.order_total)"-->
+<!--              class="pos-receipt-right-align"/>-->
+<!--    </div>-->
+<!--            </xpath>-->
+
+
     </t>
+
 </templates>
