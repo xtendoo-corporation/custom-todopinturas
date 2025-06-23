@@ -8,11 +8,6 @@
                    title="Cambiar Ubicación de Línea"/>
                 Cambiar Ubicación de Línea
             </button>
-            <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.creditSale()">
-                <i class="fa fa-credit-card me-1" role="img" aria-label="Venta a crédito"
-                   title="Venta a crédito"/>
-                Venta a crédito
-            </button>
         </xpath>
     </t>
 </templates>
