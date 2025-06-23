@@ -169,11 +169,10 @@ async addProductToOrder(product) {
     // Comprobar si existe una regla de tarifa para este producto específico
     const productId = product.id;
     let precioReal = precioCalculado;
-
-    // Intentar obtener el precio real de la interfaz utilizando las reglas de tarifa
+    let tarifaItem = null;
     try {
         if (pricelist && pricelist.items) {
-            const tarifaItem = pricelist.items.find(item =>
+             tarifaItem = pricelist.items.find(item =>
                 item.product_id && item.product_id[0] === productId);
 
             if (tarifaItem && tarifaItem.fixed_price) {
@@ -192,6 +191,8 @@ async addProductToOrder(product) {
     // Comprobar si el producto ya existe en el pedido
     const orderLines = order.get_orderlines();
     const existingLine = orderLines.find(line => line.get_product().id === product.id);
+    console.log("Líneas del pedido:", orderLines);
+    console.log("Línea existente encontrada:", existingLine);
 
     if (existingLine) {
         // El producto ya está en el pedido, incrementar cantidad
@@ -203,6 +204,8 @@ async addProductToOrder(product) {
         console.log("Incrementada cantidad en línea existente:", currentQty + 1);
 
         // Si el producto tiene precio manual y no se ha establecido aún
+        console.log("manual_price:", product.manual_price);
+        console.log("existingLine.price_manually_set:", existingLine.price_manually_set);
         if (product.manual_price && !existingLine.price_manually_set) {
             existingLine.price_manually_set = true;
             console.log("📝 Mostrando diálogo para entrada de precio manual");
@@ -228,68 +231,54 @@ async addProductToOrder(product) {
             }
         }
     } else {
-        // Añadir el producto al pedido como nueva línea
         await reactive(this.pos).addLineToCurrentOrder({ product_id: product.id }, {});
-
-        // Siempre aplicar la visualización del descuento si hay diferencia
+        const orderLines = order.get_orderlines();
+        const lastLine = orderLines[orderLines.length - 1];
+        // Lógica original para productos con precio > 0
         const usarPrecio = Math.min(precioCalculado, precioReal);
+        console.log("Precio a usar para visualización:", usarPrecio);
+        console.log("Comparando precios:", precioBase, "vs", usarPrecio);
+
         if (precioBase > usarPrecio && Math.abs(precioBase - usarPrecio) > 0.0001) {
-            // Calcular el porcentaje de descuento
             const porcentajeDescuento = Math.round((1 - (usarPrecio / precioBase)) * 100 * 100) / 100;
-
             console.log("Aplicando descuento visual:", porcentajeDescuento + "%");
-
-            // Obtener la línea recién añadida
-            const orderLines = order.get_orderlines();
-            const lastLine = orderLines[orderLines.length - 1];
-
             if (lastLine) {
-                // Establecer precio base y aplicar descuento
                 lastLine.set_unit_price(precioBase);
                 lastLine.set_discount(porcentajeDescuento);
                 console.log("Precio base establecido:", precioBase);
                 console.log("Descuento aplicado:", porcentajeDescuento + "%");
             }
-        } else {
-            // Verificar directamente el precio en la línea añadida para detectar discrepancias
-            const orderLines = order.get_orderlines();
-            const lastLine = orderLines[orderLines.length - 1];
+        } else if (lastLine) {
+            const precioLinea = lastLine.get_unit_price();
+            console.log("Precio en línea de pedido:", precioLinea);
 
-            if (lastLine) {
-                const precioLinea = lastLine.get_unit_price();
-                console.log("Precio en línea de pedido:", precioLinea);
-
-                if (precioBase > precioLinea && Math.abs(precioBase - precioLinea) > 0.0001) {
-                    console.log("PrecioLinea", precioLinea);
-                    console.log("PrecioBase", precioBase);
-                    const porcentajeDescuento = Math.round((1 - (precioLinea / precioBase)) * 100 * 100) / 100;
-                    console.log("Aplicando descuento basado en precio línea:", porcentajeDescuento + "%");
-
-                    lastLine.set_unit_price(precioBase);
-                    lastLine.set_discount(porcentajeDescuento);
-                    if (product.manual_price) {
-                        lastLine.price_manually_set = true; // Marcar como precio manual
-                        console.log("📝 Mostrando diálogo para entrada de precio manual");
-                        const inputPrice = await makeAwaitable(this.dialog, CustomPricePopup, {
-                            title: _t("Ingrese precio para") + ` ${product.display_name || product.name}`,
-                            startingValue: "",
-                        });
-                        console.log("💰 Precio ingresado:", inputPrice);
-                        if (inputPrice) {
-                            const precio = parseFloat(inputPrice);
-                            if (!isNaN(precio) && precio > 0) {
-                                lastLine.set_unit_price(precio);
-                                lastLine.set_discount(porcentajeDescuento);
-                                this.pos.get_order().select_orderline(lastLine);
-                                this.notification.add(_t("Producto añadido con precio personalizado"), { type: "success" });
-                            } else {
-                                order.remove_orderline(lastLine);
-                                this.notification.add(_t("Precio inválido"), { type: "warning" });
-                            }
+            if (precioBase > precioLinea && Math.abs(precioBase - precioLinea) > 0.0001) {
+                const porcentajeDescuento = Math.round((1 - (precioLinea / precioBase)) * 100 * 100) / 100;
+                console.log("Aplicando descuento basado en precio línea:", porcentajeDescuento + "%");
+                lastLine.set_unit_price(precioBase);
+                lastLine.set_discount(porcentajeDescuento);
+                if (product.manual_price) {
+                    lastLine.price_manually_set = true;
+                    console.log("📝 Mostrando diálogo para entrada de precio manual");
+                    const inputPrice = await makeAwaitable(this.dialog, CustomPricePopup, {
+                        title: _t("Ingrese precio para") + ` ${product.display_name || product.name}`,
+                        startingValue: "",
+                    });
+                    console.log("💰 Precio ingresado:", inputPrice);
+                    if (inputPrice) {
+                        const precio = parseFloat(inputPrice);
+                        if (!isNaN(precio) && precio > 0) {
+                            lastLine.set_unit_price(precio);
+                            lastLine.set_discount(porcentajeDescuento);
+                            this.pos.get_order().select_orderline(lastLine);
+                            this.notification.add(_t("Producto añadido con precio personalizado"), { type: "success" });
                         } else {
                             order.remove_orderline(lastLine);
-                            this.notification.add(_t("Operación cancelada"), { type: "info" });
+                            this.notification.add(_t("Precio inválido"), { type: "warning" });
                         }
+                    } else {
+                        order.remove_orderline(lastLine);
+                        this.notification.add(_t("Operación cancelada"), { type: "info" });
                     }
                 }
             }
