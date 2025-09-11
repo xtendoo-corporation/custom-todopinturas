@@ -27,7 +27,7 @@ patch(PartnerList.prototype, {
         }
         // Cancelamos el debounce pendiente y ejecutamos inmediatamente
         this.debouncedSearch.cancel();
-        this._performSearch();
+        this.performSearch();
     },
 
     // Nuevo método que maneja cambios en el campo de búsqueda
