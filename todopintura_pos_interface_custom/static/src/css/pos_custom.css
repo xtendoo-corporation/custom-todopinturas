@@ -18,3 +18,21 @@
     flex-direction: row !important;
     height: 100vh !important;
 }
+
+/* REDUCIR altura del contenedor de líneas de pedido */
+.pos .product-screen .order-scroller,
+.pos .product-screen .orderlines {
+    max-height: 50vh !important;
+    height: 50vh !important;
+    overflow-y: auto !important;
+}
+
+.pos .product-screen .order-widget {
+    max-height: 60vh !important;
+    flex: none !important;
+}
+
+.pos .product-screen .order-summary {
+    max-height: 55vh !important;
+    flex: none !important;
+}
