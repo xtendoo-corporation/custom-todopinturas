@@ -366,15 +366,15 @@
     }
 }
 
-/* ESTILOS ULTRA ESPECÍFICOS PARA CONTENEDOR PEQUEÑO */
+/* ESTILOS ULTRA ESPECÍFICOS PARA CONTENEDOR PEQUEÑO UNIFICADO */
 .pos .product-screen .leftpane #unified-order-container {
     position: absolute !important;
     top: 20px !important;
     left: 10px !important;
     right: 10px !important;
-    height: 100px !important;
-    max-height: 100px !important;
-    min-height: 100px !important;
+    height: 120px !important;
+    max-height: 120px !important;
+    min-height: 120px !important;
     width: calc(100% - 20px) !important;
     display: flex !important;
     flex-direction: column !important;
@@ -387,43 +387,40 @@
     flex: none !important;
 }
 
-/* Área de líneas súper pequeña */
+/* Área única que contiene líneas de pedido y totales */
 .pos .product-screen .leftpane #order-lines-area {
     flex: 1 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    padding: 2px !important;
+    padding: 5px !important;
     background-color: #f8f9fa !important;
-    border-bottom: 1px solid #dee2e6 !important;
-    max-height: 50px !important;
-    height: 50px !important;
+    height: 100% !important;
 }
 
-/* Área de totales mínima */
-.pos .product-screen .leftpane #totals-area {
-    flex: 0 0 auto !important;
-    height: 40px !important;
-    max-height: 40px !important;
-    padding: 2px !important;
-    background-color: #ffffff !important;
-    border-top: 1px solid #28a745 !important;
-    font-size: 9px !important;
+/* Sección de totales dentro del área de líneas */
+.pos .product-screen .leftpane #totals-section {
+    margin-top: 10px !important;
+    padding: 8px !important;
+    background-color: #e8f5e8 !important;
+    border: 2px solid #28a745 !important;
+    border-radius: 5px !important;
+    font-size: 12px !important;
 }
 
-/* Líneas individuales súper compactas */
+/* Líneas individuales compactas dentro del contenedor unificado */
 .pos .product-screen .leftpane #order-lines-area .orderline {
     display: block !important;
-    min-height: 15px !important;
-    max-height: 15px !important;
-    height: 15px !important;
-    padding: 1px !important;
-    margin-bottom: 1px !important;
+    min-height: 25px !important;
+    max-height: 35px !important;
+    height: auto !important;
+    padding: 5px !important;
+    margin-bottom: 3px !important;
     background-color: #ffffff !important;
     border: 1px solid #dee2e6 !important;
-    border-radius: 2px !important;
-    font-size: 8px !important;
-    line-height: 1 !important;
-    box-shadow: none !important;
+    border-radius: 3px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
     visibility: visible !important;
     opacity: 1 !important;
     overflow: hidden !important;

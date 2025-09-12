@@ -2,25 +2,28 @@
     'name': 'Todo Pintura POS Interface Custom',
     'version': '18.0.1.0.0',
     'category': 'Point of Sale',
-    'summary': 'Personalización de la interfaz del POS para Todo Pintura',
+    'summary': 'Personalización de interfaz POS para Todo Pintura - Contenedor de líneas más pequeño',
     'description': """
-        Este módulo personaliza la interfaz del POS para:
-        - Ocultar las categorías y productos
-        - Ampliar el área del pedido y líneas
-        - Mostrar más información del cliente
-        - Mejorar los botones de pago
+        Módulo de personalización para el POS de Todo Pintura.
+
+        Características principales:
+        - Oculta el panel de productos para dar más espacio
+        - Reduce drásticamente el tamaño del contenedor de líneas de pedidos
+        - Hace el contenedor con borde azul más pequeño
+        - Optimiza el espacio para una mejor visualización
+        - Compatible con Odoo 18
     """,
     'author': 'Todo Pintura',
     'depends': ['point_of_sale'],
+    'data': [],
     'assets': {
         'point_of_sale._assets_pos': [
             'todopintura_pos_interface_custom/static/src/css/pos_custom.css',
-            'todopintura_pos_interface_custom/static/src/css/pos_enhanced.css',
             'todopintura_pos_interface_custom/static/src/js/pos_custom.js',
-            'todopintura_pos_interface_custom/static/src/js/pos_extended.js',
         ],
     },
     'installable': True,
     'auto_install': False,
     'application': False,
+    'license': 'LGPL-3',
 }
