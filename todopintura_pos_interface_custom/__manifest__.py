@@ -12,9 +12,10 @@
         - Hace el contenedor con borde azul más pequeño
         - Optimiza el espacio para una mejor visualización
         - Compatible con Odoo 18
+        - Solo se aplica a usuarios básicos
     """,
     'author': 'Todo Pintura',
-    'depends': ['point_of_sale'],
+    'depends': ['point_of_sale', 'todopintura_pos_custom'],
     'data': [],
     'assets': {
         'point_of_sale._assets_pos': [
