@@ -241,7 +241,108 @@ patch(Navbar.prototype, {
                         maxWidth: leftPane.style.maxWidth
                     });
                 }
+
+                // Aplicar ajustes para la vista original
+                this.applyOriginalViewAdjustments();
             }, 100);
+        };
+
+        // Nueva función para ajustar la vista original
+        this.applyOriginalViewAdjustments = () => {
+            // Eliminar CSS de usuarios básicos si existe
+            const existingStyle = document.getElementById('todopintura-pos-custom');
+            if (existingStyle) {
+                existingStyle.remove();
+            }
+
+            // Aplicar CSS específico para la vista original
+            const originalViewCSS = `
+                /* Ajustes para la vista original (usuarios con permisos) */
+
+                /* Reducir MÁS la altura del contenedor de líneas de pedido */
+                .pos .product-screen .order-widget {
+                    max-height: 28vh !important;
+                    height: auto !important;
+                    overflow-y: auto !important;
+                }
+
+                .pos .product-screen .order-summary {
+                    max-height: 25vh !important;
+                    height: auto !important;
+                    overflow-y: auto !important;
+                }
+
+                .pos .product-screen .order-scroller {
+                    max-height: 20vh !important;
+                    height: auto !important;
+                    overflow-y: auto !important;
+                }
+
+                .pos .product-screen .orderlines {
+                    max-height: 20vh !important;
+                    height: auto !important;
+                    overflow-y: auto !important;
+                }
+
+                /* Limitar altura del panel de productos para evitar scroll excesivo */
+                .pos .product-screen .rightpane {
+                    max-height: 90vh !important;
+                    overflow-y: auto !important;
+                }
+
+                .pos .product-screen .products-widget {
+                    max-height: 75vh !important;
+                    overflow-y: auto !important;
+                }
+
+                .pos .product-screen .product-list {
+                    max-height: 70vh !important;
+                    overflow-y: auto !important;
+                }
+
+                /* Ajustar botones para que no se corten - REDUCIR margin-top */
+                .pos .product-screen .actionpad,
+                .pos .product-screen .payment-methods {
+                    position: relative !important;
+                    bottom: auto !important;
+                    margin-top: 5px !important;
+                    margin-bottom: 15px !important;
+                    max-height: 180px !important;
+                    overflow-y: auto !important;
+                }
+
+                /* Compactar MÁS los impuestos y totales en vista original */
+                .pos .product-screen .summary,
+                .pos .product-screen .order-summary-line,
+                .pos .product-screen .summary-line,
+                .pos .product-screen .total,
+                .pos .product-screen .order-total-container {
+                    padding: 2px 6px !important;
+                    margin: 1px 0 !important;
+                    font-size: 13px !important;
+                    line-height: 1.1 !important;
+                }
+
+                .pos .product-screen .order-total {
+                    font-size: 16px !important;
+                    font-weight: bold !important;
+                    padding: 4px 6px !important;
+                }
+
+                /* Reducir MÁS el leftpane para dar espacio a los botones */
+                .pos .product-screen .leftpane {
+                    max-height: 95vh !important;
+                    overflow-y: auto !important;
+                    padding-bottom: 10px !important;
+                }
+            `;
+
+            const style = document.createElement('style');
+            style.id = 'todopintura-pos-original-adjustments';
+            style.textContent = originalViewCSS;
+            document.head.appendChild(style);
+
+            console.log('✅ Ajustes aplicados a la vista original');
         };
 
         // Ejecutar al inicializar
