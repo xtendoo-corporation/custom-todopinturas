@@ -10,6 +10,7 @@
                     <div t-if="props.data.company.zip" t-esc="props.data.company.zip"/>
                     <div t-if="props.data.company.country_id and props.data.company.country_id[1]"
                          t-esc="props.data.company.country_id[1]"/>
+                    <div t-if="props.data.company.vat">NIF: <t t-esc="props.data.company.vat"/></div>
                     <div t-if="props.data.company.phone">Tel: <t t-esc="props.data.company.phone"/></div>
                     <div t-if="props.data.cashier"><t t-esc="props.data.cashier"/></div>
                 </div>
