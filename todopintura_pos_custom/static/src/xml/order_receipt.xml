@@ -14,9 +14,9 @@
             </div>
         </xpath>
             <!-- Para aplicar el estilo a todo el recibo -->
-            <xpath expr="//div[contains(@class, 'pos-receipt')]" position="attributes">
-            <attribute name="style">font-family: 'Courier New', monospace !important; font-weight: bold !important; letter-spacing: 0.5px !important;</attribute>
-        </xpath>
+              <xpath expr="//div[contains(@class, 'pos-receipt') and contains(@class, 'p-2')]" position="attributes">
+            <attribute name="style">font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;</attribute>
+    </xpath>
 
 <!--            <xpath expr="//div[contains(@class, 'pos-receipt-taxes')]" position="replace">-->
 <!--</xpath>-->
@@ -32,5 +32,4 @@
 
 
     </t>
-
 </templates>
