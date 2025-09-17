@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates id="template" xml:space="preserve">
-    <t t-name="gomez_pos_custom.ReceiptHeader" t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
+    <t t-name="todopintura_pos_custom.ReceiptHeader" t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('pos-receipt-contact')]" position="replace">
             <div class="custom-header"
                  style="font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;">
@@ -22,8 +22,6 @@
                     <span style="display: inline; white-space: nowrap;">
                         <t t-esc="(props.data.company.city || '') + (props.data.company.state_id ? ' (' + (props.data.company.state_id.name || '') + ')' : '')"/>
                     </span>
-
-
 
                 </t>
                 <t t-set="partner" t-value="props.data.partner"/>
