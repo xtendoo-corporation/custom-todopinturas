@@ -13,7 +13,7 @@
     'website': "",
     'category': 'Point of Sale',
     'version': '1.0',
-    'depends': ['point_of_sale'],
+    'depends': ['point_of_sale', 'l10n_es_pos'],
     'assets': {
         'point_of_sale._assets_pos': [
             'todopintura_pos_custom/static/src/js/pos_store.js',
