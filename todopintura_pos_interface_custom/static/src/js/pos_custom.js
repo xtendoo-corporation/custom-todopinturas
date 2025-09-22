@@ -7,12 +7,10 @@ import { useEffect } from "@odoo/owl";
 // Módulo para personalización del POS de Todo Pintura
 // Objetivo: Ocultar productos y expandir área del pedido SOLO para usuarios básicos
 
-// Patch del Navbar para integrar con la lógica existente
 patch(Navbar.prototype, {
     setup() {
         super.setup?.();
 
-        // Guardar referencia original si existe
         const originalUpdateIsBasicUser = this.updateIsBasicUser;
 
         this.updateIsBasicUser = () => {
@@ -20,13 +18,11 @@ patch(Navbar.prototype, {
             console.log('POS config:', this.pos.config);
             console.log('basic_employee_ids:', this.pos.config.basic_employee_ids);
 
-            // Ejecutar lógica original primero
             if (originalUpdateIsBasicUser) {
                 console.log('Ejecutando lógica original de updateIsBasicUser');
                 originalUpdateIsBasicUser.call(this);
             } else {
                 console.log('No existe lógica original, creando nueva');
-                // Crear lógica si no existe
                 const basicIds = (this.pos.config.basic_employee_ids || []).map(e => e.id || e);
                 const cashier = this.pos.get_cashier();
                 console.log('basicIds:', basicIds);
@@ -38,11 +34,9 @@ patch(Navbar.prototype, {
             console.log('Resultado final isBasicUser:', this.isBasicUser);
             console.log('=== FIN DEBUGGING ===');
 
-            // Aplicar/quitar estilos basado en el tipo de usuario
             this.applyInterfaceCustomization();
         };
 
-        // Nueva función para manejar la personalización de interfaz
         this.applyInterfaceCustomization = () => {
             console.log('Aplicando personalización - Usuario básico:', this.isBasicUser);
 
@@ -57,7 +51,9 @@ patch(Navbar.prototype, {
             }
         };
 
-        // Función para inyectar CSS de usuarios básicos
+        // --- MODIFICACIÓN: MutationObserver para ocultar elementos sensibles ---
+        let posMutationObserver = null;
+
         this.injectBasicUserCSS = () => {
             // Eliminar CSS anterior si existe
             const existingStyle = document.getElementById('todopintura-pos-custom');
@@ -172,23 +168,68 @@ patch(Navbar.prototype, {
                 .pos .product-screen .rightpane {
                     display: none !important;
                 }
+
+                /* Ocultar calculadora y botones de precio para usuarios básicos */
+                .pos .product-screen .numpad,
+                .pos .product-screen .numpad-widget {
+                    display: none !important;
+                }
             `;
 
             const style = document.createElement('style');
             style.id = 'todopintura-pos-custom';
             style.textContent = customCSS;
             document.head.appendChild(style);
+
+            // --- MutationObserver para ocultar elementos sensibles si reaparecen ---
+            function hideSensitiveElements() {
+               document.querySelectorAll('.pos .product-screen .numpad, .pos .product-screen .numpad-widget')
+                    .forEach(el => el.style.display = 'none');
+            }
+
+            // Llama una vez al cargar
+            hideSensitiveElements();
+
+            // Desconectar observer anterior si existe
+            if (posMutationObserver) {
+                posMutationObserver.disconnect();
+            }
+
+            // Observa cambios en el DOM para volver a ocultar si reaparecen
+            posMutationObserver = new MutationObserver(hideSensitiveElements);
+            posMutationObserver.observe(document.body, { childList: true, subtree: true });
+
+            this.hideProductPanel = () => {
+                setTimeout(() => {
+                    const rightPane = document.querySelector('.pos .product-screen .rightpane');
+                    const leftPane = document.querySelector('.pos .product-screen .leftpane');
+                    const numpad = document.querySelector('.pos .product-screen .numpad, .pos .product-screen .numpad-widget');
+                    const actionpad = document.querySelector('.pos .product-screen .actionpad');
+
+                    if (rightPane) rightPane.style.display = 'none';
+                    if (leftPane) {
+                        leftPane.style.width = '100%';
+                        leftPane.style.flex = '1';
+                        leftPane.style.maxWidth = '100%';
+                    }
+                    if (numpad) numpad.style.display = 'none';
+                    if (actionpad) actionpad.style.display = 'none';
+                }, 100);
+            };
         };
 
-        // Función para remover CSS de usuarios básicos
         this.removeBasicUserCSS = () => {
             const existingStyle = document.getElementById('todopintura-pos-custom');
             if (existingStyle) {
                 existingStyle.remove();
             }
+            // Desconectar observer si existe
+            if (posMutationObserver) {
+                posMutationObserver.disconnect();
+                posMutationObserver = null;
+            }
         };
 
-        // Función para ocultar panel de productos
         this.hideProductPanel = () => {
             console.log('🔸 EJECUTANDO hideProductPanel()');
             setTimeout(() => {
@@ -212,7 +253,6 @@ patch(Navbar.prototype, {
             }, 100);
         };
 
-        // Función para mostrar panel de productos
         this.showProductPanel = () => {
             console.log('🔹 EJECUTANDO showProductPanel()');
             setTimeout(() => {
@@ -223,14 +263,12 @@ patch(Navbar.prototype, {
                 console.log('leftPane encontrado:', !!leftPane);
 
                 if (rightPane) {
-                    // FORZAR la visualización con !important para sobrescribir el CSS
                     rightPane.style.setProperty('display', 'block', 'important');
                     console.log('✅ Panel de productos MOSTRADO con !important');
                     console.log('Display actual del rightPane:', rightPane.style.display);
                 }
 
                 if (leftPane) {
-                    // Restaurar estilos también con !important para asegurar que se apliquen
                     leftPane.style.setProperty('width', 'auto', 'important');
                     leftPane.style.setProperty('flex', 'initial', 'important');
                     leftPane.style.setProperty('max-width', 'none', 'important');
@@ -242,20 +280,16 @@ patch(Navbar.prototype, {
                     });
                 }
 
-                // Aplicar ajustes para la vista original
                 this.applyOriginalViewAdjustments();
             }, 100);
         };
 
-        // Nueva función para ajustar la vista original
         this.applyOriginalViewAdjustments = () => {
-            // Eliminar CSS de usuarios básicos si existe
             const existingStyle = document.getElementById('todopintura-pos-custom');
             if (existingStyle) {
                 existingStyle.remove();
             }
 
-            // Aplicar CSS específico para la vista original
             const originalViewCSS = `
                 /* Ajustes para la vista original (usuarios con permisos) */
 
@@ -345,10 +379,8 @@ patch(Navbar.prototype, {
             console.log('✅ Ajustes aplicados a la vista original');
         };
 
-        // Ejecutar al inicializar
         this.updateIsBasicUser();
 
-        // Reaccionar a cambios de cajero
         useEffect(
             () => {
                 this.updateIsBasicUser();

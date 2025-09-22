@@ -427,3 +427,9 @@
     white-space: nowrap !important;
     text-overflow: ellipsis !important;
 }
+
+/* Ocultar calculadora y botones de precio para usuarios básicos */
+.pos .product-screen .numpad,
+.pos .product-screen .numpad-widget {
+    display: none !important;
+}
