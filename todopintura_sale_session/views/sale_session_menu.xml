@@ -1,12 +1,6 @@
 <odoo>
     <menuitem id="menu_todopintura_root" name="Todo Pintura" sequence="1"/>
 
-    <menuitem id="menu_sale_session_root" name="Tablero" parent="menu_todopintura_root" sequence="1"
-              action="action_sale_session_kanban"/>
-
-    <menuitem id="menu_sale_session_history" name="Historial de Sesiones" parent="menu_sale_session_root" sequence="2"
-              action="action_sale_session_history"/>
-
     <record id="action_sale_session_kanban" model="ir.actions.act_window">
         <field name="name">Tablero</field>
         <field name="res_model">sale.session</field>
@@ -19,6 +13,12 @@
         <field name="res_model">sale.session.history</field>
         <field name="view_mode">list,form</field>
     </record>
+
+    <menuitem id="menu_sale_session_root" name="Tablero" parent="menu_todopintura_root" sequence="1"
+              action="action_sale_session_kanban"/>
+
+    <menuitem id="menu_sale_session_history" name="Historial de Sesiones" parent="menu_sale_session_root" sequence="2"
+              action="action_sale_session_history"/>
 
     <record id="action_open_sale_order_employee_wizard" model="ir.actions.act_window">
         <field name="name">Presupuesto con PIN</field>
