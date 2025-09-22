@@ -1,6 +1,6 @@
 {
     'name': 'Todo Pintura POS Interface Custom',
-    'version': '18.0.1.0.0',
+    'version': '19.0.1.0.0',
     'category': 'Point of Sale',
     'summary': 'Personalización de interfaz POS para Todo Pintura - Contenedor de líneas más pequeño',
     'description': """

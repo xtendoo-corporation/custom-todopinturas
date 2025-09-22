@@ -46,7 +46,6 @@
                         </page>
                     </notebook>
                 </sheet>
-                >
             </form>
         </field>
     </record>
@@ -84,11 +83,10 @@
                 <filter string="Borrador" name="draft" domain="[('state','=','draft')]"/>
                 <filter string="Completado" name="done" domain="[('state','=','done')]"/>
                 <filter string="Cancelado" name="cancel" domain="[('state','=','cancel')]"/>
-                <group expand="0" string="Agrupar por">
-                    <filter string="Empleado" name="group_employee" context="{'group_by': 'employee_id'}"/>
-                    <filter string="Ubicación" name="group_location" context="{'group_by': 'location_id'}"/>
-                    <filter string="Estado" name="group_state" context="{'group_by': 'state'}"/>
-                </group>
+                <separator/>
+                <filter string="Empleado" name="group_employee" context="{'group_by': 'employee_id'}"/>
+                <filter string="Ubicación" name="group_location" context="{'group_by': 'location_id'}"/>
+                <filter string="Estado" name="group_state" context="{'group_by': 'state'}"/>
             </search>
         </field>
     </record>

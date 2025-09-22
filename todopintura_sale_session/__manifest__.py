@@ -1,7 +1,7 @@
 {
     "name": "Todo Pintura Sale Session",
     "summary": "Sale Session Todo Pintura",
-    "version": "18.0.1.0.0",
+    "version": "19.0.1.0.0",
     "description": "Sale Session Todo Pintura",
     "company": "Xtendoo",
     "website": "http://www.xtendoo.es",

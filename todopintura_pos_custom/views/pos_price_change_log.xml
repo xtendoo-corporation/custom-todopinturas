@@ -52,11 +52,10 @@
                 <field name="user_id"/>
                 <field name="employee_id"/>
                 <filter string="Hoy" name="today" domain="[('date','&gt;=',time.strftime('%Y-%m-%d 00:00:00')),('date','&lt;=',time.strftime('%Y-%m-%d 23:59:59'))]"/>
-                <group expand="0" string="Agrupar por">
-                    <filter string="Producto" name="group_by_product" context="{'group_by':'product_id'}"/>
-                    <filter string="Usuario" name="group_by_user" context="{'group_by':'user_id'}"/>
-                    <filter string="Empleado" name="group_by_employee" context="{'group_by':'employee_id'}"/>
-                </group>
+                <separator/>
+                <filter string="Producto" name="group_by_product" context="{'group_by':'product_id'}"/>
+                <filter string="Usuario" name="group_by_user" context="{'group_by':'user_id'}"/>
+                <filter string="Empleado" name="group_by_employee" context="{'group_by':'employee_id'}"/>
             </search>
         </field>
     </record>

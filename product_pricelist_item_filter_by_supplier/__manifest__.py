@@ -1,7 +1,7 @@
 {
     "name": "Product Pricelist Item Filter by Supplier",
     "summary": "Filter product pricelist items by supplier",
-    "version": "18.0.1.0.0",
+    "version": "19.0.1.0.0",
     "description": "Filter product pricelist items by supplier",
     "company": "Xtendoo",
     "website": "http://www.xtendoo.es",
