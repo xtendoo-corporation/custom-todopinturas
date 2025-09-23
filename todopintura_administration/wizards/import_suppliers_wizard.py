@@ -2,21 +2,23 @@ from odoo import api, fields, models
 import base64
 import xlrd
 from odoo.exceptions import UserError
+import io
+try:
+    import openpyxl
+except ImportError:
+    openpyxl = None
 
 
 class ImportSuppliersWizard(models.TransientModel):
     _name = 'import.suppliers.wizard'
-    _description = 'Wizard para importar proveedores desde un archivo XLS'
+    _description = 'Wizard para importar proveedores desde un archivo XLS o XLSX'
 
-    file = fields.Binary('Subir archivo XLS', required=True)
+    file = fields.Binary('Subir archivo XLS o XLSX', required=True)
     file_name = fields.Char('Nombre del archivo')
 
     def action_import_suppliers(self):
-        # es_country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
-        # print(es_country.id, es_country.name)
-
         if not self.file:
-            raise UserError("Por favor, sube un archivo XLS.")
+            raise UserError("Por favor, sube un archivo XLS o XLSX.")
 
         payment_terms = {
             '1010': 'GIRO A 30 DIAS',
@@ -104,165 +106,234 @@ class ImportSuppliersWizard(models.TransientModel):
             '4059': 'TRANSF/45 DIAS  ES5721009753822200083736'
         }
 
-        # Decodificar el archivo XLS
+        ext = ''
+        if self.file_name:
+            ext = self.file_name.split('.')[-1].lower()
         data = base64.b64decode(self.file)
-        book = xlrd.open_workbook(file_contents=data)
-        sheet = book.sheet_by_index(0)
+        # Detección por cabecera si la extensión no es fiable
+        if not ext or ext not in ['xls', 'xlsx']:
+            if data[:2] == b'PK':
+                ext = 'xlsx'
+            elif data[:8] == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1':
+                ext = 'xls'
+        sheet = None
+        is_xlsx = False
+        if ext == 'xlsx':
+            if not openpyxl:
+                raise UserError("Falta la librería openpyxl para procesar archivos .xlsx. Por favor, instálala.")
+            is_xlsx = True
+            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            sheet = wb.active
+        elif ext == 'xls':
+            book = xlrd.open_workbook(file_contents=data)
+            sheet = book.sheet_by_index(0)
+        else:
+            raise UserError("Formato de archivo no soportado. Usa .xls o .xlsx")
 
-        for row in range(1, sheet.nrows):
-            num_prov = '0' + str(int(sheet.cell(row, 0).value))
-            name = sheet.cell(row, 1).value.strip()
-            address = sheet.cell(row, 2).value.strip()
-            address = '' if all(char == '*' for char in address) else address
-            telefono_value = sheet.cell(row, 3).value
-            telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
-            telefono = '' if all(char == '*' for char in telefono) else telefono
-            telefono2_value = sheet.cell(row, 4).value
-            telefono2 = str(int(telefono2_value)) if telefono2_value and isinstance(telefono2_value,
-                                                                                    (int, float)) else ''
-            telefono2 = '' if all(char == '*' for char in telefono2) else telefono2
-            nif_value = sheet.cell(row, 5).value
-            nif = str(nif_value).strip() if isinstance(nif_value, float) else nif_value.strip()
-            nif = '' if all(char == '*' for char in nif) else nif
-            forma_pago = str(int(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value else ''
-            cp_value = sheet.cell(row, 7).value
-            cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
-            cp = '' if all(char == '*' for char in cp) else cp
-            address2 = str(sheet.cell(row, 9).value).strip() if isinstance(sheet.cell(row, 9).value,
-                                                                           float) else sheet.cell(row, 9).value.strip()
-            address2 = '' if all(char == '*' for char in address2) else address2
-            cp2_value = sheet.cell(row, 10).value
-            cp2 = str(int(cp2_value)) if cp2_value and isinstance(cp2_value, (int, float)) else ''
-            cp2 = '' if all(char == '*' for char in cp2) else cp2
-            activo = sheet.cell(row, 15).value
-            observation1 = str(sheet.cell(row, 16).value).strip() if sheet.cell(row, 16).value is not None else ''
-            observation2 = str(sheet.cell(row, 17).value).strip() if sheet.cell(row, 17).value is not None else ''
-            observation3 = str(sheet.cell(row, 18).value).strip() if sheet.cell(row, 18).value is not None else ''
-            observation4 = str(sheet.cell(row, 19).value).strip() if sheet.cell(row, 19).value is not None else ''
-            observation5 = str(sheet.cell(row, 20).value).strip() if sheet.cell(row, 20).value is not None else ''
-            observation6 = str(sheet.cell(row, 21).value).strip() if sheet.cell(row, 21).value is not None else ''
-            observation7 = str(sheet.cell(row, 22).value).strip() if sheet.cell(row, 22).value is not None else ''
-            observation8 = str(sheet.cell(row, 23).value).strip() if sheet.cell(row, 23).value is not None else ''
-            observation9 = str(sheet.cell(row, 24).value).strip() if sheet.cell(row, 24).value is not None else ''
-            observation10 = str(sheet.cell(row, 25).value).strip() if sheet.cell(row, 25).value is not None else ''
-            observation11 = str(sheet.cell(row, 26).value).strip() if sheet.cell(row, 26).value is not None else ''
-            observation12 = str(sheet.cell(row, 27).value).strip() if sheet.cell(row, 27).value is not None else ''
-            observation13 = str(sheet.cell(row, 28).value).strip() if sheet.cell(row, 28).value is not None else ''
-            observation14 = str(sheet.cell(row, 29).value).strip() if sheet.cell(row, 29).value is not None else ''
-            observation15 = str(sheet.cell(row, 30).value).strip() if sheet.cell(row, 30).value is not None else ''
-            observation16 = str(sheet.cell(row, 31).value).strip() if sheet.cell(row, 31).value is not None else ''
-            observation17 = str(sheet.cell(row, 32).value).strip() if sheet.cell(row, 32).value is not None else ''
-            observation18 = str(sheet.cell(row, 33).value).strip() if sheet.cell(row, 33).value is not None else ''
-            observation19 = str(sheet.cell(row, 34).value).strip() if sheet.cell(row, 34).value is not None else ''
-            observation20 = str(sheet.cell(row, 35).value).strip() if sheet.cell(row, 35).value is not None else ''
-            observation21 = str(sheet.cell(row, 36).value).strip() if sheet.cell(row, 36).value is not None else ''
-            observation22 = str(sheet.cell(row, 37).value).strip() if sheet.cell(row, 37).value is not None else ''
-            observation23 = str(sheet.cell(row, 38).value).strip() if sheet.cell(row, 38).value is not None else ''
-            observation24 = str(sheet.cell(row, 39).value).strip() if sheet.cell(row, 39).value is not None else ''
+        if is_xlsx:
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                num_prov = '0' + str(int(row[0])) if row[0] else ''
+                name = row[1].strip() if row[1] else ''
+                address = row[2].strip() if row[2] else ''
+                address = '' if all(char == '*' for char in address) else address
+                telefono_value = row[3]
+                telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
+                telefono = '' if all(char == '*' for char in telefono) else telefono
+                telefono2_value = row[4]
+                telefono2 = str(int(telefono2_value)) if telefono2_value and isinstance(telefono2_value, (int, float)) else ''
+                telefono2 = '' if all(char == '*' for char in telefono2) else telefono2
+                nif_value = row[5]
+                nif = str(nif_value).strip() if nif_value else ''
+                nif = '' if all(char == '*' for char in nif) else nif
+                forma_pago = str(int(row[8])) if row[8] else ''
+                cp_value = row[7]
+                cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
+                cp = '' if all(char == '*' for char in cp) else cp
+                address2 = str(row[9]).strip() if row[9] else ''
+                address2 = '' if all(char == '*' for char in address2) else address2
+                cp2_value = row[10]
+                cp2 = str(int(cp2_value)) if cp2_value and isinstance(cp2_value, (int, float)) else ''
+                cp2 = '' if all(char == '*' for char in cp2) else cp2
+                activo = row[15] if len(row) > 15 else ''
+                # Observaciones
+                observations = [str(row[i]).strip() if len(row) > i and row[i] is not None else '' for i in range(16, 40)]
+                notes = "<br/>".join(filter(None, observations))
 
-            print("num_prov: " + str(num_prov), "name: " + name, "address: " + address, "telefono: " + telefono,
-                  "telefono2: " + telefono2, "nif: " + nif, "cp: " + cp, "address2: " + address2, "cp2: " + cp2,
-                  "activo: " + activo)
+                if not (name or address or cp or telefono or nif):
+                    print("Todos los datos están vacíos. Terminando la importación.")
+                    break
 
-            observations = [
-                observation1,
-                observation2,
-                observation3,
-                observation4,
-                observation5,
-                observation6,
-                observation7,
-                observation8,
-                observation9,
-                observation10,
-                observation11,
-                observation12,
-                observation13,
-                observation14,
-                observation15,
-                observation16,
-                observation17,
-                observation18,
-                observation19,
-                observation20,
-                observation21,
-                observation22,
-                observation23,
-                observation24
-            ]
-            notes = "<br/>".join(filter(None, observations))
+                es_country = self.env['res.country'].search(
+                    [('code', '=', 'DE' if nif.startswith('DE') else 'GB' if nif.startswith('GB') else 'ES')],
+                    limit=1)
+                print(es_country.id, es_country.name)
 
-            if not (name or address or cp or telefono or nif):
-                print("Todos los datos están vacíos. Terminando la importación.")
-                break
-
-            es_country = self.env['res.country'].search(
-                [('code', '=', 'DE' if nif.startswith('DE') else 'GB' if nif.startswith('GB') else 'ES')],
-                limit=1)
-            print(es_country.id, es_country.name)
-
-            record = {
-                'ref': num_prov,
-                'name': name,
-                'street': address,
-                'zip': cp,
-                'is_company': True,
-                'country_id': es_country.id,
-                'phone': telefono,
-                'mobile': telefono2,
-                'vat': f"{'ES' if es_country.code == 'ES' else 'DE' if es_country.code == 'DE' else 'GB'}{nif}" if nif else '',
-                'active': False if activo == 'N' else True,
-                'comment': notes,
-            }
-
-            if forma_pago in payment_terms:
-                print(f"Forma de pago encontrada: {forma_pago} - {payment_terms[forma_pago]}")
-                payment_term = self.env['account.payment.term'].search(
-                    [('name', '=', payment_terms[forma_pago])], limit=1)
-                if payment_term:
-                    print(f"Término de pago encontrado: {payment_term.name} (ID: {payment_term.id})")
-                    record['property_supplier_payment_term_id'] = payment_term.id
-                else:
-                    print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
-
-            try:
-                supplier = self.env['res.partner'].search([('ref', '=', num_prov), ('name', '=', name)], limit=1)
-
-                if supplier:
-                    supplier.write(record)
-                    print(f"Proveedor actualizado: {supplier.name}")
-                else:
-                    supplier = self.env['res.partner'].create(record)
-                    print(f"Proveedor creado: {name}")
-            except Exception as e:
-                print(f"Error al actualizar o crear el proveedor: {e}")
-                record['vat'] = ''
-                if supplier:
-                    supplier.write(record)
-                else:
-                    supplier = self.env['res.partner'].create(record)
-
-            if address2 or cp2:
-                contact_address = {
-                    'name': "Otra dirección "+ str(name),
-                    'parent_id': supplier.id,
-                    'type': 'other',
-                    'street': address2,
-                    'zip': cp2,
+                record = {
+                    'ref': num_prov,
+                    'name': name,
+                    'street': address,
+                    'zip': cp,
+                    'is_company': True,
+                    'country_id': es_country.id,
+                    'phone': telefono,
+                    'vat': f"{'ES' if es_country.code == 'ES' else 'DE' if es_country.code == 'DE' else 'GB'}{nif}" if nif else '',
+                    'active': False if activo == 'N' else True,
+                    'comment': notes,
                 }
-                existing_contact = self.env['res.partner'].search([
-                    ('name', '=', "Otra dirección " + str(name)),
-                    ('parent_id', '=', supplier.id),
-                    ('type', '=', 'other'),
-                    ('street', '=', address2),
-                    ('zip', '=', cp2)
-                ], limit=1)
 
-                if existing_contact:
-                    existing_contact.write(contact_address)
-                    print(
-                        f"Dirección secundaria actualizada: {address2}, Nombre: {existing_contact.name}, Parent ID: {existing_contact.parent_id.id}")
-                else:
-                    self.env['res.partner'].create(contact_address)
-                    print(
-                        f"Dirección secundaria creada: {address2}, Nombre: {contact_address['name']}, Parent ID: {contact_address['parent_id']}")
+                if forma_pago in payment_terms:
+                    print(f"Forma de pago encontrada: {forma_pago} - {payment_terms[forma_pago]}")
+                    payment_term = self.env['account.payment.term'].search(
+                        [('name', '=', payment_terms[forma_pago])], limit=1)
+                    if payment_term:
+                        print(f"Término de pago encontrado: {payment_term.name} (ID: {payment_term.id})")
+                        record['property_supplier_payment_term_id'] = payment_term.id
+                    else:
+                        print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
+
+                try:
+                    supplier = self.env['res.partner'].search([('ref', '=', num_prov), ('name', '=', name)], limit=1)
+
+                    if supplier:
+                        supplier.write(record)
+                        print(f"Proveedor actualizado: {supplier.name}")
+                    else:
+                        supplier = self.env['res.partner'].create(record)
+                        print(f"Proveedor creado: {name}")
+                except Exception as e:
+                    print(f"Error al actualizar o crear el proveedor: {e}")
+                    record['vat'] = ''
+                    if supplier:
+                        supplier.write(record)
+                    else:
+                        supplier = self.env['res.partner'].create(record)
+
+                if address2 or cp2:
+                    contact_address = {
+                        'name': "Otra dirección "+ str(name),
+                        'parent_id': supplier.id,
+                        'type': 'other',
+                        'street': address2,
+                        'zip': cp2,
+                    }
+                    existing_contact = self.env['res.partner'].search([
+                        ('name', '=', "Otra dirección " + str(name)),
+                        ('parent_id', '=', supplier.id),
+                        ('type', '=', 'other'),
+                        ('street', '=', address2),
+                        ('zip', '=', cp2)
+                    ], limit=1)
+
+                    if existing_contact:
+                        existing_contact.write(contact_address)
+                        print(
+                            f"Dirección secundaria actualizada: {address2}, Nombre: {existing_contact.name}, Parent ID: {existing_contact.parent_id.id}")
+                    else:
+                        self.env['res.partner'].create(contact_address)
+                        print(
+                            f"Dirección secundaria creada: {address2}, Nombre: {contact_address['name']}, Parent ID: {contact_address['parent_id']}")
+        else:
+            # ...existing code para xlrd (xls)...
+            data = base64.b64decode(self.file)
+            book = xlrd.open_workbook(file_contents=data)
+            sheet = book.sheet_by_index(0)
+            for row in range(1, sheet.nrows):
+                num_prov = '0' + str(int(sheet.cell(row, 0).value))
+                name = sheet.cell(row, 1).value.strip()
+                address = sheet.cell(row, 2).value.strip()
+                address = '' if all(char == '*' for char in address) else address
+                telefono_value = sheet.cell(row, 3).value
+                telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
+                telefono = '' if all(char == '*' for char in telefono) else telefono
+                telefono2_value = sheet.cell(row, 4).value
+                telefono2 = str(int(telefono2_value)) if telefono2_value and isinstance(telefono2_value, (int, float)) else ''
+                telefono2 = '' if all(char == '*' for char in telefono2) else telefono2
+                nif_value = sheet.cell(row, 5).value
+                nif = str(nif_value).strip() if nif_value else ''
+                nif = '' if all(char == '*' for char in nif) else nif
+                forma_pago = str(int(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value else ''
+                cp_value = sheet.cell(row, 7).value
+                cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
+                cp = '' if all(char == '*' for char in cp) else cp
+                address2 = str(sheet.cell(row, 9).value).strip() if isinstance(sheet.cell(row, 9).value, float) else sheet.cell(row, 9).value.strip()
+                address2 = '' if all(char == '*' for char in address2) else address2
+                cp2_value = sheet.cell(row, 10).value
+                cp2 = str(int(cp2_value)) if cp2_value and isinstance(cp2_value, (int, float)) else ''
+                cp2 = '' if all(char == '*' for char in cp2) else cp2
+                activo = sheet.cell(row, 15).value
+                observations = [str(sheet.cell(row, i).value).strip() if sheet.cell(row, i).value is not None else '' for i in range(16, 40)]
+                notes = "<br/>".join(filter(None, observations))
+
+                if not (name or address or cp or telefono or nif):
+                    print("Todos los datos están vacíos. Terminando la importación.")
+                    break
+
+                es_country = self.env['res.country'].search(
+                    [('code', '=', 'DE' if nif.startswith('DE') else 'GB' if nif.startswith('GB') else 'ES')],
+                    limit=1)
+                print(es_country.id, es_country.name)
+
+                record = {
+                    'ref': num_prov,
+                    'name': name,
+                    'street': address,
+                    'zip': cp,
+                    'is_company': True,
+                    'country_id': es_country.id,
+                    'phone': telefono,
+                    'vat': f"{'ES' if es_country.code == 'ES' else 'DE' if es_country.code == 'DE' else 'GB'}{nif}" if nif else '',
+                    'active': False if activo == 'N' else True,
+                    'comment': notes,
+                }
+
+                if forma_pago in payment_terms:
+                    print(f"Forma de pago encontrada: {forma_pago} - {payment_terms[forma_pago]}")
+                    payment_term = self.env['account.payment.term'].search(
+                        [('name', '=', payment_terms[forma_pago])], limit=1)
+                    if payment_term:
+                        print(f"Término de pago encontrado: {payment_term.name} (ID: {payment_term.id})")
+                        record['property_supplier_payment_term_id'] = payment_term.id
+                    else:
+                        print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
+
+                try:
+                    supplier = self.env['res.partner'].search([('ref', '=', num_prov), ('name', '=', name)], limit=1)
+
+                    if supplier:
+                        supplier.write(record)
+                        print(f"Proveedor actualizado: {supplier.name}")
+                    else:
+                        supplier = self.env['res.partner'].create(record)
+                        print(f"Proveedor creado: {name}")
+                except Exception as e:
+                    print(f"Error al actualizar o crear el proveedor: {e}")
+                    record['vat'] = ''
+                    if supplier:
+                        supplier.write(record)
+                    else:
+                        supplier = self.env['res.partner'].create(record)
+
+                if address2 or cp2:
+                    contact_address = {
+                        'name': "Otra dirección "+ str(name),
+                        'parent_id': supplier.id,
+                        'type': 'other',
+                        'street': address2,
+                        'zip': cp2,
+                    }
+                    existing_contact = self.env['res.partner'].search([
+                        ('name', '=', "Otra dirección " + str(name)),
+                        ('parent_id', '=', supplier.id),
+                        ('type', '=', 'other'),
+                        ('street', '=', address2),
+                        ('zip', '=', cp2)
+                    ], limit=1)
+
+                    if existing_contact:
+                        existing_contact.write(contact_address)
+                        print(
+                            f"Dirección secundaria actualizada: {address2}, Nombre: {existing_contact.name}, Parent ID: {existing_contact.parent_id.id}")
+                    else:
+                        self.env['res.partner'].create(contact_address)
+                        print(
+                            f"Dirección secundaria creada: {address2}, Nombre: {contact_address['name']}, Parent ID: {contact_address['parent_id']}")

@@ -2,18 +2,23 @@ from odoo import api, fields, models
 import base64
 import xlrd
 from odoo.exceptions import UserError
+import io
+try:
+    import openpyxl
+except ImportError:
+    openpyxl = None
 
 
 class ImportContactsWizard(models.TransientModel):
     _name = 'import.contacts.wizard'
-    _description = 'Wizard para importar contactos desde un archivo XLS'
+    _description = 'Wizard para importar contactos desde un archivo XLS o XLSX'
 
-    file = fields.Binary('Subir archivo XLS', required=True)
+    file = fields.Binary('Subir archivo XLS o XLSX', required=True)
     file_name = fields.Char('Nombre del archivo')
 
     def action_import_contacts(self):
         if not self.file:
-            raise UserError("Por favor, sube un archivo XLS.")
+            raise UserError("Por favor, sube un archivo XLS o XLSX.")
 
         payment_terms = {
             '1010': 'GIRO A 30 DIAS',
@@ -101,21 +106,149 @@ class ImportContactsWizard(models.TransientModel):
             '4059': 'TRANSF/45 DIAS  ES5721009753822200083736'
         }
 
-        # Decodificar el archivo XLS
+        ext = ''
+        if self.file_name:
+            ext = self.file_name.split('.')[-1].lower()
         data = base64.b64decode(self.file)
-        book = xlrd.open_workbook(file_contents=data)
-        sheet = book.sheet_by_index(0)
+        # Detección por cabecera si la extensión no es fiable
+        if not ext or ext not in ['xls', 'xlsx']:
+            if data[:2] == b'PK':
+                ext = 'xlsx'
+            elif data[:8] == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1':
+                ext = 'xls'
+        sheet = None
+        is_xlsx = False
+        if ext == 'xlsx':
+            if not openpyxl:
+                raise UserError("Falta la librería openpyxl para procesar archivos .xlsx. Por favor, instálala.")
+            is_xlsx = True
+            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            sheet = wb.active
+        elif ext == 'xls':
+            book = xlrd.open_workbook(file_contents=data)
+            sheet = book.sheet_by_index(0)
+        else:
+            raise UserError("Formato de archivo no soportado. Usa .xls o .xlsx")
 
-        for row in range(1, sheet.nrows):
-                num_client = int(sheet.cell(row, 0).value)
-                name = sheet.cell(row, 1).value
-                address = sheet.cell(row, 2).value
+        if is_xlsx:
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                num_client = int(row[0]) if row[0] else ''
+                name = row[1] or ''
+                address = row[2] or ''
+                cp_value = row[3]
+                cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
+                telefono_value = row[4]
+                telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
+                nif = str(row[6]).strip() if row[6] else ''
+                try:
+                    forma_pago = str(int(row[8])) if row[8] else ''
+                except ValueError:
+                    forma_pago = ''
+                email = str(row[23]).strip() if len(row) > 23 and row[23] else ''
+                credit_limit = row[11] if len(row) > 11 else None
+                credit_limit = credit_limit if credit_limit not in [None, 0] else None
+                iban = row[14].strip() if len(row) > 14 and row[14] else None
+                observation1 = str(row[19]).strip() if len(row) > 19 and row[16] is not None else ''
+                observation2 = str(row[20]).strip() if len(row) > 20 and row[17] is not None else ''
+                observation3 = str(row[21]).strip() if len(row) > 21 and row[18] is not None else ''
+                observation4 = str(row[22]).strip() if len(row) > 22 and row[19] is not None else ''
+
+                print(num_client, " ", name, " ", address, " ", cp, " ", telefono, " ", nif, " ", forma_pago, " ",
+                      email,
+                      " ", credit_limit, " ", iban, " ", observation1, " ", observation2, " ", observation3, " ",
+                      observation4)
+
+                if not (name or address or cp or telefono or nif):
+                    print("Todos los datos están vacíos. Terminando la importación.")
+                    break
+
+                observations = [
+                    observation1,
+                    observation2,
+                    observation3,
+                    observation4,
+                ]
+                notes = "<br/>".join(filter(None, observations))
+
+                country_id = self.env['res.country'].search([('name', '=', 'España')], limit=1)
+                if not country_id:
+                    raise UserError("País 'España' no encontrado en la base de datos.")
+
+                record = {
+                    'ref': num_client,
+                    'name': name,
+                    'street': address,
+                    'zip': cp,
+                    'country_id': country_id.id,
+                    'phone': telefono,
+                    'vat': f"ES{nif}" if nif else '',
+                    'email': email,
+                    'comment': notes,
+                    'is_company': True,
+                }
+
+                if credit_limit is not None:
+                    record['use_partner_credit_limit'] = True
+                    record['credit_limit'] = credit_limit
+                    print(f"Límite de crédito establecido: {credit_limit} para {name}")
+                if forma_pago in payment_terms:
+                    print(f"Forma de pago encontrada: {forma_pago} - {payment_terms[forma_pago]}")
+                    payment_term = self.env['account.payment.term'].search(
+                        [('name', '=', payment_terms[forma_pago])], limit=1)
+                    if payment_term:
+                        print(f"Término de pago encontrado: {payment_term.name} (ID: {payment_term.id})")
+                        record['property_payment_term_id'] = payment_term.id
+                    else:
+                        print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
+
+                contact = self.env['res.partner'].search([('ref', '=', num_client), ('name', '=', name)], limit=1)
+
+                if contact:
+                    try:
+                        contact.write(record)
+                        print(f"Contacto actualizado: {contact.name}")
+                    except Exception as e:
+                        record['vat'] = ''
+                        contact.write(record)
+                        print(f"Error al actualizar NIF, se ha puesto vacío: {str(e)}")
+                else:
+                    try:
+                        self.env['res.partner'].create(record)
+                        print(f"Contacto creado: {name}")
+                    except Exception as e:
+                        record['vat'] = ''
+                        self.env['res.partner'].create(record)
+                        print(f"Error al crear NIF, se ha puesto vacío: {str(e)}")
+
+                self.env.cr.flush()
+                contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
+                print("Contact ID: ", contact.id)
+                if iban:
+                    existing_bank_record = self.env['res.partner.bank'].search([
+                        ('acc_number', '=', iban),
+                        ('partner_id', '=', contact.id)
+                    ], limit=1)
+                    print("Contact ID 2: ", contact.id)
+                    if not existing_bank_record:
+                        self.env['res.partner.bank'].create({
+                            'acc_number': iban,
+                            'partner_id': contact.id
+                        })
+                        print("Contact ID 3: ", contact.id)
+                        print(f"Cuenta bancaria creada: {iban} para {contact.name}")
+                    else:
+                        print(
+                            f"La cuenta bancaria con IBAN: {iban} ya existe para {contact.name}. No se crea una nueva.")
+        else:
+            for row in range(1, sheet.nrows):
+                num_client = int(sheet.cell(row, 0).value) if sheet.cell(row, 0).value else ''
+                name = sheet.cell(row, 1).value or ''
+                address = sheet.cell(row, 2).value or ''
                 cp_value = sheet.cell(row, 3).value
                 cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
                 telefono_value = sheet.cell(row, 4).value
-                telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value,
-                                                                                     (int, float)) else ''
-                nif = str(sheet.cell(row, 6).value).strip()
+                telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
+                nif = str(sheet.cell(row, 6).value).strip() if sheet.cell(row, 6).value else ''
                 try:
                     forma_pago = str(int(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value else ''
                 except ValueError:
@@ -166,7 +299,6 @@ class ImportContactsWizard(models.TransientModel):
                 if credit_limit is not None:
                     record['use_partner_credit_limit'] = True
                     record['credit_limit'] = credit_limit
-                    record['credit_sale'] = True
                     print(f"Límite de crédito establecido: {credit_limit} para {name}")
                 if forma_pago in payment_terms:
                     print(f"Forma de pago encontrada: {forma_pago} - {payment_terms[forma_pago]}")
