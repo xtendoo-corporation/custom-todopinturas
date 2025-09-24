@@ -26,8 +26,12 @@ class ImportStockWizard(models.TransientModel):
                 location_name = f"Tienda {ubication}"
                 location = self.env['stock.location'].search([('name', '=', location_name)], limit=1)
                 if not location:
-                    error_log.append(f"Ubicación no encontrada: {location_name}")
-                    continue
+                    parent_location = self.env.ref('stock.stock_location_stock')
+                    location = self.env['stock.location'].create({
+                        'name': location_name,
+                        'location_id': parent_location.id,
+                        'usage': 'internal',
+                    })
                 ref = str(int(sheet.cell(row_idx, 1).value))
 
                 qty_value = sheet.cell(row_idx, 6).value
