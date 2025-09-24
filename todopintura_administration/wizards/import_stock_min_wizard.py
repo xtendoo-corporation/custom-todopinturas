@@ -23,6 +23,7 @@ class ImportStockMinWizard(models.TransientModel):
 
         error_log = []
         for row_idx in range(1, sheet.nrows):  # Assuming the first row is the header
+            ubication = str(int(sheet.cell(row_idx, 2).value))
             ref = str(int(sheet.cell(row_idx, 3).value))
             min_qty = int(sheet.cell(row_idx, 7).value)
             max_qty = int(sheet.cell(row_idx, 8).value) if sheet.cell(row_idx, 8).value and str(
@@ -36,14 +37,30 @@ class ImportStockMinWizard(models.TransientModel):
             if max_qty < min_qty:
                 max_qty = min_qty * 2
 
-            orderpoint_vals = {
-                'product_id': product.id,
-                'product_min_qty': min_qty,
-                'product_max_qty': max_qty,
-                'qty_to_order': min_qty / 2,
-                'location_id': self.env.ref('stock.stock_location_stock').id,  # Default location, change if needed
-                'qty_multiple': qty_multiple,
-            }
+            location_name = f"Tienda {ubication}"
+            location = self.env['stock.location'].search([('name', '=', location_name)], limit=1)
+            if not location:
+                error_log.append(f"Ubicación no encontrada: {location_name}")
+                continue
+
+            if not location :
+                orderpoint_vals = {
+                    'product_id': product.id,
+                    'product_min_qty': min_qty,
+                    'product_max_qty': max_qty,
+                    'qty_to_order': min_qty / 2,
+                    'location_id': self.env.ref('stock.stock_location_stock').id,  # Default location, change if needed
+                    'qty_multiple': qty_multiple,
+                }
+            else:
+                orderpoint_vals = {
+                    'product_id': product.id,
+                    'product_min_qty': min_qty,
+                    'product_max_qty': max_qty,
+                    'qty_to_order': min_qty / 2,
+                    'location_id': location.id,
+                    'qty_multiple': qty_multiple,
+                }
             orderpoint = self.env['stock.warehouse.orderpoint'].search([
                 ('product_id', '=', product.id),
                 ('location_id', '=', self.env.ref('stock.stock_location_stock').id),

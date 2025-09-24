@@ -22,48 +22,48 @@ class ImportStockWizard(models.TransientModel):
         error_log = []
         for row_idx in range(1, sheet.nrows):
             try:
-                # Obtener y limpiar el código de referencia
+                ubication = str(int(sheet.cell(row_idx, 0).value))
+                location_name = f"Tienda {ubication}"
+                location = self.env['stock.location'].search([('name', '=', location_name)], limit=1)
+                if not location:
+                    error_log.append(f"Ubicación no encontrada: {location_name}")
+                    continue
                 ref = str(int(sheet.cell(row_idx, 1).value))
-                print(f"Ref: {ref}")
 
-                # Obtener el valor de cantidad y verificar si está vacío o tiene solo espacios
                 qty_value = sheet.cell(row_idx, 6).value
                 if isinstance(qty_value, str):
                     qty_value = qty_value.strip()
-                    if not qty_value:  # Si está vacío después de quitar espacios
-                        print(f"Cantidad vacía para producto con referencia: {ref}, continuando...")
+                    if not qty_value:
                         continue
 
-                # Convertir a entero si no está vacío
                 try:
                     qty_available = int(float(qty_value))
-                    print(f"Qty Available: {qty_available}")
                 except (ValueError, TypeError):
-                    print(
-                        f"Valor no válido para cantidad: '{qty_value}' en producto con referencia: {ref}, continuando...")
                     continue
 
                 product = self.env['product.product'].search([('default_code', '=', ref)], limit=1)
-                print(
-                    f"Product: {product.name if product else 'No encontrado'}, Default Code: {ref}, Quantity: {qty_available}")
-
                 if not product:
                     error_log.append(f"Producto no encontrado: {ref}")
                     continue
 
-                stock_change = self.env['stock.change.product.qty'].create({
-                    'product_id': product.id,
-                    'product_tmpl_id': product.product_tmpl_id.id,
-                    'new_quantity': qty_available,
-                })
-                print(f"Stock Change Created: {stock_change}")
-                stock_change.change_product_qty()
-                print(f"Stock Quantity Updated for Product: {product.name}")
+                quant = self.env['stock.quant'].search([
+                    ('product_id', '=', product.id),
+                    ('location_id', '=', location.id)
+                ], limit=1)
+
+                if quant:
+                    quant.quantity = qty_available
+                else:
+                    self.env['stock.quant'].create({
+                        'product_id': product.id,
+                        'location_id': location.id,
+                        'quantity': qty_available,
+                    })
             except Exception as e:
                 error_log.append(f"Error en fila {row_idx + 1}: {str(e)}")
-                print(f"Error en fila {row_idx + 1}: {str(e)}")
 
         if error_log:
             self.error_log = "\n".join(error_log)
         else:
             self.error_log = "Importación completada sin errores."
+
