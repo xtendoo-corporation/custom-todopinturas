@@ -55,7 +55,7 @@ class ImportProductsWizard(models.TransientModel):
         for name in tariff_names:
             tariff = self.env['product.pricelist'].search([('name', '=', name)], limit=1)
             if not tariff:
-                tariff = self.env['product.pricelist'].create({'name': name})
+                tariff = self.env['product.pricelist'].create({'name': name, 'company_id': False})
             tariffs[name] = tariff
 
         if is_xlsx:
@@ -309,19 +309,16 @@ class ImportProductsWizard(models.TransientModel):
             # Buscar categoría existente por nombre exacto
             category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
             if not category:
-                # Solo crear si no existe
                 category = self.env['product.category'].create({'name': pos_categ.name})
                 print(f"Categoría creada sin proveedor: {pos_categ.name}")
             else:
                 print(f"Usando categoría existente: {pos_categ.name}")
-
             # Preservar la estructura padre-hijo existente
             parent_pos = pos_categ.parent_id
             if parent_pos and not category.parent_id:
                 parent_category = self.crear_categoria_con_padres(parent_pos)
                 category.write({'parent_id': parent_category.id})
                 print(f"Actualizada jerarquía para: {category.name}")
-
             return category
         else:
             # Añadir protección adicional para categorías de proveedor
@@ -329,13 +326,11 @@ class ImportProductsWizard(models.TransientModel):
             if not provider_category:
                 provider_category = self.env['product.category'].create({'name': partner.name})
                 print(f"Creada categoría de proveedor: {partner.name}")
-
             # Búsqueda exacta de subcategoría por nombre y parent_id
             specific_category = self.env['product.category'].search([
                 ('name', '=', pos_categ.name),
                 ('parent_id', '=', provider_category.id)
             ], limit=1)
-
             if not specific_category:
                 specific_category = self.env['product.category'].create({
                     'name': pos_categ.name,
@@ -344,5 +339,4 @@ class ImportProductsWizard(models.TransientModel):
                 print(f"Creada subcategoría: {pos_categ.name} bajo proveedor: {partner.name}")
             else:
                 print(f"Usando categoría existente: {pos_categ.name} bajo proveedor: {partner.name}")
-
             return specific_category

@@ -140,13 +140,6 @@ class ImportClientTariffsWizard(models.TransientModel):
 
                 pricelist_name = f"Tarifa {client.name}"
                 pricelist = self.env['product.pricelist'].search([('name', '=', pricelist_name)], limit=1)
-                if not pricelist:
-                    euro_currency = self.env['res.currency'].search([('name', '=', 'EUR')], limit=1)
-                    pricelist = self.env['product.pricelist'].create({'name': pricelist_name, 'currency_id': euro_currency.id if euro_currency else False})
-                elif pricelist.currency_id.name != 'EUR':
-                    euro_currency = self.env['res.currency'].search([('name', '=', 'EUR')], limit=1)
-                    if euro_currency:
-                        pricelist.write({'currency_id': euro_currency.id})
 
                 base_pricelist_name = f"Tarifa {price_line}"
                 if product.id == 0 and product_code != '0':
