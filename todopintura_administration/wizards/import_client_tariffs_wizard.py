@@ -473,7 +473,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                 else:
                                     self.env['product.pricelist.item'].create(pricelist_item_vals)
 
-            client.write({'property_product_pricelist': pricelist.id})
+                client.write({'property_product_pricelist': pricelist.id})
 
             if errors:
                 self.error_log = "\n".join(errors)
