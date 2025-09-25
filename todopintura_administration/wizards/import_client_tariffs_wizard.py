@@ -137,10 +137,10 @@ class ImportClientTariffsWizard(models.TransientModel):
                     errors.append(f"Cliente con referencia {client_ref} no encontrado.")
                     continue
 
-
                 pricelist_name = f"Tarifa {client.name}"
                 pricelist = self.env['product.pricelist'].search([('name', '=', pricelist_name)], limit=1)
-
+                if not pricelist:
+                    pricelist = self.env['product.pricelist'].create({'name': pricelist_name, 'company_id': False})
                 base_pricelist_name = f"Tarifa {price_line}"
                 if product.id == 0 and product_code != '0':
                     print("Product not found, ref: ", product_code)
@@ -475,12 +475,12 @@ class ImportClientTariffsWizard(models.TransientModel):
 
             client.write({'property_product_pricelist': pricelist.id})
 
-        if errors:
-            self.error_log = "\n".join(errors)
+            if errors:
+                self.error_log = "\n".join(errors)
 
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'import.client.tariffs.wizard',
-            'view_mode': 'form',
-            'res_id': self.id,
-        }
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'import.client.tariffs.wizard',
+                'view_mode': 'form',
+                'res_id': self.id,
+            }
