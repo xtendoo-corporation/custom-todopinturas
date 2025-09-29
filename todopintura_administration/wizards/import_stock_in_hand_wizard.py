@@ -33,10 +33,24 @@ class ImportStockWizard(models.TransientModel):
         for row_idx, row in enumerate(rows, start=2):
             try:
                 ubicacion_num = str(int(row[0]))
-                location_name = "Central" if ubicacion_num == "1" else f"Tienda {ubicacion_num}"
-                location = self.env['stock.location'].search([('name', '=', location_name)], limit=1)
+                if ubicacion_num == "1":
+                    padre_name = "WH"
+                    hija_name = "Central"
+                else:
+                    padre_name = f"WH{ubicacion_num}"
+                    hija_name = "Stock"
+                # Buscar ubicación padre
+                padre = self.env['stock.location'].search([('name', '=', padre_name)], limit=1)
+                if not padre:
+                    error_log.append(f"Ubicación padre no encontrada: {padre_name}")
+                    continue
+                # Buscar ubicación hija bajo el padre
+                location = self.env['stock.location'].search([
+                    ('name', '=', hija_name),
+                    ('location_id', '=', padre.id)
+                ], limit=1)
                 if not location:
-                    error_log.append(f"Ubicación no encontrada: {location_name}")
+                    error_log.append(f"Ubicación hija no encontrada: {padre_name}/{hija_name}")
                     continue
 
                 ref = str(int(row[1]))

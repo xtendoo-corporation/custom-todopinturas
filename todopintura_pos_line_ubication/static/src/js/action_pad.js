@@ -2,6 +2,7 @@
 
 import { ActionpadWidget } from "@point_of_sale/app/screens/product_screen/action_pad/action_pad";
 import { patch } from "@web/core/utils/patch";
+import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
@@ -29,7 +30,9 @@ patch(ActionpadWidget.prototype, {
 
     async _checkAlbaranButtonState() {
         this.state.loading = true;
-        const order = this.pos.get_order();
+        // En Odoo 19 y Owl, el POS se accede por this.env.pos
+        const pos = this.env?.pos || this.pos;
+        const order = pos && pos.get_order ? pos.get_order() : null;
         const partner = order && order.get_partner();
         if (!partner || !partner.credit_sale) {
             this.state.canCreateAlbaran = false;
@@ -40,7 +43,7 @@ patch(ActionpadWidget.prototype, {
             const result = await this.orm.call(
                 "res.partner",
                 "check_credit_location_matches_pos",
-                [partner.id, this.pos.config.id]
+                [partner.id, pos.config.id]
             );
             this.state.canCreateAlbaran = !!(result && result.matches);
         } catch (e) {
@@ -54,7 +57,9 @@ patch(ActionpadWidget.prototype, {
             this.notification.add(_t("No puedes crear albarán para este cliente o caja."), { type: "warning" });
             return;
         }
-        const order = this.pos.get_order();
+        // En Odoo 19 y Owl, el POS se accede por this.env.pos
+        const pos = this.env?.pos || this.pos;
+        const order = pos && pos.get_order ? pos.get_order() : null;
 
         if (!order || order.is_empty()) {
             this.notification.add(_t("No hay productos en el pedido actual"), {
@@ -342,11 +347,11 @@ patch(ActionpadWidget.prototype, {
             const pickingIds = result?.picking_ids || [];
 
             // Limpiar el pedido actual
-            this.pos.add_new_order();
-            if (this.pos.removeOrder) {
-                this.pos.removeOrder(currentOrder);
-            } else if (this.pos.delete_current_order) {
-                this.pos.delete_current_order();
+            pos.add_new_order();
+            if (pos.removeOrder) {
+                pos.removeOrder(order);
+            } else if (pos.delete_current_order) {
+                pos.delete_current_order();
             }
 
             // Mensaje de éxito
@@ -378,4 +383,54 @@ patch(ActionpadWidget.prototype, {
             });
         }
     } // Cierre del método clickNewButtonStore
+});
+
+patch(ProductScreen.prototype, {
+    setup() {
+        if (super.setup) {
+            super.setup();
+        }
+        // Eliminado: this.on('change-ubication-line', this, this._onChangeUbicationLine);
+        // Si necesitas escuchar eventos personalizados, usa posbus o useBus.
+    },
+    async _onChangeUbicationLine() {
+        const pos = this.env.pos;
+        const order = pos && typeof pos.get_order === 'function' ? pos.get_order() : null;
+        if (!order) {
+            this.env.services.notification.add(_t("No hay pedido activo."), { type: "warning" });
+            return;
+        }
+        const selectedLine = order.get_selected_orderline ? order.get_selected_orderline() : null;
+        if (!selectedLine) {
+            this.env.services.notification.add(_t("Selecciona una línea de pedido primero."), { type: "warning" });
+            return;
+        }
+        let locations = await this.env.services.orm.call(
+            'stock.location',
+            'search_read',
+            [[['usage', '=', 'internal'], ['active', '=', true]]],
+            {fields: ['id', 'name', 'complete_name', 'warehouse_id']}
+        );
+        if (!locations || locations.length === 0) {
+            this.env.services.notification.add(_t("No se encontraron ubicaciones disponibles."), { type: "warning" });
+            return;
+        }
+        const inventoryData = {};
+        const selectedLocation = await new Promise(resolve => {
+            this.env.services.dialog.add(LocationLineDialog, {
+                title: _t("Seleccionar Ubicación"),
+                locations: locations,
+                inventoryData: inventoryData,
+                confirm: (location) => resolve(location),
+                close: () => resolve(null)
+            });
+        });
+        if (selectedLocation) {
+            selectedLine.set_location(
+                selectedLocation.id ? Number(selectedLocation.id) : null,
+                selectedLocation.name ? String(selectedLocation.name) : ""
+            );
+            this.env.services.notification.add(_t("Ubicación actualizada correctamente."), { type: "success" });
+        }
+    },
 });
