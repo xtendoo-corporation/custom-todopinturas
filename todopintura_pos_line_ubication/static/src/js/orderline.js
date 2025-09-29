@@ -1,7 +1,7 @@
+// JavaScript
 /** @odoo-module */
-import { Orderline } from "@point_of_sale/app/generic_components/orderline/orderline";
+import { Orderline } from "@point_of_sale/app/components/orderline/orderline";
 import { patch } from "@web/core/utils/patch";
-import { _t } from "@web/core/l10n/translation";
 
 patch(Orderline, {
     props: {

@@ -23,14 +23,10 @@ patch(PosOrderline.prototype, {
         return this;
     },
 
-    getDisplayData() {
+     getDisplayData() {
         const data = super.getDisplayData();
-        // Solo incluir la información de ubicación si existe
         if (this.locationData && this.locationData.name) {
-            return {
-                ...data,
-                locationName: this.locationData.name,
-            };
+            data.locationName = this.locationData.name;
         }
         return data;
     },

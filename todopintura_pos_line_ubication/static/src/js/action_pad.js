@@ -8,9 +8,9 @@ import { ControlButtons } from "@point_of_sale/app/screens/product_screen/contro
 import { Component, markup } from "@odoo/owl";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { LocationLineDialog } from "./location_line_dialog";
-import { LocationSelectionDialog } from "@todopintura_pos_custom/js/location_selection_dialog";
-import { NumberPopup } from "@point_of_sale/app/utils/input_popups/number_popup";
-import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
+import { LocationSelectionDialog } from "@todopintura_pos_line_ubication/js/location_selection_dialog";
+import { NumberPopup } from "@point_of_sale/app/components/popups/number_popup/number_popup";
+import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
 import { useState, useEffect } from "@odoo/owl";
 
 patch(ActionpadWidget.prototype, {

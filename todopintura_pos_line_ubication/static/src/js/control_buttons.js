@@ -4,7 +4,7 @@ import { _t } from "@web/core/l10n/translation";
 import { Component } from "@odoo/owl";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { LocationLineDialog } from "./location_line_dialog";
-import { LocationSelectionDialog } from "@todopintura_pos_custom/js/location_selection_dialog";
+import { LocationSelectionDialog } from "@todopintura_pos_line_ubication/js/location_selection_dialog";
 patch(ControlButtons.prototype, {
  async changeUbicationLine() {
         const order = this.pos.get_order();
