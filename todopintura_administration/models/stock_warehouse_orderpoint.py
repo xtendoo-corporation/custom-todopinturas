@@ -1,9 +1,15 @@
+# odoo/custom/src/custom-todopinturas/todopintura_administration/models/stock_warehouse_orderpoint.py
 from odoo import models, fields, api
 from datetime import date
 
 class StockWarehouseOrderpoint(models.Model):
     _inherit = 'stock.warehouse.orderpoint'
 
+    qty_multiple = fields.Integer(
+        string='Cantidad múltiplo',
+        default=1,
+        help='Cantidad múltiplo para el cálculo de stock mínimo y máximo.'
+    )
     stock_min_dates_ids = fields.One2many('stock.min.dates', 'orderpoint_id', string='Stock Minimum Dates')
     product_min_qty = fields.Float(
         'Min Quantity', digits='Product Unit of Measure', required=True, default=0.0,
