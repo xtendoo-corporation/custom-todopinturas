@@ -1,22 +1,26 @@
-<odoo>
-    <t t-name="CustomPos.OrderScreen" owl="1">
-  <div class="pos-custom-screen">
-    <!-- Bloque líneas de pedido -->
-    <div class="order-lines">
-      <OrderWidget/>
-    </div>
-
-    <!-- Bloque cliente -->
-    <div class="client-info">
-      <ClientDetailsEdit/>
-    </div>
-
-    <!-- Bloque acciones -->
-    <div class="actions">
-      <button class="btn btn-primary" t-on-click="onNotaClick">Nota</button>
-      <button class="btn btn-secondary" t-on-click="onAlbaranClick">Albarán</button>
-    </div>
-  </div>
-</t>
-
-</odoo>
+<templates id="template" xml:space="preserve">
+    <t t-name="todopintura_pos_interface_custom.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('leftpane')]" position="inside">
+            <div class="todopintura-footer">
+                <div class="client-block">
+                    <h4>Cliente</h4>
+                    <div class="client-details" t-if="currentPartner">
+                        <strong t-esc="currentPartner.name"/><br/>
+                        <t t-if="currentPartner.phone">Tel: <t t-esc="currentPartner.phone"/><br/></t>
+                        <t t-if="currentPartner.email">Email: <t t-esc="currentPartner.email"/><br/></t>
+                    </div>
+                    <div class="client-details" t-else="">
+                        <i>— Sin cliente —</i>
+                    </div>
+                </div>
+                <div class="actions-block">
+                    <button class="btn primary" t-on-click="() => this.showScreen('PartnerListScreen')">Cliente</button>
+                    <button class="btn" t-on-click="onClickNote">Nota</button>
+                    <button class="btn" t-on-click="onClickDiscount">Descuento %</button>
+                    <button class="btn" t-on-click="onClickPrint">Imprimir</button>
+                    <button class="btn" t-on-click="onClickAlbaran">Albarán</button>
+                </div>
+            </div>
+        </xpath>
+    </t>
+</templates>

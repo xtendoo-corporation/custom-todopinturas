@@ -1,0 +1,40 @@
+// static/src/scss/pos_footer.scss
+.todopintura-footer {
+    display: flex;
+    gap: 12px;
+    padding: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    background: #fff;
+
+    .client-block {
+        flex: 1 1 50%;
+        min-height: 110px;
+
+        h4 {
+            margin: 0 0 6px 0;
+            font-size: 14px;
+        }
+    }
+
+    .actions-block {
+        flex: 0 1 45%;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: #f7f7f7;
+            cursor: pointer;
+
+            &.primary {
+                background: #6f4966;
+                color: white;
+                border: none;
+            }
+        }
+    }
+}
