@@ -265,6 +265,20 @@ patch(ProductScreen.prototype, {
                     width: calc(50% - 5px) !important;
                     box-sizing: border-box !important;
                     order: 2 !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    min-height: 400px !important;
+                }
+
+                /* Numpad mantiene su layout original pero ocupa más espacio */
+                .pos .product-screen .leftpane .pads .subpads .numpad {
+                    flex-grow: 1 !important;
+                    /* NO cambiar su display, mantener el grid original */
+                }
+
+                /* ActionpadWidget (botones de pago) al final */
+                .pos .product-screen .leftpane .pads .subpads > *:last-child {
+                    margin-top: auto !important;
                 }
 
                 /* Control buttons arriba de todo */
