@@ -23,7 +23,6 @@
             # 'todopintura_pos_interface_custom/static/src/xml/custom_pos_templates.xml',
             # 'todopintura_pos_interface_custom/static/src/css/pos_footer.css',
             # 'todopintura_pos_interface_custom/static/src/js/custom_pos.js',
-            # 'todopintura_pos_interface_custom/static/src/xml/custom_pos_templates.xml',
         ],
     },
     'installable': True,

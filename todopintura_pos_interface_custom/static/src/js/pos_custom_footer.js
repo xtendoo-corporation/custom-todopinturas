@@ -25,6 +25,11 @@ patch(ProductScreen.prototype, {
             }
         }
 
+        // Inyectar el panel de información del cliente después de que el componente se monte
+        setTimeout(() => {
+            this.injectCustomerInfoPanel();
+        }, 100);
+
         // Inyectamos CSS mejorado con líneas mucho más grandes
         const styleId = "pos-custom-style";
         if (!document.getElementById(styleId)) {
@@ -234,11 +239,258 @@ patch(ProductScreen.prototype, {
                     min-height: 50px !important;
                 }
 
+                /* ========== PANEL DE INFORMACIÓN DEL CLIENTE ========== */
+
+                /* Contenedor .pads debe permitir el layout lado a lado */
+                .pos .product-screen .leftpane .pads {
+                    display: flex !important;
+                    flex-wrap: wrap !important;
+                    gap: 10px !important;
+                }
+
+                /* Panel de información del cliente - Mitad izquierda */
+                .pos .customer-info-panel {
+                    width: calc(50% - 5px) !important;
+                    padding: 15px !important;
+                    background: #f8f9fa !important;
+                    border: 2px solid #dee2e6 !important;
+                    border-radius: 8px !important;
+                    min-height: 400px !important;
+                    box-sizing: border-box !important;
+                    order: 1 !important;
+                }
+
+                /* Subpads (numpad + botones) - Mitad derecha */
+                .pos .product-screen .leftpane .pads .subpads {
+                    width: calc(50% - 5px) !important;
+                    box-sizing: border-box !important;
+                    order: 2 !important;
+                }
+
+                /* Control buttons arriba de todo */
+                .pos .product-screen .leftpane .pads .control-buttons {
+                    width: 100% !important;
+                    order: 0 !important;
+                }
+
+                /* Header del panel de cliente */
+                .pos .customer-info-header {
+                    font-size: 24px !important;
+                    font-weight: 700 !important;
+                    color: #2196F3 !important;
+                    margin-bottom: 15px !important;
+                    padding-bottom: 10px !important;
+                    border-bottom: 2px solid #2196F3 !important;
+                }
+
+                .pos .customer-info-header i {
+                    margin-right: 10px !important;
+                }
+
+                /* Contenido del panel */
+                .pos .customer-info-content {
+                    font-size: 18px !important;
+                }
+
+                /* Cada detalle del cliente */
+                .pos .customer-detail {
+                    padding: 8px 0 !important;
+                    font-size: 18px !important;
+                    line-height: 1.6 !important;
+                    border-bottom: 1px solid #e0e0e0 !important;
+                }
+
+                .pos .customer-detail i {
+                    width: 25px !important;
+                    color: #666 !important;
+                    margin-right: 10px !important;
+                }
+
+                /* Nombre del cliente destacado */
+                .pos .customer-name {
+                    font-size: 22px !important;
+                    color: #1a1a1a !important;
+                    display: block !important;
+                    margin-bottom: 10px !important;
+                }
+
+                /* Mensaje cuando no hay cliente */
+                .pos .no-customer {
+                    text-align: center !important;
+                    padding: 40px 20px !important;
+                    color: #999 !important;
+                }
+
+                .pos .no-customer i {
+                    color: #ccc !important;
+                    margin-bottom: 20px !important;
+                }
+
+                .pos .no-customer p {
+                    font-size: 20px !important;
+                    margin: 20px 0 !important;
+                }
+
+                /* Switchpane (Numpad + Botones) - Mitad derecha */
+                .pos .product-screen .switchpane {
+                    width: 48% !important;
+                    float: right !important;
+                    box-sizing: border-box !important;
+                }
+
+                /* Clearfix para los floats */
+                .pos .product-screen .leftpane::after {
+                    content: "" !important;
+                    display: table !important;
+                    clear: both !important;
+                }
+
                 /* ELIMINAR estilos generales que afectan todo */
                 /* Ya NO aplicar font-size grande a todo el leftpane */
             `;
             document.head.appendChild(style);
         }
+    },
+
+    injectCustomerInfoPanel() {
+        // Evitar inyección duplicada
+        if (document.getElementById('customer-info-panel-injected')) {
+            return;
+        }
+
+        // Buscar el contenedor .pads (donde están los botones y numpad)
+        const padsElement = document.querySelector('.pos .product-screen .leftpane .pads');
+
+        if (padsElement) {
+            // Crear el panel de información del cliente
+            const customerPanel = document.createElement('div');
+            customerPanel.id = 'customer-info-panel-injected';
+            customerPanel.className = 'customer-info-panel';
+
+            // Insertar el panel DENTRO de .pads, al principio (antes de .control-buttons)
+            padsElement.insertBefore(customerPanel, padsElement.firstChild);
+
+            console.log('Panel de cliente inyectado correctamente dentro de .pads');
+
+            // Actualizar el contenido del panel
+            this.updateCustomerInfo();
+
+            // Observar cambios en la orden para actualizar el panel
+            this.setupOrderObserver();
+        } else {
+            console.warn('No se encontró .pads para inyectar el panel de cliente');
+        }
+    },
+
+    setupOrderObserver() {
+        // Actualizar el panel cuando cambie la orden seleccionada
+        if (this.env && this.env.services && this.env.services.pos) {
+            // Usar un pequeño intervalo para detectar cambios
+            setInterval(() => {
+                this.updateCustomerInfo();
+            }, 1000);
+        }
+    },
+
+    updateCustomerInfo() {
+        const customerPanel = document.getElementById('customer-info-panel-injected');
+        if (!customerPanel) return;
+
+        // Obtener la orden actual
+        let order = null;
+        let partner = null;
+
+        try {
+            // Intentar obtener la orden
+            if (this.pos && typeof this.pos.get_order === 'function') {
+                order = this.pos.get_order();
+            } else if (this.pos && this.pos.selectedOrder) {
+                order = this.pos.selectedOrder;
+            }
+
+            // Obtener el partner de la orden
+            if (order && order.partner_id) {
+                // En Odoo 19, partner_id es un Proxy object con sus propiedades
+                partner = order.partner_id;
+                console.log('✅ Partner encontrado:', partner.name || partner);
+            }
+        } catch (error) {
+            console.error('❌ Error obteniendo orden/partner:', error);
+        }
+
+        if (partner && partner.name) {
+            customerPanel.innerHTML = `
+                <div class="customer-info-header">
+                    <i class="fa fa-user"></i>
+                    <span>Información del Cliente</span>
+                </div>
+                <div class="customer-info-content">
+                    <div class="customer-detail">
+                        <strong class="customer-name">${this.escapeHtml(partner.name || '')}</strong>
+                    </div>
+                    ${partner.street ? `
+                        <div class="customer-detail">
+                            <i class="fa fa-map-marker"></i>
+                            <span>${this.escapeHtml(partner.street)}${partner.street2 ? ', ' + this.escapeHtml(partner.street2) : ''}</span>
+                        </div>
+                    ` : ''}
+                    ${partner.zip || partner.city ? `
+                        <div class="customer-detail">
+                            <i class="fa fa-building"></i>
+                            <span>${this.escapeHtml(partner.zip || '')} ${this.escapeHtml(partner.city || '')}</span>
+                        </div>
+                    ` : ''}
+                    ${partner.phone ? `
+                        <div class="customer-detail">
+                            <i class="fa fa-phone"></i>
+                            <span>${this.escapeHtml(partner.phone)}</span>
+                        </div>
+                    ` : ''}
+                    ${partner.mobile ? `
+                        <div class="customer-detail">
+                            <i class="fa fa-mobile"></i>
+                            <span>${this.escapeHtml(partner.mobile)}</span>
+                        </div>
+                    ` : ''}
+                    ${partner.email ? `
+                        <div class="customer-detail">
+                            <i class="fa fa-envelope"></i>
+                            <span>${this.escapeHtml(partner.email)}</span>
+                        </div>
+                    ` : ''}
+                    ${partner.vat ? `
+                        <div class="customer-detail">
+                            <i class="fa fa-id-card"></i>
+                            <span>NIF/CIF: ${this.escapeHtml(partner.vat)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        } else {
+            customerPanel.innerHTML = `
+                <div class="customer-info-header">
+                    <i class="fa fa-user"></i>
+                    <span>Información del Cliente</span>
+                </div>
+                <div class="customer-info-content">
+                    <div class="no-customer">
+                        <i class="fa fa-user-times fa-3x"></i>
+                        <p>No hay cliente seleccionado</p>
+                    </div>
+                </div>
+            `;
+        }
+    },
+
+    escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text ? text.replace(/[&<>"']/g, m => map[m]) : '';
     },
 
     // Getter temporal para debug
