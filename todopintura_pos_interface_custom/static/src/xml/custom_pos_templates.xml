@@ -1,0 +1,22 @@
+<odoo>
+    <t t-name="CustomPos.OrderScreen" owl="1">
+  <div class="pos-custom-screen">
+    <!-- Bloque líneas de pedido -->
+    <div class="order-lines">
+      <OrderWidget/>
+    </div>
+
+    <!-- Bloque cliente -->
+    <div class="client-info">
+      <ClientDetailsEdit/>
+    </div>
+
+    <!-- Bloque acciones -->
+    <div class="actions">
+      <button class="btn btn-primary" t-on-click="onNotaClick">Nota</button>
+      <button class="btn btn-secondary" t-on-click="onAlbaranClick">Albarán</button>
+    </div>
+  </div>
+</t>
+
+</odoo>

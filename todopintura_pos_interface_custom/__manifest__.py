@@ -15,12 +15,12 @@
         - Solo se aplica a usuarios básicos
     """,
     'author': 'Todo Pintura',
-    'depends': ['point_of_sale', 'todopintura_pos_custom'],
+    'depends': ['point_of_sale'],
     'data': [],
     'assets': {
         'point_of_sale._assets_pos': [
-            'todopintura_pos_interface_custom/static/src/css/pos_custom.css',
-            'todopintura_pos_interface_custom/static/src/js/pos_custom.js',
+            'todopintura_pos_interface_custom/static/src/js/custom_pos.js',
+            'todopintura_pos_interface_custom/static/src/xml/custom_pos_templates.xml',
         ],
     },
     'installable': True,

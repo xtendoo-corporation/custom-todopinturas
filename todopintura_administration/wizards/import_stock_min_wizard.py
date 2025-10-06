@@ -41,6 +41,12 @@ class ImportStockMinWizard(models.TransientModel):
 
         for row_idx in range(1, nrows):  # Asumiendo la primera fila como cabecera
             try:
+                raw_location = get_cell(row_idx, 2)
+                location_id = int(str(raw_location).strip()) if raw_location is not None else 1
+            except Exception:
+                continue
+
+            try:
                 ref = str(int(get_cell(row_idx, 3)))
             except Exception:
                 ref = str(get_cell(row_idx, 3))
@@ -58,9 +64,18 @@ class ImportStockMinWizard(models.TransientModel):
             except Exception:
                 qty_multiple = 1
 
-            print(f"Fila {row_idx}: ref={ref}, min_qty={min_qty}, max_qty={max_qty}, qty_multiple={qty_multiple}")
+            # Mueve el print aquí
+            print(f"Fila {row_idx}")
+
+            # Ahora busca la ubicación
+            location_name = f"WH{location_id if location_id > 1 else ''}/Stock" if location_id > 1 else "WH/Central"
+            location = self.env['stock.location'].search([('complete_name', '=', location_name)], limit=1)
+            if not location:
+                error_log.append(f"Ubicación no encontrada: {location_name}")
+                continue
 
             product = self.env['product.product'].search([('default_code', '=', ref)], limit=1)
+
             if not product:
                 error_log.append(f"Producto no encontrado: {ref}")
                 continue
@@ -72,13 +87,15 @@ class ImportStockMinWizard(models.TransientModel):
                 'product_min_qty': min_qty,
                 'product_max_qty': max_qty,
                 'qty_to_order': min_qty / 2,
-                'location_id': self.env.ref('stock.stock_location_stock').id,
+                'location_id': location.id,
                 'qty_multiple': qty_multiple,
             }
+
             orderpoint = self.env['stock.warehouse.orderpoint'].search([
                 ('product_id', '=', product.id),
-                ('location_id', '=', self.env.ref('stock.stock_location_stock').id),
+                ('location_id', '=', location.id),
             ], limit=1)
+
             if orderpoint:
                 orderpoint.write(orderpoint_vals)
             else:
