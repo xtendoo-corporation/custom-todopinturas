@@ -1,5 +1,5 @@
-// custom_price_popup.js
-import { NumberPopup } from "@point_of_sale/app/utils/input_popups/number_popup";
+/** @odoo-module */
+import { NumberPopup } from "@point_of_sale/app/components/popups/number_popup/number_popup";
 import { _t } from "@web/core/l10n/translation";
 
 export class CustomPricePopup extends NumberPopup {

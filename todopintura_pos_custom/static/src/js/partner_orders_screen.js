@@ -4,7 +4,7 @@ import { Component, useState } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { Dialog } from "@web/core/dialog/dialog";
 import { registry } from "@web/core/registry";
-import { usePos } from "@point_of_sale/app/store/pos_hook";
+import { usePos } from "@point_of_sale/app/hooks/pos_hook";
 
 
 export class PartnerOrdersScreen extends Component {
@@ -23,7 +23,6 @@ export class PartnerOrdersScreen extends Component {
     setup() {
         this.orm = useService("orm");
         this.partner = this.props.partner;
-        this.posService = useService("pos");
         this.pos = usePos();
 
         this.state = useState({
@@ -38,32 +37,29 @@ export class PartnerOrdersScreen extends Component {
     }
 
     async loadOrders() {
-    try {
-        this.state.loading = true;
-        // Modificar para obtener órdenes de venta sin albarán confirmado
-        const pedidos = await this.orm.call(
-            'sale.order', // Cambia de pos.order a sale.order
-            'get_partner_pending_orders', // Nuevo método en el backend
-            [this.partner.id]
-        );
-        console.log("Órdenes de venta pendientes:", pedidos);
-        this.state.pedidos = pedidos || [];
-        this.state.selectedIds.clear();
-    } catch (error) {
-        console.error("Error al cargar órdenes de venta:", error);
-        this.state.error = true;
-        this.state.errorMessage = error.message || "Error desconocido";
-    } finally {
-        this.state.loading = false;
+        try {
+            this.state.loading = true;
+            const pedidos = await this.orm.call(
+                'sale.order',
+                'get_partner_pending_orders',
+                [this.partner.id]
+            );
+            console.log("Órdenes de venta pendientes:", pedidos);
+            this.state.pedidos = pedidos || [];
+            this.state.selectedIds.clear();
+        } catch (error) {
+            console.error("Error al cargar órdenes de venta:", error);
+            this.state.error = true;
+            this.state.errorMessage = error.message || "Error desconocido";
+        } finally {
+            this.state.loading = false;
+        }
     }
-}
 
-    // Métodos para selección
     isSelected(id) {
         return this.state.selectedIds.has(id);
     }
 
-   // Modifica estos métodos para usar sintaxis de arrow functions
     toggleSelect = (id) => {
         if (this.state.selectedIds.has(id)) {
             this.state.selectedIds.delete(id);
@@ -101,22 +97,13 @@ export class PartnerOrdersScreen extends Component {
         try {
             const selectedOrders = Array.from(this.state.selectedIds);
 
-            // Cerrar este diálogo
             this.props.close();
 
-            // También cerrar la pantalla de lista de partners
-            this.posService.closeScreen();
-
-            // Crear nuevo pedido POS
             const order = this.pos.add_new_order();
             order.set_partner(this.partner);
 
-            // Procesar cada orden de venta seleccionada
             for (const orderId of selectedOrders) {
-                // Obtener los datos completos de la orden usando el método del PosStore
                 const saleOrder = await this.pos._getSaleOrder(orderId);
-
-                // Usar el método existente settleSO para procesar cada orden
                 await this.pos.settleSO(saleOrder);
             }
         } catch (error) {

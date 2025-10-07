@@ -36,6 +36,19 @@ patch(ProductScreen.prototype, {
             const style = document.createElement("style");
             style.id = styleId;
             style.textContent = `
+                /* Ocultar barra de búsqueda de productos */
+                .pos .product-screen .search-bar,
+                .pos .product-screen .searchbox,
+                .pos .product-screen .product-search,
+                .pos .search-bar-container,
+                .pos .rightpane .search-bar,
+                .pos .rightpane .searchbox,
+                .pos-rightheader .input-group,
+                .pos-rightheader.flex-grow-1 .input-group,
+                .pos .pos-rightheader .input-group {
+                    display: none !important;
+                }
+
                 /* Ocultar panel derecho */
                 .pos .product-screen .rightpane {
                     display: none !important;

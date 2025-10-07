@@ -30,14 +30,14 @@ class ResPartner(models.Model):
 
     @api.model
     def _load_pos_data_fields(self, config_id):
-        print("Loading POS data fields for ResPartner")
+        # Campos actualizados para Odoo 19 - eliminado 'mobile', 'property_account_position_id', 'contact_address'
+        # Añadidos campos de Odoo 19: 'street', 'city', 'state_id', 'country_id', 'pos_contact_address', 'fiscal_position_id'
         fields = [
-            'id', 'name', 'vat', 'phone', 'zip', 'mobile', 'email',
-            'barcode', 'write_date', 'property_account_position_id', 'property_product_pricelist', 'parent_name',
-            'contact_address', 'ref',
-            'voucher', 'assigned_persons','assigned_persons_info', 'credit_sale', 'credit_location_id', 'credit_location_id_name'
+            'id', 'name', 'street', 'city', 'state_id', 'country_id', 'vat', 'phone', 'zip', 'email',
+            'barcode', 'write_date', 'fiscal_position_id', 'property_product_pricelist', 'parent_name',
+            'pos_contact_address', 'ref',
+            'voucher', 'assigned_persons', 'assigned_persons_info', 'credit_sale', 'credit_location_id', 'credit_location_id_name'
         ]
-        print("Fields loaded:", fields)
         return fields
 
     @api.model
@@ -76,5 +76,3 @@ class ResPartner(models.Model):
             'partner_location_name': partner.credit_location_id.name,
             'pos_location_name': pos_location.name
         }
-
-

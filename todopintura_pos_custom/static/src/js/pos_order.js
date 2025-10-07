@@ -2,6 +2,7 @@
 import { patch } from "@web/core/utils/patch";
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { _t } from "@web/core/l10n/translation";
+import { computeComboItems } from "@point_of_sale/app/models/utils/compute_combo_items";
 
 patch(PosOrder.prototype, {
     set_pricelist(pricelist) {
@@ -30,10 +31,10 @@ patch(PosOrder.prototype, {
         const combo_parent_lines = this.lines.filter(
             (line) => line.price_type === "original" && line.combo_line_ids?.length
         );
-        for (const pLine of combo_parent_lines) {
-            attributes_prices[pLine.id] = computeComboItems(
-                pLine.product_id,
-                pLine.combo_line_ids.map((cLine) => {
+
+        if (combo_parent_lines.length > 0) {
+            for (const pLine of combo_parent_lines) {
+                const comboData = pLine.combo_line_ids.map((cLine) => {
                     if (cLine.attribute_value_ids) {
                         return {
                             combo_item_id: cLine.combo_item_id,
@@ -44,25 +45,35 @@ patch(PosOrder.prototype, {
                     } else {
                         return { combo_item_id: cLine.combo_item_id };
                     }
-                }),
-                pricelist,
-                this.models["decimal.precision"].getAll(),
-                this.models["product.template.attribute.value"].getAllBy("id")
+                });
+
+                attributes_prices[pLine.id] = computeComboItems(
+                    pLine.product_id,
+                    comboData,
+                    pricelist,
+                    this.models["decimal.precision"].getAll(),
+                    this.models["product.template.attribute.value"].getAllBy("id")
+                );
+            }
+
+            const combo_children_lines = this.lines.filter(
+                (line) => line.price_type === "original" && line.combo_parent_id
             );
+
+            combo_children_lines.forEach((line) => {
+                if (attributes_prices[line.combo_parent_id.id]) {
+                    const priceItem = attributes_prices[line.combo_parent_id.id].find(
+                        (item) => item.combo_item_id.id === line.combo_item_id.id
+                    );
+                    if (priceItem) {
+                        line.set_unit_price(priceItem.price_unit);
+                    }
+                }
+            });
         }
-        const combo_children_lines = this.lines.filter(
-            (line) => line.price_type === "original" && line.combo_parent_id
-        );
-        combo_children_lines.forEach((line) => {
-            line.set_unit_price(
-                attributes_prices[line.combo_parent_id.id].find(
-                    (item) => item.combo_item_id.id === line.combo_item_id.id
-                ).price_unit
-            );
-        });
     },
 
-       set_partner_option(option) {
+    set_partner_option(option) {
         this.partner_option = option;
     },
 
