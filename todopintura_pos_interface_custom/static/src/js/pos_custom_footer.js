@@ -3,12 +3,34 @@
 
 import { patch } from "@web/core/utils/patch";
 import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
+import { onWillUnmount, onMounted } from "@odoo/owl";
 
 patch(ProductScreen.prototype, {
     setup() {
         super.setup();
 
         console.log("Parche ProductScreen en Odoo 19");
+
+        // CRÍTICO: Proteger window.onbeforeunload para prevenir errores
+        const originalOnBeforeUnload = window.onbeforeunload;
+        window.onbeforeunload = function(event) {
+            try {
+                // Limpiar cualquier intervalo activo
+                const intervals = window.setInterval(function(){}, 99999);
+                for (let i = 1; i <= intervals; i++) {
+                    window.clearInterval(i);
+                }
+
+                // Ejecutar el handler original si existe y es seguro
+                if (originalOnBeforeUnload && typeof originalOnBeforeUnload === 'function') {
+                    return originalOnBeforeUnload.call(this, event);
+                }
+            } catch (error) {
+                console.log('Error en beforeunload interceptado y silenciado:', error);
+                // Silenciar completamente el error
+                return undefined;
+            }
+        };
 
         // Debug más profundo: ver estructura de models y selectedOrderUuid
         console.log("this.pos.selectedOrderUuid:", this.pos.selectedOrderUuid);
@@ -25,10 +47,19 @@ patch(ProductScreen.prototype, {
             }
         }
 
-        // Inyectar el panel de información del cliente después de que el componente se monte
-        setTimeout(() => {
+        // Usar onMounted para inyectar el panel
+        onMounted(() => {
             this.injectCustomerInfoPanel();
-        }, 100);
+        });
+
+        // Usar onWillUnmount para limpiar el intervalo CORRECTAMENTE
+        onWillUnmount(() => {
+            console.log("Componente ProductScreen desmontándose - limpiando intervalo");
+            if (this._updateInterval) {
+                clearInterval(this._updateInterval);
+                this._updateInterval = null;
+            }
+        });
 
         // Inyectamos CSS mejorado con líneas mucho más grandes
         const styleId = "pos-custom-style";
@@ -169,7 +200,6 @@ patch(ProductScreen.prototype, {
                 .pos span.label,
                 .pos div.label,
                 .pos .order-info .label,
-                /* Variantes de etiquetas */
                 .pos .total-label,
                 .pos .subtotal-label,
                 .pos .tax-label {
@@ -177,7 +207,7 @@ patch(ProductScreen.prototype, {
                     font-weight: 700 !important;
                 }
 
-                /* Texto "Total" específico - span con clase total dentro de d-flex */
+                /* Texto "Total" específico */
                 .pos .d-flex.justify-content-between span.total,
                 .pos .d-flex span.total,
                 .pos div.fs-3 span.total,
@@ -209,7 +239,7 @@ patch(ProductScreen.prototype, {
                     padding: 10px 5px !important;
                 }
 
-                /* PROTEGER COMPLETAMENTE EL NUMPAD - Solo resetear tamaños */
+                /* PROTEGER COMPLETAMENTE EL NUMPAD */
                 .pos .numpad,
                 .pos .numpad *,
                 .pos .numpad-container,
@@ -231,7 +261,6 @@ patch(ProductScreen.prototype, {
                     margin: revert !important;
                     line-height: revert !important;
                     min-height: revert !important;
-                    /* NO tocar border ni background para mantener colores originales */
                 }
 
                 /* Botones del numpad tamaño normal */
@@ -242,7 +271,6 @@ patch(ProductScreen.prototype, {
                     font-size: 16px !important;
                     padding: 8px !important;
                     min-height: auto !important;
-                    /* NO tocar background, border, color - mantener estilos originales */
                 }
 
                 /* Botones más grandes para mejor UX - EXCEPTO NUMPAD */
@@ -283,10 +311,9 @@ patch(ProductScreen.prototype, {
                     min-height: 400px !important;
                 }
 
-                /* Numpad mantiene su layout original pero ocupa más espacio */
+                /* Numpad mantiene su layout original */
                 .pos .product-screen .leftpane .pads .subpads .numpad {
                     flex-grow: 1 !important;
-                    /* NO cambiar su display, mantener el grid original */
                 }
 
                 /* ActionpadWidget (botones de pago) al final */
@@ -371,9 +398,6 @@ patch(ProductScreen.prototype, {
                     display: table !important;
                     clear: both !important;
                 }
-
-                /* ELIMINAR estilos generales que afectan todo */
-                /* Ya NO aplicar font-size grande a todo el leftpane */
             `;
             document.head.appendChild(style);
         }
@@ -399,10 +423,10 @@ patch(ProductScreen.prototype, {
 
             console.log('Panel de cliente inyectado correctamente dentro de .pads');
 
-            // Actualizar el contenido del panel
+            // Actualizar el contenido del panel INMEDIATAMENTE
             this.updateCustomerInfo();
 
-            // Observar cambios en la orden para actualizar el panel
+            // Configurar observador simple
             this.setupOrderObserver();
         } else {
             console.warn('No se encontró .pads para inyectar el panel de cliente');
@@ -410,39 +434,76 @@ patch(ProductScreen.prototype, {
     },
 
     setupOrderObserver() {
-        // Actualizar el panel cuando cambie la orden seleccionada
-        if (this.env && this.env.services && this.env.services.pos) {
-            // Usar un pequeño intervalo para detectar cambios
-            setInterval(() => {
-                this.updateCustomerInfo();
-            }, 1000);
+        // Limpiar intervalo anterior si existe
+        if (this._updateInterval) {
+            clearInterval(this._updateInterval);
+            this._updateInterval = null;
         }
+
+        // Guardar referencia al contexto 'this' para usar en el intervalo
+        const self = this;
+
+        // Usar setInterval con protección robusta
+        this._updateInterval = setInterval(() => {
+            // CRÍTICO: Verificar que self, self.pos y self.pos.models existen
+            // Si cualquiera falla, detener el intervalo inmediatamente
+            try {
+                if (!self || !self.pos || !self.pos.models) {
+                    console.log('Deteniendo intervalo: contexto no disponible');
+                    if (self._updateInterval) {
+                        clearInterval(self._updateInterval);
+                        self._updateInterval = null;
+                    }
+                    return;
+                }
+
+                // Verificar que el panel existe
+                if (!document.getElementById('customer-info-panel-injected')) {
+                    return;
+                }
+
+                // Llamar a updateCustomerInfo solo si todo está bien
+                self.updateCustomerInfo();
+            } catch (error) {
+                // Si hay cualquier error, detener el intervalo
+                console.error('Error en intervalo, deteniendo:', error);
+                if (self._updateInterval) {
+                    clearInterval(self._updateInterval);
+                    self._updateInterval = null;
+                }
+            }
+        }, 500); // Actualizar cada medio segundo
     },
 
     updateCustomerInfo() {
         const customerPanel = document.getElementById('customer-info-panel-injected');
         if (!customerPanel) return;
 
+        // CRÍTICO: Verificar que this.pos existe
+        if (!this || !this.pos || !this.pos.models) {
+            return;
+        }
+
         // Obtener la orden actual
         let order = null;
         let partner = null;
 
         try {
-            // Intentar obtener la orden
-            if (this.pos && typeof this.pos.get_order === 'function') {
-                order = this.pos.get_order();
-            } else if (this.pos && this.pos.selectedOrder) {
-                order = this.pos.selectedOrder;
+            // En Odoo 19, acceder a la orden actual mediante el modelo
+            if (this.pos.selectedOrderUuid) {
+                const orderModel = this.pos.models['pos.order'];
+                if (orderModel && typeof orderModel.get === 'function') {
+                    order = orderModel.get(this.pos.selectedOrderUuid);
+                }
             }
 
             // Obtener el partner de la orden
-            if (order && order.partner_id) {
-                // En Odoo 19, partner_id es un Proxy object con sus propiedades
-                partner = order.partner_id;
-                console.log('✅ Partner encontrado:', partner.name || partner);
+            if (order) {
+                partner = order.partner_id || order.get_partner?.() || null;
             }
         } catch (error) {
-            console.error('❌ Error obteniendo orden/partner:', error);
+            // Silenciar errores - probablemente la página se está descargando
+            return;
         }
 
         if (partner && partner.name) {
@@ -522,13 +583,19 @@ patch(ProductScreen.prototype, {
 
     // Getter temporal para debug
     get currentPartner() {
+        // PROTECCIÓN: No ejecutar durante beforeunload
         try {
+            // Verificar que this y this.pos existen
+            if (!this || !this.pos || !this.pos.models) {
+                return null;
+            }
+
             console.log("=== DEBUG currentPartner ===");
             console.log("selectedOrderUuid:", this.pos.selectedOrderUuid);
             console.log("models:", this.pos.models);
 
             // Intentar encontrar la orden actual en los modelos
-            if (this.pos.models && this.pos.selectedOrderUuid) {
+            if (this.pos.selectedOrderUuid) {
                 // Buscar en diferentes lugares posibles
                 const orderModels = [
                     this.pos.models['pos.order'],
@@ -566,7 +633,7 @@ patch(ProductScreen.prototype, {
             console.log("No partner found");
             return null;
         } catch (error) {
-            console.error('Error en currentPartner:', error);
+            // Silenciar completamente cualquier error
             return null;
         }
     },
