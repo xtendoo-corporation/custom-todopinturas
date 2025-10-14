@@ -525,7 +525,7 @@ patch(ProductScreen.prototype, {
                     ${partner.zip || partner.city ? `
                         <div class="customer-detail">
                             <i class="fa fa-building"></i>
-                            <span>${this.escapeHtml(partner.zip || '')} ${this.escapeHtml(partner.city || '')}</span>
+                            <span>${this.escapeHtml(partner.zip || '')}${partner.zip && partner.city ? ' ' : ''}${this.escapeHtml(partner.city || '')}</span>
                         </div>
                     ` : ''}
                     ${partner.phone ? `
