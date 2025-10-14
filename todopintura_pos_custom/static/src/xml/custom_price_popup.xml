@@ -1,4 +1,0 @@
-<!-- custom_price_popup.xml -->
-<t t-name="CustomPricePopup" owl="1">
-    <NumberPopup t-props="props"/>
-</t>

@@ -1,3 +1,1 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-todopintura_pos_custom.access_credit_limit_warning_wizard,access.credit.limit.warning.wizard,model_credit_limit_warning_wizard,base.group_user,1,1,1,1
-todopintura_pos_custom.access_pos_price_change_log,access_pos_price_change_log,todopintura_pos_custom.model_pos_price_change_log,base.group_user,1,1,1,1
