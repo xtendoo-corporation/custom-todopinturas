@@ -68,7 +68,7 @@ class ImportStockMinWizard(models.TransientModel):
             print(f"Fila {row_idx}")
 
             # Ahora busca la ubicación
-            location_name = f"WH{location_id if location_id > 1 else ''}/Stock" if location_id > 1 else "WH/Central"
+            location_name = "WH/Central" if location_id == 1 else f"T{location_id}/Stock"
             location = self.env['stock.location'].search([('complete_name', '=', location_name)], limit=1)
             if not location:
                 error_log.append(f"Ubicación no encontrada: {location_name}")
