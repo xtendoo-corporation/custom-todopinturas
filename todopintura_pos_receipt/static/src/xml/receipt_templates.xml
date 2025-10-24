@@ -4,10 +4,10 @@
         <xpath expr="//div[hasclass('pos-receipt-contact')]" position="replace">
             <t t-set="data" t-value="props.data || (props.order &amp;&amp; (props.order.raw || props.order))"/>
             <t t-set="company"
-               t-value="data.company || (env &amp;&amp; env.pos &amp;&amp; env.pos.company_printable) || (props.order &amp;&amp; props.order.pos &amp;&amp; props.order.pos.company_printable) || {}"/>
+               t-value="props.order.company || data.company || (env &amp;&amp; env.pos &amp;&amp; env.pos.company_printable) || (env &amp;&amp; env.pos &amp;&amp; env.pos.company) || (props.order &amp;&amp; props.order.pos &amp;&amp; props.order.pos.company_printable) || {}"/>
             <t t-if="data">
                 <div class="custom-header"
-                     style="font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;">
+                     style="font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center; font-size: 16px;">
                     <t t-if="company &amp;&amp; Object.keys(company).length">
                         <div><t t-esc="company.name || ''"/></div>
                         <div t-if="company.street || company.zip || company.city">
@@ -28,7 +28,7 @@
     <t t-name="todopintura_pos_custom.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
 
         <xpath expr="//div[hasclass('pos-receipt', 'p-2')]" position="attributes">
-             <attribute name="style">font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;</attribute>
+             <attribute name="style">font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center; font-size: 16px;</attribute>
          </xpath>
 
         <xpath expr="//OrderDisplay" position="replace">
@@ -72,14 +72,15 @@
                         </div>
                         <t t-foreach="subtotal.tax_groups" t-as="tax_group" t-key="tax_group.id">
                             <div class="d-flex justify-content-between">
-                                <span>IVA <t t-esc="tax_group.group_label"/></span>
+                                <span><t t-esc="tax_group.tax &amp;&amp; tax_group.tax.name or tax_group.group_label"/></span>
                                 <span t-out="formatCurrency(tax_group.tax_amount_currency)" class="font-monospace"/>
                             </div>
                         </t>
                     </t>
                 </div >
 
-                <div class="pos-receipt-amount receipt-total fw-bolder d-flex justify-content-between">
+                <div class="pos-receipt-amount receipt-total fw-bolder d-flex justify-content-between"
+                    style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px;">
                     <span class="label-total">TOTAL</span>
                     <span t-out="formatCurrency(taxTotals.order_sign * taxTotals.order_total)" class="font-monospace"/>
                 </div>
@@ -112,5 +113,11 @@
         <xpath expr="//div[hasclass('pos-receipt-order-data', 'd-flex', 'gap-2', 'pt-3')]" position="replace"/>
         <xpath expr="//div[contains(@class, 'd-flex') and contains(@class, 'gap-2') and contains(@class, 'pt-3') and not(contains(@class, 'flex-row'))]" position="replace"/>
         <xpath expr="//div[contains(., 'Powered by') and contains(@class, 'pos-receipt-order-data')]" position="replace"/>
+
+        <xpath expr="//div[hasclass('after-footer')]" position="before">
+            <div class="pos-receipt-center-align pt-4 fw-bolder">
+                Gracias por su visita
+            </div>
+        </xpath>
      </t>
  </templates>
