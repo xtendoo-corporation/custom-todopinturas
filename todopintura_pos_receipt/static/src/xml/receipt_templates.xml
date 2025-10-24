@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates id="template" xml:space="preserve">
+    <t t-name="todopintura_pos_custom.ReceiptHeader" t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('pos-receipt-contact')]" position="replace">
+            <!-- Usar props.order.raw como fallback cuando props.data no exista -->
+            <t t-set="data" t-value="props.data || (props.order &amp;&amp; (props.order.raw || props.order))"/>
+            <t t-set="data_debug" t-value="(props.data &amp;&amp; props.data._debug) || (props.order &amp;&amp; props.order.raw &amp;&amp; props.order.raw._debug) || ''"/>
+            <t t-set="source" t-value="(props.data ? 'props.data' : (props.order &amp;&amp; props.order.raw ? 'props.order.raw' : (props.order ? 'props.order' : 'none')))"/>
+            <!-- Definir company con varios fallbacks: data.company, env.pos.company_printable o props.order.pos.company_printable -->
+            <t t-set="company" t-value="data.company || (env &amp;&amp; env.pos &amp;&amp; env.pos.company_printable) || (props.order &amp;&amp; props.order.pos &amp;&amp; props.order.pos.company_printable) || {}"/>
+
+            <t t-if="data">
+                <div class="custom-header"
+                 style="font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;">
+<!--                    DEBUG SOURCE: <t t-esc="source"/> <br/>-->
+                    <t t-if="company &amp;&amp; Object.keys(company).length">
+                        <div><strong>Empresa:</strong> <t t-esc="company.name || ''"/></div>
+                        <div t-if="company.vat"><strong>NIF:</strong> <t t-esc="company.vat"/></div>
+                        <div t-if="company.street || company.zip || company.city">
+                            <strong>Dirección:</strong>
+                            <t t-esc="company.street || ''"/>
+                            <t t-if="company.zip"> - <t t-esc="company.zip"/></t>
+                            <t t-if="company.city"> - <t t-esc="company.city"/></t>
+                            <t t-if="company.state_id"> (<t t-esc="company.state_id.name || ''"/>)</t>
+                        </div>
+                        <div t-if="company.phone"><strong>Tel:</strong> <t t-esc="company.phone"/></div>
+                        <div t-if="company.email"><strong>Email:</strong> <t t-esc="company.email"/></div>
+                    </t>
+                </div>
+            </t>
+        </xpath>
+    </t>
+    <t t-name="todopintura_pos_custom.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+    <xpath expr="//div[hasclass('pos-receipt', 'p-2')]" position="attributes">
+        <attribute name="style">font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;</attribute>
+    </xpath>
+
+    <!-- Eliminar el footer configurable (order.config.receipt_footer) -->
+    <xpath expr="//div[contains(@class, 'pos-receipt-center-align')]" position="replace"/>
+
+    <!-- Eliminar la línea "Powered by Odoo" que aparece al final -->
+    <xpath expr="//div[contains(@class, 'pos-receipt-order-data') and contains(@class, 'text-center')]" position="replace"/>
+
+    <!-- Ocultar el bloque de dirección y contacto de la compañía (más específico) -->
+    <xpath expr="//div[contains(@class, 'pos-receipt-order-data') and contains(@class, 'd-flex') and contains(@class, 'gap-2') and contains(@class, 'pt-3')]" position="replace"/>
+    </t>
+</templates>

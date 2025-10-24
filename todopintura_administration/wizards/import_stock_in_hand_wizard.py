@@ -31,13 +31,14 @@ class ImportStockWizard(models.TransientModel):
             rows = [sheet.row_values(row_idx) for row_idx in range(1, sheet.nrows)]
 
         for row_idx, row in enumerate(rows, start=2):
+            print(row)
             try:
                 ubicacion_num = str(int(row[0]))
                 if ubicacion_num == "1":
                     padre_name = "WH"
                     hija_name = "Central"
                 else:
-                    padre_name = f"WH{ubicacion_num}"
+                    padre_name = f"T{ubicacion_num}"
                     hija_name = "Stock"
                 # Buscar ubicación padre
                 padre = self.env['stock.location'].search([('name', '=', padre_name)], limit=1)

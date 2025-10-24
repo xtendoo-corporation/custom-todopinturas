@@ -33,16 +33,16 @@ patch(ProductScreen.prototype, {
         };
 
         // Debug más profundo: ver estructura de models y selectedOrderUuid
-        console.log("this.pos.selectedOrderUuid:", this.pos.selectedOrderUuid);
-        console.log("this.pos.models:", this.pos.models);
-        console.log("this.pos.models keys:", this.pos.models ? Object.keys(this.pos.models) : 'no models');
+//        console.log("this.pos.selectedOrderUuid:", this.pos.selectedOrderUuid);
+//        console.log("this.pos.models:", this.pos.models);
+//        console.log("this.pos.models keys:", this.pos.models ? Object.keys(this.pos.models) : 'no models');
 
         // Buscar el modelo de órdenes
         if (this.pos.models) {
             for (const [key, value] of Object.entries(this.pos.models)) {
-                console.log(`Model ${key}:`, value);
+//                console.log(`Model ${key}:`, value);
                 if (key.toLowerCase().includes('order')) {
-                    console.log(`Found order model: ${key}`, value);
+//                    console.log(`Found order model: ${key}`, value);
                 }
             }
         }
@@ -54,7 +54,7 @@ patch(ProductScreen.prototype, {
 
         // Usar onWillUnmount para limpiar el intervalo CORRECTAMENTE
         onWillUnmount(() => {
-            console.log("Componente ProductScreen desmontándose - limpiando intervalo");
+//            console.log("Componente ProductScreen desmontándose - limpiando intervalo");
             if (this._updateInterval) {
                 clearInterval(this._updateInterval);
                 this._updateInterval = null;
@@ -421,7 +421,7 @@ patch(ProductScreen.prototype, {
             // Insertar el panel DENTRO de .pads, al principio (antes de .control-buttons)
             padsElement.insertBefore(customerPanel, padsElement.firstChild);
 
-            console.log('Panel de cliente inyectado correctamente dentro de .pads');
+//            console.log('Panel de cliente inyectado correctamente dentro de .pads');
 
             // Actualizar el contenido del panel INMEDIATAMENTE
             this.updateCustomerInfo();
@@ -449,7 +449,7 @@ patch(ProductScreen.prototype, {
             // Si cualquiera falla, detener el intervalo inmediatamente
             try {
                 if (!self || !self.pos || !self.pos.models) {
-                    console.log('Deteniendo intervalo: contexto no disponible');
+//                    console.log('Deteniendo intervalo: contexto no disponible');
                     if (self._updateInterval) {
                         clearInterval(self._updateInterval);
                         self._updateInterval = null;
@@ -590,9 +590,9 @@ patch(ProductScreen.prototype, {
                 return null;
             }
 
-            console.log("=== DEBUG currentPartner ===");
-            console.log("selectedOrderUuid:", this.pos.selectedOrderUuid);
-            console.log("models:", this.pos.models);
+//            console.log("=== DEBUG currentPartner ===");
+//            console.log("selectedOrderUuid:", this.pos.selectedOrderUuid);
+//            console.log("models:", this.pos.models);
 
             // Intentar encontrar la orden actual en los modelos
             if (this.pos.selectedOrderUuid) {
@@ -606,15 +606,15 @@ patch(ProductScreen.prototype, {
 
                 for (const orderModel of orderModels) {
                     if (orderModel) {
-                        console.log("Found order model:", orderModel);
+//                        console.log("Found order model:", orderModel);
                         // Intentar obtener la orden actual
                         const currentOrder = orderModel.get ?
                             orderModel.get(this.pos.selectedOrderUuid) :
                             orderModel[this.pos.selectedOrderUuid];
 
                         if (currentOrder) {
-                            console.log("Current order found:", currentOrder);
-                            console.log("Order keys:", Object.keys(currentOrder));
+//                            console.log("Current order found:", currentOrder);
+//                            console.log("Order keys:", Object.keys(currentOrder));
 
                             // Buscar el partner
                             const partner = currentOrder.partner ||
@@ -622,7 +622,7 @@ patch(ProductScreen.prototype, {
                                           currentOrder.partner_id;
 
                             if (partner) {
-                                console.log("Partner found:", partner);
+//                                console.log("Partner found:", partner);
                                 return partner;
                             }
                         }
@@ -630,7 +630,7 @@ patch(ProductScreen.prototype, {
                 }
             }
 
-            console.log("No partner found");
+//            console.log("No partner found");
             return null;
         } catch (error) {
             // Silenciar completamente cualquier error
