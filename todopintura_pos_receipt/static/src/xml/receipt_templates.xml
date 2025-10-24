@@ -10,13 +10,13 @@
                      style="font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center; font-size: 16px;">
                     <t t-if="company &amp;&amp; Object.keys(company).length">
                         <div><t t-esc="company.name || ''"/></div>
+                        <div t-if="company.vat"><strong>NIF:</strong><t t-esc="company.vat"/></div>
                         <div t-if="company.street || company.zip || company.city">
                             <t t-esc="company.street || ''"/>
                             <t t-if="company.zip">, <t t-esc="company.zip"/></t>
                             <t t-if="company.city"> <t t-esc="company.city"/></t>
                             <t t-if="company.state_id"> (<t t-esc="company.state_id.code || ''"/>) <t t-esc="company.city"/></t>
                         </div>
-                        <div t-if="company.vat"><strong>NIF:</strong><t t-esc="company.vat"/></div>
                     </t>
                     <div class="pt-2"/>
                 </div>
@@ -70,12 +70,19 @@
                             <span>Base Imponible</span>
                             <span t-out="formatCurrency(subtotal.base_amount_currency)" class="font-monospace"/>
                         </div>
-                        <t t-foreach="subtotal.tax_groups" t-as="tax_group" t-key="tax_group.id">
-                            <div class="d-flex justify-content-between">
-                                <span><t t-esc="tax_group.tax &amp;&amp; tax_group.tax.name or tax_group.group_label"/></span>
-                                <span t-out="formatCurrency(tax_group.tax_amount_currency)" class="font-monospace"/>
-                            </div>
-                        </t>
+                        <div t-foreach="subtotal.tax_groups" t-as="tax_group" t-key="tax_group.id" class="d-flex">
+                            <span>
+                                <span t-esc="tax_group.group_name"/>
+                                <t t-if="showTaxGroupLabels">
+                                    (<span t-if="tax_group.group_label" t-out="tax_group.group_label"/>)
+                                </t>
+                                <t id="tax_base" t-if="!taxTotals.same_tax_base">
+                                    on
+                                    <span t-esc="formatCurrency(tax_group.base_amount_currency)"/>
+                                </t>
+                            </span>
+                            <span t-out="formatCurrency(tax_group.tax_amount_currency)" class="ms-auto font-monospace"/>
+                        </div>
                     </t>
                 </div >
 
