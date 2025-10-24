@@ -41,8 +41,9 @@
 
                 <t t-foreach="props.order.orderlines || props.order.lines || []" t-as="line" t-key="line.id">
                     <div class="d-flex justify-content-between line-item">
-                        <span class="w-75 text-start text-break pe-1">
+                        <span class="w-75 text-start text-break">
                             <t t-esc="line.qty"/>
+                            <t t-esc="' '"/>
                             <t t-esc="line.full_product_name or line.name"/>
                             <div t-if="line.customerNote" class="customer-note fst-italic ps-2" style="font-size: 80%;">
                                 [<t t-esc="line.customerNote" />]
@@ -78,7 +79,7 @@
                     </t>
                 </div >
 
-                <div class="pos-receipt-amount receipt-total fw-bolder">
+                <div class="pos-receipt-amount receipt-total fw-bolder d-flex justify-content-between">
                     <span class="label-total">TOTAL</span>
                     <span t-out="formatCurrency(taxTotals.order_sign * taxTotals.order_total)" class="font-monospace"/>
                 </div>
