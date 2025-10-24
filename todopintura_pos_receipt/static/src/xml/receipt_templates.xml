@@ -2,69 +2,114 @@
 <templates id="template" xml:space="preserve">
     <t t-name="todopintura_pos_custom.ReceiptHeader" t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('pos-receipt-contact')]" position="replace">
-            <!-- Usar props.order.raw como fallback cuando props.data no exista -->
             <t t-set="data" t-value="props.data || (props.order &amp;&amp; (props.order.raw || props.order))"/>
-            <t t-set="data_debug"
-               t-value="(props.data &amp;&amp; props.data._debug) || (props.order &amp;&amp; props.order.raw &amp;&amp; props.order.raw._debug) || ''"/>
-            <t t-set="source"
-               t-value="(props.data ? 'props.data' : (props.order &amp;&amp; props.order.raw ? 'props.order.raw' : (props.order ? 'props.order' : 'none')))"/>
-            <!-- Definir company con varios fallbacks: data.company, env.pos.company_printable o props.order.pos.company_printable -->
             <t t-set="company"
                t-value="data.company || (env &amp;&amp; env.pos &amp;&amp; env.pos.company_printable) || (props.order &amp;&amp; props.order.pos &amp;&amp; props.order.pos.company_printable) || {}"/>
-
             <t t-if="data">
                 <div class="custom-header"
                      style="font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;">
-<!--                    DEBUG SOURCE: <t t-esc="source"/> <br/>-->
                     <t t-if="company &amp;&amp; Object.keys(company).length">
-                        <div>
-                            <t t-esc="company.name || ''"/>
-                        </div>
+                        <div><t t-esc="company.name || ''"/></div>
                         <div t-if="company.street || company.zip || company.city">
                             <t t-esc="company.street || ''"/>
                             <t t-if="company.zip">, <t t-esc="company.zip"/></t>
                             <t t-if="company.city"> <t t-esc="company.city"/></t>
-                            <t t-if="company.state_id"> <t t-esc="company.state_id.name || ''"/></t>
+                            <t t-if="company.state_id"> (<t t-esc="company.state_id.code || ''"/>) <t t-esc="company.city"/></t>
                         </div>
-                        <div t-if="company.vat"><strong>NIF:</strong>
-                            <t t-esc="company.vat"/></div>
-                        <div t-if="company.phone">
-                            <t t-esc="company.phone"/>
-                        </div>
-                        <div t-if="company.email">
-                            <t t-esc="company.email"/>
-                        </div>
+                        <div t-if="company.vat"><strong>NIF:</strong><t t-esc="company.vat"/></div>
                     </t>
+                    <div class="pt-2"/>
                 </div>
             </t>
         </xpath>
-        <!-- Reemplazar solo el span que muestra la etiqueta 'VAT' para ocultarla -->
-        <xpath expr="//span[hasclass('pos-receipt-vat')]" position="replace">
-        </xpath>
-
-        <!-- Nota: ocultamos el bloque de dirección/contacto vía CSS para evitar errores de herencia cuando la estructura varíe -->
+        <xpath expr="//span[hasclass('pos-receipt-vat')]" position="replace"/>
     </t>
+
     <t t-name="todopintura_pos_custom.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
 
-    <xpath expr="//div[hasclass('gap-2','d-flex','flex-row','pt-3')]" position="replace"/>
-
         <xpath expr="//div[hasclass('pos-receipt', 'p-2')]" position="attributes">
-         <attribute name="style">font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;</attribute>
-     </xpath>
+             <attribute name="style">font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center;</attribute>
+         </xpath>
 
-        <!-- Nota: ocultamos el bloque del QR vía CSS para evitar errores de herencia cuando la estructura varíe -->
-        <!-- Eliminar el footer configurable (order.config.receipt_footer) -->
+        <xpath expr="//OrderDisplay" position="replace">
+            <div class="pos-receipt-container">
+                <div class="d-flex justify-content-between my-2 fw-bolder">
+                    <span class="w-75 text-start">UD DESCRIPCIÓN</span>
+                    <span class="w-25 text-end">IMPORTE</span>
+                </div>
+                <div style="border-bottom: 1px dashed black; margin-bottom: 5px;"/>
+
+                <t t-foreach="props.order.orderlines || props.order.lines || []" t-as="line" t-key="line.id">
+                    <div class="d-flex justify-content-between line-item">
+                        <span class="w-75 text-start text-break pe-1">
+                            <t t-esc="line.qty"/>
+                            <t t-esc="line.full_product_name or line.name"/>
+                            <div t-if="line.customerNote" class="customer-note fst-italic ps-2" style="font-size: 80%;">
+                                [<t t-esc="line.customerNote" />]
+                            </div>
+                        </span>
+                        <span class="w-25 text-end font-monospace">
+                            <t t-out="formatCurrency(line.price_subtotal_incl)"/>
+                        </span>
+                    </div>
+                </t>
+                <div style="border-bottom: 1px dashed black; margin-top: 5px;"/>
+            </div>
+        </xpath>
+
+        <xpath expr="//div[hasclass('before-footer')]" position="before">
+            <t t-if="!props.basic_receipt">
+                <t t-set="taxTotals" t-value="props.order.taxTotals"/>
+
+                <div class="pt-3"/>
+
+                <div t-if="taxTotals and taxTotals.has_tax_groups" class="custom-receipt-totals">
+                    <t t-foreach="taxTotals.subtotals" t-as="subtotal" t-key="subtotal.name">
+                        <div class="d-flex justify-content-between">
+                            <span>Base Imponible</span>
+                            <span t-out="formatCurrency(subtotal.base_amount_currency)" class="font-monospace"/>
+                        </div>
+                        <t t-foreach="subtotal.tax_groups" t-as="tax_group" t-key="tax_group.id">
+                            <div class="d-flex justify-content-between">
+                                <span>IVA <t t-esc="tax_group.group_label"/></span>
+                                <span t-out="formatCurrency(tax_group.tax_amount_currency)" class="font-monospace"/>
+                            </div>
+                        </t>
+                    </t>
+                </div >
+
+                <div class="pos-receipt-amount receipt-total fw-bolder">
+                    <span class="label-total">TOTAL</span>
+                    <span t-out="formatCurrency(taxTotals.order_sign * taxTotals.order_total)" class="font-monospace"/>
+                </div>
+
+                <div class="paymentlines pt-1">
+                    <t t-foreach="paymentLines" t-as="line" t-key="line_index">
+                        <div class="d-flex justify-content-between">
+                            <t t-esc="line.payment_method_id.name" />
+                            <span t-out="formatCurrency(line.getAmount())" class="font-monospace"/>
+                        </div>
+                    </t>
+                </div>
+
+                <div t-if="props.order.showChange" class="pos-receipt-amount receipt-change fw-bolder pt-1">
+                    <span class="label-change">Cambio</span>
+                    <span t-out="formatCurrency(props.order.orderChange)" class="font-monospace"/>
+                </div>
+            </t>
+        </xpath>
+
+        <xpath expr="//div[hasclass('pos-receipt-taxes', 'pt-3')]" position="replace"/>
+        <xpath expr="//div[hasclass('pos-receipt-amount', 'receipt-total')]" position="replace"/>
+        <xpath expr="//div[hasclass('receipt-rounding')]" position="replace"/>
+        <xpath expr="//div[hasclass('receipt-to-pay')]" position="replace"/>
+        <xpath expr="//div[hasclass('paymentlines', 'text-start', 'pt-1')]" position="replace"/>
+        <xpath expr="//div[hasclass('pos-receipt-amount', 'receipt-change')]" position="replace"/>
+        <xpath expr="//div/span[hasclass('label-discount')]/../.." position="replace"/>
+        <xpath expr="//div[hasclass('gap-2','d-flex','flex-row','pt-3')]" position="replace"/>
         <xpath expr="//div[hasclass('pos-receipt-center-align')]" position="replace"/>
-
-        <!-- Eliminar la línea "Powered by Odoo" que aparece al final -->
-        <xpath expr="//div[hasclass('pos-receipt-order-data','text-center')]" position="replace"/>
-
-        <!-- Ocultar el bloque de dirección y contacto de la compañía (más específico) -->
-        <xpath expr="//div[hasclass('pos-receipt-order-data') and hasclass('d-flex','gap-2','pt-3')]"
-               position="replace"/>
-
-         <xpath expr="//div[contains(@class,'d-flex') and contains(@class,'gap-2') and contains(@class,'pt-3') and not(contains(@class,'flex-row'))]" position="replace">
-    </xpath>
-        <!-- Nota: ocultamos el bloque D-LEFT/RIGHT (dirección y contacto) vía CSS para evitar errores de herencia -->
+        <xpath expr="//div[hasclass('pos-receipt-order-data', 'd-flex', 'gap-2', 'pt-3')]" position="replace"/>
+        <xpath expr="//div[contains(@class, 'd-flex') and contains(@class, 'gap-2') and contains(@class, 'pt-3') and not(contains(@class, 'flex-row'))]" position="replace"/>
+        <xpath expr="//div[contains(., 'Powered by') and contains(@class, 'pos-receipt-order-data')]" position="replace"/>
      </t>
  </templates>
