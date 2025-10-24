@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates id="template" xml:space="preserve">
     <t t-name="todopintura_pos_custom.ReceiptHeader" t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
+
+        <xpath expr="//div[hasclass('pos-receipt-customer') and contains(@t-if, 'order.partner_id')]" position="replace">
+        </xpath>
         <xpath expr="//div[hasclass('pos-receipt-contact')]" position="replace">
             <t t-set="data" t-value="props.data || (props.order &amp;&amp; (props.order.raw || props.order))"/>
             <t t-set="company"
