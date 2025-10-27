@@ -61,346 +61,476 @@ patch(ProductScreen.prototype, {
             }
         });
 
-        // Inyectamos CSS mejorado con líneas mucho más grandes
-        const styleId = "pos-custom-style";
-        if (!document.getElementById(styleId)) {
-            const style = document.createElement("style");
-            style.id = styleId;
-            style.textContent = `
-                /* Ocultar barra de búsqueda de productos */
-                .pos .product-screen .search-bar,
-                .pos .product-screen .searchbox,
-                .pos .product-screen .product-search,
-                .pos .search-bar-container,
-                .pos .rightpane .search-bar,
-                .pos .rightpane .searchbox,
-                .pos-rightheader .input-group,
-                .pos-rightheader.flex-grow-1 .input-group,
-                .pos .pos-rightheader .input-group {
-                    display: none !important;
+        // Obtener el empleado actual y la lista de empleados avanzados
+        let currentEmployeeId = null;
+        let advancedEmployeeIds = [];
+        try {
+            // Intentar obtener el empleado actual
+            if (this.pos.get_cashier) {
+                currentEmployeeId = this.pos.get_cashier()?.id;
+            } else if (this.pos.employee) {
+                currentEmployeeId = this.pos.employee.id;
+            } else if (this.pos.get_cashier_user_id) {
+                currentEmployeeId = this.pos.get_cashier_user_id();
+            } else if (this.pos.session && this.pos.session.user_id) {
+                currentEmployeeId = this.pos.session.user_id.id;
+            }
+            // Obtener la lista de empleados avanzados
+            if (this.pos.config && this.pos.config.advanced_employee_ids) {
+                // Puede ser una lista de objetos o de ids
+                if (Array.isArray(this.pos.config.advanced_employee_ids)) {
+                    advancedEmployeeIds = this.pos.config.advanced_employee_ids.map(e => e.id || e);
+                } else if (typeof this.pos.config.advanced_employee_ids === 'object' && this.pos.config.advanced_employee_ids.length) {
+                    advancedEmployeeIds = Array.from(this.pos.config.advanced_employee_ids).map(e => e.id || e);
                 }
-
-                /* Ocultar panel derecho */
-                .pos .product-screen .rightpane {
-                    display: none !important;
-                }
-
-                /* Panel izquierdo a pantalla completa */
-                .pos .product-screen .leftpane {
-                    width: 100% !important;
-                    max-width: 100% !important;
-                }
-
-                /* Contenedor de líneas con scroll y más espacio */
-                .pos .product-screen .orderlines {
-                    font-size: 20px !important;
-                    padding: 10px !important;
-                }
-
-                /* Líneas de pedido - tamaño aumentado y menos padding vertical */
-                .pos .orderline {
-                    min-height: 70px !important;
-                    padding: 10px 15px !important;
-                    font-size: 20px !important;
-                    margin-bottom: 8px !important;
-                    border: 2px solid #e0e0e0 !important;
-                    border-radius: 8px !important;
-                    background: #fafafa !important;
-                    line-height: 1.4 !important;
-                }
-
-                /* Línea seleccionada más visible */
-                .pos .orderline.selected {
-                    background: #e3f2fd !important;
-                    border-color: #2196F3 !important;
-                    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3) !important;
-                }
-
-                /* Nombre del producto aumentado */
-                .pos .orderline .product-name {
-                    font-size: 22px !important;
-                    font-weight: 700 !important;
-                    color: #1a1a1a !important;
-                    display: block !important;
-                    margin-bottom: 5px !important;
-                }
-
-                /* Información adicional */
-                .pos .orderline .info,
-                .pos .orderline .info-list {
-                    font-size: 18px !important;
-                    color: #555 !important;
-                    display: block !important;
-                    margin-top: 3px !important;
-                }
-
-                /* Cantidad aumentada */
-                .pos .orderline .qty {
-                    font-size: 20px !important;
-                    font-weight: 600 !important;
-                    color: #2196F3 !important;
-                }
-
-                /* Precio aumentado */
-                .pos .orderline .price,
-                .pos .orderline .price-subtotal {
-                    font-size: 22px !important;
-                    font-weight: bold !important;
-                    color: #4CAF50 !important;
-                }
-
-                /* Precio unitario */
-                .pos .orderline .unit-price {
-                    font-size: 18px !important;
-                    color: #777 !important;
-                }
-
-                /* Descuento */
-                .pos .orderline .discount {
-                    font-size: 18px !important;
-                    font-weight: 600 !important;
-                    color: #FF5722 !important;
-                }
-
-                /* Mejorar espaciado interno */
-                .pos .orderline > * {
-                    display: inline-block !important;
-                    vertical-align: middle !important;
-                }
-
-                /* Hacer el área de scroll más grande */
-                .pos .order-scroller {
-                    max-height: calc(100vh - 300px) !important;
-                }
-
-                /* Total del pedido - tamaño moderado */
-                .pos .order-total {
-                    font-size: 42px !important;
-                    font-weight: bold !important;
-                    padding: 12px !important;
-                }
-
-                /* TOTALES E IMPUESTOS - Tamaño moderado */
-                /* TOTAL - Tamaño más grande */
-                .pos .total,
-                .pos .total-amount,
-                .pos .total-price {
-                    font-size: 48px !important;
-                    font-weight: 900 !important;
-                    color: #2196F3 !important;
-                    padding: 12px 8px !important;
-                }
-
-                /* Etiquetas de Total, Subtotal e Impuestos - MÁS GRANDES */
-                .pos .total .label,
-                .pos .order-total .label,
-                .pos .subtotal .label,
-                .pos .tax .label,
-                .pos .summary .label,
-                .pos span.label,
-                .pos div.label,
-                .pos .order-info .label,
-                .pos .total-label,
-                .pos .subtotal-label,
-                .pos .tax-label {
-                    font-size: 36px !important;
-                    font-weight: 700 !important;
-                }
-
-                /* Texto "Total" específico */
-                .pos .d-flex.justify-content-between span.total,
-                .pos .d-flex span.total,
-                .pos div.fs-3 span.total,
-                .pos span.total {
-                    font-size: 40px !important;
-                    font-weight: 800 !important;
-                }
-
-                /* Todo el contenedor del total más grande */
-                .pos .d-flex.justify-content-between.w-100.fs-3 {
-                    font-size: 38px !important;
-                }
-
-                /* Impuestos - tamaño moderado */
-                .pos .tax,
-                .pos .taxes,
-                .pos .tax-line,
-                .pos .tax-info {
-                    font-size: 24px !important;
-                    font-weight: 600 !important;
-                    padding: 8px 5px !important;
-                }
-
-                /* Subtotal - tamaño moderado */
-                .pos .subtotal,
-                .pos .sub-total {
-                    font-size: 26px !important;
-                    font-weight: 700 !important;
-                    padding: 10px 5px !important;
-                }
-
-                /* PROTEGER COMPLETAMENTE EL NUMPAD */
-                .pos .numpad,
-                .pos .numpad *,
-                .pos .numpad-container,
-                .pos .numpad-container *,
-                .pos .payment-numpad,
-                .pos .payment-numpad *,
-                .pos-numpad,
-                .pos-numpad *,
-                div[class*="numpad"],
-                div[class*="numpad"] *,
-                div[class*="Numpad"],
-                div[class*="Numpad"] *,
-                .pos-content .switchpane,
-                .pos-content .switchpane *,
-                .product-screen .switchpane,
-                .product-screen .switchpane * {
-                    font-size: revert !important;
-                    padding: revert !important;
-                    margin: revert !important;
-                    line-height: revert !important;
-                    min-height: revert !important;
-                }
-
-                /* Botones del numpad tamaño normal */
-                .pos .numpad button,
-                .pos .numpad-container button,
-                .pos .payment-numpad button,
-                .switchpane button {
-                    font-size: 16px !important;
-                    padding: 8px !important;
-                    min-height: auto !important;
-                }
-
-                /* Botones más grandes para mejor UX - EXCEPTO NUMPAD */
-                .pos .product-screen button:not(.numpad button):not(.numpad-container button):not(.switchpane button) {
-                    font-size: 18px !important;
-                    padding: 12px 20px !important;
-                    min-height: 50px !important;
-                }
-
-                /* ========== PANEL DE INFORMACIÓN DEL CLIENTE ========== */
-
-                /* Contenedor .pads debe permitir el layout lado a lado */
-                .pos .product-screen .leftpane .pads {
-                    display: flex !important;
-                    flex-wrap: wrap !important;
-                    gap: 10px !important;
-                }
-
-                /* Panel de información del cliente - Mitad derecha */
-                .pos .customer-info-panel {
-                    width: calc(50% - 5px) !important;
-                    padding: 15px !important;
-                    background: #f8f9fa !important;
-                    border: 2px solid #dee2e6 !important;
-                    border-radius: 8px !important;
-                    min-height: 400px !important;
-                    box-sizing: border-box !important;
-                    order: 2 !important; /* ahora order 2 para que aparezca a la derecha */
-                }
-
-                /* Subpads (numpad + botones) - Mitad izquierda */
-                .pos .product-screen .leftpane .pads .subpads {
-                    width: calc(50% - 5px) !important;
-                    box-sizing: border-box !important;
-                    order: 1 !important; /* ahora order 1 para que aparezca a la izquierda */
-                    display: flex !important;
-                    flex-direction: column !important;
-                    min-height: 400px !important;
-                }
-
-                /* Numpad mantiene su layout original */
-                .pos .product-screen .leftpane .pads .subpads .numpad {
-                    flex-grow: 1 !important;
-                }
-
-                /* ActionpadWidget (botones de pago) al final */
-                .pos .product-screen .leftpane .pads .subpads > *:last-child {
-                    margin-top: auto !important;
-                }
-
-                /* Control buttons arriba de todo */
-                .pos .product-screen .leftpane .pads .control-buttons {
-                    width: 100% !important;
-                    order: 0 !important;
-                }
-
-                /* Header del panel de cliente */
-                .pos .customer-info-header {
-                    font-size: 24px !important;
-                    font-weight: 700 !important;
-                    color: #2196F3 !important;
-                    margin-bottom: 15px !important;
-                    padding-bottom: 10px !important;
-                    border-bottom: 2px solid #2196F3 !important;
-                }
-
-                .pos .customer-info-header i {
-                    margin-right: 10px !important;
-                }
-
-                /* Contenido del panel */
-                .pos .customer-info-content {
-                    font-size: 18px !important;
-                }
-
-                /* Cada detalle del cliente */
-                .pos .customer-detail {
-                    padding: 8px 0 !important;
-                    font-size: 18px !important;
-                    line-height: 1.6 !important;
-                    border-bottom: 1px solid #e0e0e0 !important;
-                }
-
-                .pos .customer-detail i {
-                    width: 25px !important;
-                    color: #666 !important;
-                    margin-right: 10px !important;
-                }
-
-                /* Nombre del cliente destacado */
-                .pos .customer-name {
-                    font-size: 22px !important;
-                    color: #1a1a1a !important;
-                    display: block !important;
-                    margin-bottom: 10px !important;
-                }
-
-                /* Mensaje cuando no hay cliente */
-                .pos .no-customer {
-                    text-align: center !important;
-                    padding: 40px 20px !important;
-                    color: #999 !important;
-                }
-
-                .pos .no-customer i {
-                    color: #ccc !important;
-                    margin-bottom: 20px !important;
-                }
-
-                .pos .no-customer p {
-                    font-size: 20px !important;
-                    margin: 20px 0 !important;
-                }
-
-                /* Switchpane (Numpad + Botones) - Mitad derecha */
-                .pos .product-screen .switchpane {
-                    width: 48% !important;
-                    float: right !important;
-                    box-sizing: border-box !important;
-                }
-
-                /* Clearfix para los floats */
-                .pos .product-screen .leftpane::after {
-                    content: "" !important;
-                    display: table !important;
-                    clear: both !important;
-                }
-            `;
-            document.head.appendChild(style);
+            }
+        } catch (e) {
+            // Si hay error, no ocultar la barra por defecto
+            advancedEmployeeIds = [];
         }
+
+        // Solo inyectar el CSS si el empleado actual NO está en advanced_employee_ids
+        const shouldHideSearchBar = !advancedEmployeeIds.includes(currentEmployeeId);
+
+        console.log('[POS CUSTOM] currentEmployeeId:', currentEmployeeId);
+        console.log('[POS CUSTOM] advancedEmployeeIds:', advancedEmployeeIds);
+        console.log('[POS CUSTOM] shouldHideSearchBar:', shouldHideSearchBar);
+
+        if (shouldHideSearchBar) {
+            const styleId = "pos-custom-style";
+            if (!document.getElementById(styleId)) {
+                const style = document.createElement("style");
+                style.id = styleId;
+                style.textContent = `
+                    /* Ocultar barra de búsqueda de productos */
+                    .pos .product-screen .search-bar,
+                    .pos .product-screen .searchbox,
+                    .pos .product-screen .product-search,
+                    .pos .search-bar-container,
+                    .pos .rightpane .search-bar,
+                    .pos .rightpane .searchbox,
+                    .pos-rightheader .input-group,
+                    .pos-rightheader.flex-grow-1 .input-group,
+                    .pos .pos-rightheader .input-group {
+                        display: none !important;
+                    }
+
+                    /* Ocultar panel derecho */
+                    .pos .product-screen .rightpane {
+                        display: none !important;
+                    }
+
+                    /* Panel izquierdo a pantalla completa */
+                    .pos .product-screen .leftpane {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+
+                    /* Contenedor de líneas con scroll y más espacio */
+                    .pos .product-screen .orderlines {
+                        font-size: 20px !important;
+                        padding: 10px !important;
+                    }
+
+                    /* Líneas de pedido - tamaño aumentado y menos padding vertical */
+                    .pos .orderline {
+                        min-height: 70px !important;
+                        padding: 10px 15px !important;
+                        font-size: 20px !important;
+                        margin-bottom: 8px !important;
+                        border: 2px solid #e0e0e0 !important;
+                        border-radius: 8px !important;
+                        background: #fafafa !important;
+                        line-height: 1.4 !important;
+                    }
+
+                    /* Línea seleccionada más visible */
+                    .pos .orderline.selected {
+                        background: #e3f2fd !important;
+                        border-color: #2196F3 !important;
+                        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3) !important;
+                    }
+
+                    /* Nombre del producto aumentado */
+                    .pos .orderline .product-name {
+                        font-size: 22px !important;
+                        font-weight: 700 !important;
+                        color: #1a1a1a !important;
+                        display: block !important;
+                        margin-bottom: 5px !important;
+                    }
+
+                    /* Información adicional */
+                    .pos .orderline .info,
+                    .pos .orderline .info-list {
+                        font-size: 18px !important;
+                        color: #555 !important;
+                        display: block !important;
+                        margin-top: 3px !important;
+                    }
+
+                    /* Cantidad aumentada */
+                    .pos .orderline .qty {
+                        font-size: 20px !important;
+                        font-weight: 600 !important;
+                        color: #2196F3 !important;
+                    }
+
+                    /* Precio aumentado */
+                    .pos .orderline .price,
+                    .pos .orderline .price-subtotal {
+                        font-size: 22px !important;
+                        font-weight: bold !important;
+                        color: #4CAF50 !important;
+                    }
+
+                    /* Precio unitario */
+                    .pos .orderline .unit-price {
+                        font-size: 18px !important;
+                        color: #777 !important;
+                    }
+
+                    /* Descuento */
+                    .pos .orderline .discount {
+                        font-size: 18px !important;
+                        font-weight: 600 !important;
+                        color: #FF5722 !important;
+                    }
+
+                    /* Mejorar espaciado interno */
+                    .pos .orderline > * {
+                        display: inline-block !important;
+                        vertical-align: middle !important;
+                    }
+
+                    /* Hacer el área de scroll más grande */
+                    .pos .order-scroller {
+                        max-height: calc(100vh - 300px) !important;
+                    }
+
+                    /* Total del pedido - tamaño moderado */
+                    .pos .order-total {
+                        font-size: 42px !important;
+                        font-weight: bold !important;
+                        padding: 12px !important;
+                    }
+
+                    /* TOTALES E IMPUESTOS - Tamaño moderado */
+                    /* TOTAL - Tamaño más grande */
+                    .pos .total,
+                    .pos .total-amount,
+                    .pos .total-price {
+                        font-size: 48px !important;
+                        font-weight: 900 !important;
+                        color: #2196F3 !important;
+                        padding: 12px 8px !important;
+                    }
+
+                    /* Etiquetas de Total, Subtotal e Impuestos - MÁS GRANDES */
+                    .pos .total .label,
+                    .pos .order-total .label,
+                    .pos .subtotal .label,
+                    .pos .tax .label,
+                    .pos .summary .label,
+                    .pos span.label,
+                    .pos div.label,
+                    .pos .order-info .label,
+                    .pos .total-label,
+                    .pos .subtotal-label,
+                    .pos .tax-label {
+                        font-size: 36px !important;
+                        font-weight: 700 !important;
+                    }
+
+                    /* Texto "Total" específico */
+                    .pos .d-flex.justify-content-between span.total,
+                    .pos .d-flex span.total,
+                    .pos div.fs-3 span.total,
+                    .pos span.total {
+                        font-size: 40px !important;
+                        font-weight: 800 !important;
+                    }
+
+                    /* Todo el contenedor del total más grande */
+                    .pos .d-flex.justify-content-between.w-100.fs-3 {
+                        font-size: 38px !important;
+                    }
+
+                    /* Impuestos - tamaño moderado */
+                    .pos .tax,
+                    .pos .taxes,
+                    .pos .tax-line,
+                    .pos .tax-info {
+                        font-size: 24px !important;
+                        font-weight: 600 !important;
+                        padding: 8px 5px !important;
+                    }
+
+                    /* Subtotal - tamaño moderado */
+                    .pos .subtotal,
+                    .pos .sub-total {
+                        font-size: 26px !important;
+                        font-weight: 700 !important;
+                        padding: 10px 5px !important;
+                    }
+
+                    /* PROTEGER COMPLETAMENTE EL NUMPAD */
+                    .pos .numpad,
+                    .pos .numpad *,
+                    .pos .numpad-container,
+                    .pos .numpad-container *,
+                    .pos .payment-numpad,
+                    .pos .payment-numpad *,
+                    .pos-numpad,
+                    .pos-numpad *,
+                    div[class*="numpad"],
+                    div[class*="numpad"] *,
+                    div[class*="Numpad"],
+                    div[class*="Numpad"] *,
+                    .pos-content .switchpane,
+                    .pos-content .switchpane *,
+                    .product-screen .switchpane,
+                    .product-screen .switchpane * {
+                        font-size: revert !important;
+                        padding: revert !important;
+                        margin: revert !important;
+                        line-height: revert !important;
+                        min-height: revert !important;
+                    }
+
+                    /* Botones del numpad tamaño normal */
+                    .pos .numpad button,
+                    .pos .numpad-container button,
+                    .pos .payment-numpad button,
+                    .switchpane button {
+                        font-size: 16px !important;
+                        padding: 8px !important;
+                        min-height: auto !important;
+                    }
+
+                    /* Botones más grandes para mejor UX - EXCEPTO NUMPAD */
+                    .pos .product-screen button:not(.numpad button):not(.numpad-container button):not(.switchpane button) {
+                        font-size: 18px !important;
+                        padding: 12px 20px !important;
+                        min-height: 50px !important;
+                    }
+
+                    /* ========== PANEL DE INFORMACIÓN DEL CLIENTE ========== */
+
+                    /* Contenedor .pads debe permitir el layout lado a lado */
+                    .pos .product-screen .leftpane .pads {
+                        display: flex !important;
+                        flex-wrap: wrap !important;
+                        gap: 10px !important;
+                    }
+
+                    /* Panel de información del cliente - Mitad derecha */
+                    .pos .customer-info-panel {
+                        width: calc(50% - 5px) !important;
+                        padding: 15px !important;
+                        background: #f8f9fa !important;
+                        border: 2px solid #dee2e6 !important;
+                        border-radius: 8px !important;
+                        min-height: 400px !important;
+                        box-sizing: border-box !important;
+                        order: 2 !important; /* ahora order 2 para que aparezca a la derecha */
+                    }
+
+                    /* Subpads (numpad + botones) - Mitad izquierda */
+                    .pos .product-screen .leftpane .pads .subpads {
+                        width: calc(50% - 5px) !important;
+                        box-sizing: border-box !important;
+                        order: 1 !important; /* ahora order 1 para que aparezca a la izquierda */
+                        display: flex !important;
+                        flex-direction: column !important;
+                        min-height: 400px !important;
+                    }
+
+                    /* Numpad mantiene su layout original */
+                    .pos .product-screen .leftpane .pads .subpads .numpad {
+                        flex-grow: 1 !important;
+                    }
+
+                    /* ActionpadWidget (botones de pago) al final */
+                    .pos .product-screen .leftpane .pads .subpads > *:last-child {
+                        margin-top: auto !important;
+                    }
+
+                    /* Control buttons arriba de todo */
+                    .pos .product-screen .leftpane .pads .control-buttons {
+                        width: 100% !important;
+                        order: 0 !important;
+                    }
+
+                    /* Header del panel de cliente */
+                    .pos .customer-info-header {
+                        font-size: 24px !important;
+                        font-weight: 700 !important;
+                        color: #2196F3 !important;
+                        margin-bottom: 15px !important;
+                        padding-bottom: 10px !important;
+                        border-bottom: 2px solid #2196F3 !important;
+                    }
+
+                    .pos .customer-info-header i {
+                        margin-right: 10px !important;
+                    }
+
+                    /* Contenido del panel */
+                    .pos .customer-info-content {
+                        font-size: 18px !important;
+                    }
+
+                    /* Cada detalle del cliente */
+                    .pos .customer-detail {
+                        padding: 8px 0 !important;
+                        font-size: 18px !important;
+                        line-height: 1.6 !important;
+                        border-bottom: 1px solid #e0e0e0 !important;
+                    }
+
+                    .pos .customer-detail i {
+                        width: 25px !important;
+                        color: #666 !important;
+                        margin-right: 10px !important;
+                    }
+
+                    /* Nombre del cliente destacado */
+                    .pos .customer-name {
+                        font-size: 22px !important;
+                        color: #1a1a1a !important;
+                        display: block !important;
+                        margin-bottom: 10px !important;
+                    }
+
+                    /* Mensaje cuando no hay cliente */
+                    .pos .no-customer {
+                        text-align: center !important;
+                        padding: 40px 20px !important;
+                        color: #999 !important;
+                    }
+
+                    .pos .no-customer i {
+                        color: #ccc !important;
+                        margin-bottom: 20px !important;
+                    }
+
+                    .pos .no-customer p {
+                        font-size: 20px !important;
+                        margin: 20px 0 !important;
+                    }
+
+                    /* Switchpane (Numpad + Botones) - Mitad derecha */
+                    .pos .product-screen .switchpane {
+                        width: 48% !important;
+                        float: right !important;
+                        box-sizing: border-box !important;
+                    }
+
+                    /* Clearfix para los floats */
+                    .pos .product-screen .leftpane::after {
+                        content: "" !important;
+                        display: table !important;
+                        clear: both !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Parchear el método set_cashier para forzar el rerender de ProductScreen tras el cambio de cajero
+        if (this.pos && typeof this.pos.set_cashier === 'function' && !this.pos._custom_search_bar_patched) {
+            const originalSetCashier = this.pos.set_cashier.bind(this.pos);
+            this.pos.set_cashier = (employee) => {
+                const result = originalSetCashier(employee);
+                // Forzar recarga de ProductScreen si está activa
+                if (this.pos.getCurrentScreen && this.pos.getCurrentScreen() === 'ProductScreen') {
+                    this.pos.showScreen('ProductScreen');
+                }
+                return result;
+            };
+            this.pos._custom_search_bar_patched = true;
+        }
+        // Eliminar el intervalo si existe
+        if (this._searchBarInterval) {
+            clearInterval(this._searchBarInterval);
+            this._searchBarInterval = null;
+        }
+
+        // Intervalo eficiente para detectar cambio de cajero en Odoo 19 POS
+        let lastCashierId = null;
+        this._searchBarInterval = setInterval(() => {
+            // Obtener el cajero actual según la arquitectura de Odoo 19 POS
+            const currentCashier = this.pos.getCashier ? this.pos.getCashier() : this.pos.user;
+            const currentCashierId = currentCashier?.id;
+            let advancedEmployeeIds = [];
+            if (this.pos.config && this.pos.config.advanced_employee_ids) {
+                if (Array.isArray(this.pos.config.advanced_employee_ids)) {
+                    advancedEmployeeIds = this.pos.config.advanced_employee_ids.map(e => e.id || e);
+                } else if (typeof this.pos.config.advanced_employee_ids === 'object' && this.pos.config.advanced_employee_ids.length) {
+                    advancedEmployeeIds = Array.from(this.pos.config.advanced_employee_ids).map(e => e.id || e);
+                }
+            }
+            // Solo ejecutar la lógica si cambia el cajero
+            if (currentCashierId !== lastCashierId) {
+                lastCashierId = currentCashierId;
+                const shouldHideSearchBar = !advancedEmployeeIds.includes(currentCashierId);
+                // Log solo cuando cambia el cajero
+                console.log('[POS CUSTOM][cambio cajero] currentCashierId:', currentCashierId);
+                console.log('[POS CUSTOM][cambio cajero] advancedEmployeeIds:', advancedEmployeeIds);
+                console.log('[POS CUSTOM][cambio cajero] shouldHideSearchBar:', shouldHideSearchBar);
+                const styleId = "pos-custom-style";
+                const styleElement = document.getElementById(styleId);
+                if (shouldHideSearchBar) {
+                    if (!styleElement) {
+                        const style = document.createElement("style");
+                        style.id = styleId;
+                        style.textContent = `
+                            .pos .product-screen .search-bar,
+                            .pos .product-screen .searchbox,
+                            .pos .product-screen .product-search,
+                            .pos .search-bar-container,
+                            .pos .rightpane .search-bar,
+                            .pos .rightpane .searchbox,
+                            .pos-rightheader .input-group,
+                            .pos-rightheader.flex-grow-1 .input-group,
+                            .pos .pos-rightheader .input-group {
+                                display: none !important;
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                } else {
+                    if (styleElement) {
+                        styleElement.remove();
+                    }
+                }
+            }
+        }, 500);
+        // Limpiar el intervalo al desmontar
+        onWillUnmount(() => {
+            if (this._searchBarInterval) {
+                clearInterval(this._searchBarInterval);
+                this._searchBarInterval = null;
+            }
+        });
+
+        // Watcher reactivo para forzar recarga total de la página al cambiar el cajero
+        let lastShowSearchBar = this.showSearchBar;
+        this._searchBarWatcher = setInterval(() => {
+            const currentShowSearchBar = this.showSearchBar;
+            if (currentShowSearchBar !== lastShowSearchBar) {
+                lastShowSearchBar = currentShowSearchBar;
+                // Recarga total de la página para asegurar reconstrucción completa
+                window.location.reload();
+            }
+        }, 500);
+        onWillUnmount(() => {
+            if (this._searchBarWatcher) {
+                clearInterval(this._searchBarWatcher);
+                this._searchBarWatcher = null;
+            }
+        });
     },
 
     injectCustomerInfoPanel() {
@@ -479,8 +609,9 @@ patch(ProductScreen.prototype, {
         const customerPanel = document.getElementById('customer-info-panel-injected');
         if (!customerPanel) return;
 
-        // CRÍTICO: Verificar que this.pos existe
-        if (!this || !this.pos || !this.pos.models) {
+        // Ocultar el panel si el cajero es avanzado
+        if (this.showSearchBar) {
+            customerPanel.innerHTML = '';
             return;
         }
 
@@ -636,5 +767,19 @@ patch(ProductScreen.prototype, {
             // Silenciar completamente cualquier error
             return null;
         }
+    },
+
+    get showSearchBar() {
+        const cashier = this.pos.getCashier ? this.pos.getCashier() : this.pos.user;
+        const cashierId = cashier?.id;
+        let advancedEmployeeIds = [];
+        if (this.pos.config && this.pos.config.advanced_employee_ids) {
+            if (Array.isArray(this.pos.config.advanced_employee_ids)) {
+                advancedEmployeeIds = this.pos.config.advanced_employee_ids.map(e => e.id || e);
+            } else if (typeof this.pos.config.advanced_employee_ids === 'object' && this.pos.config.advanced_employee_ids.length) {
+                advancedEmployeeIds = Array.from(this.pos.config.advanced_employee_ids).map(e => e.id || e);
+            }
+        }
+        return advancedEmployeeIds.includes(cashierId);
     },
 });

@@ -3,63 +3,71 @@
     <t t-name="point_of_sale.ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension">
         <!-- Agregar bloque de información del cliente en la parte inferior izquierda -->
         <xpath expr="//div[@class='switchpane']" position="before">
-            <div class="customer-info-panel">
-                <div class="customer-info-header">
-                    <i class="fa fa-user"></i>
-                    <span>Información del Cliente</span>
+            <t t-if="not showSearchBar">
+                <div class="customer-info-panel">
+                    <div class="customer-info-header">
+                        <i class="fa fa-user"></i>
+                        <span>Información del Cliente</span>
+                    </div>
+                    <div class="customer-info-content">
+                        <t t-if="this.pos.get_order() and this.pos.get_order().get_partner()">
+                            <div class="customer-detail">
+                                <strong class="customer-name">
+                                    <t t-esc="this.pos.get_order().get_partner().name"/>
+                                </strong>
+                            </div>
+                            <div class="customer-detail" t-if="this.pos.get_order().get_partner().street">
+                                <i class="fa fa-map-marker"></i>
+                                <span t-esc="this.pos.get_order().get_partner().street"/>
+                                <t t-if="this.pos.get_order().get_partner().street2">
+                                    , <t t-esc="this.pos.get_order().get_partner().street2"/>
+                                </t>
+                            </div>
+                            <div class="customer-detail" t-if="this.pos.get_order().get_partner().city or this.pos.get_order().get_partner().zip">
+                                <i class="fa fa-building"></i>
+                                <t t-if="this.pos.get_order().get_partner().zip">
+                                    <span t-esc="this.pos.get_order().get_partner().zip"/>
+                                </t>
+                                <t t-if="this.pos.get_order().get_partner().city">
+                                    <span t-esc="this.pos.get_order().get_partner().city"/>
+                                </t>
+                            </div>
+                            <div class="customer-detail" t-if="this.pos.get_order().get_partner().phone">
+                                <i class="fa fa-phone"></i>
+                                <span t-esc="this.pos.get_order().get_partner().phone"/>
+                            </div>
+                            <div class="customer-detail" t-if="this.pos.get_order().get_partner().mobile">
+                                <i class="fa fa-mobile"></i>
+                                <span t-esc="this.pos.get_order().get_partner().mobile"/>
+                            </div>
+                            <div class="customer-detail" t-if="this.pos.get_order().get_partner().email">
+                                <i class="fa fa-envelope"></i>
+                                <span t-esc="this.pos.get_order().get_partner().email"/>
+                            </div>
+                            <div class="customer-detail" t-if="this.pos.get_order().get_partner().vat">
+                                <i class="fa fa-id-card"></i>
+                                <span>NIF/CIF: </span>
+                                <span t-esc="this.pos.get_order().get_partner().vat"/>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div class="no-customer">
+                                <i class="fa fa-user-times fa-3x"></i>
+                                <p>No hay cliente seleccionado</p>
+                                <button class="btn btn-primary btn-select-customer" t-on-click="() => this.pos.showScreen('PartnerListScreen')">
+                                    Seleccionar Cliente
+                                </button>
+                            </div>
+                        </t>
+                    </div>
                 </div>
-                <div class="customer-info-content">
-                    <t t-if="this.pos.get_order() and this.pos.get_order().get_partner()">
-                        <div class="customer-detail">
-                            <strong class="customer-name">
-                                <t t-esc="this.pos.get_order().get_partner().name"/>
-                            </strong>
-                        </div>
-                        <div class="customer-detail" t-if="this.pos.get_order().get_partner().street">
-                            <i class="fa fa-map-marker"></i>
-                            <span t-esc="this.pos.get_order().get_partner().street"/>
-                            <t t-if="this.pos.get_order().get_partner().street2">
-                                , <t t-esc="this.pos.get_order().get_partner().street2"/>
-                            </t>
-                        </div>
-                        <div class="customer-detail" t-if="this.pos.get_order().get_partner().city or this.pos.get_order().get_partner().zip">
-                            <i class="fa fa-building"></i>
-                            <t t-if="this.pos.get_order().get_partner().zip">
-                                <span t-esc="this.pos.get_order().get_partner().zip"/>
-                            </t>
-                            <t t-if="this.pos.get_order().get_partner().city">
-                                <span t-esc="this.pos.get_order().get_partner().city"/>
-                            </t>
-                        </div>
-                        <div class="customer-detail" t-if="this.pos.get_order().get_partner().phone">
-                            <i class="fa fa-phone"></i>
-                            <span t-esc="this.pos.get_order().get_partner().phone"/>
-                        </div>
-                        <div class="customer-detail" t-if="this.pos.get_order().get_partner().mobile">
-                            <i class="fa fa-mobile"></i>
-                            <span t-esc="this.pos.get_order().get_partner().mobile"/>
-                        </div>
-                        <div class="customer-detail" t-if="this.pos.get_order().get_partner().email">
-                            <i class="fa fa-envelope"></i>
-                            <span t-esc="this.pos.get_order().get_partner().email"/>
-                        </div>
-                        <div class="customer-detail" t-if="this.pos.get_order().get_partner().vat">
-                            <i class="fa fa-id-card"></i>
-                            <span>NIF/CIF: </span>
-                            <span t-esc="this.pos.get_order().get_partner().vat"/>
-                        </div>
-                    </t>
-                    <t t-else="">
-                        <div class="no-customer">
-                            <i class="fa fa-user-times fa-3x"></i>
-                            <p>No hay cliente seleccionado</p>
-                            <button class="btn btn-primary btn-select-customer" t-on-click="() => this.pos.showScreen('PartnerListScreen')">
-                                Seleccionar Cliente
-                            </button>
-                        </div>
-                    </t>
-                </div>
-            </div>
+            </t>
+        </xpath>
+        <!-- Ocultar barra de búsqueda si el cajero no tiene permisos -->
+        <xpath expr="//div[contains(@class, 'search-bar') or contains(@class, 'searchbox') or contains(@class, 'product-search')]" position="replace">
+            <t t-if="showSearchBar">
+                <t t-raw="0"/>
+            </t>
         </xpath>
     </t>
 </templates>
