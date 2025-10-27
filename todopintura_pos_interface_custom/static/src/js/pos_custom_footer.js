@@ -289,7 +289,7 @@ patch(ProductScreen.prototype, {
                     gap: 10px !important;
                 }
 
-                /* Panel de información del cliente - Mitad izquierda */
+                /* Panel de información del cliente - Mitad derecha */
                 .pos .customer-info-panel {
                     width: calc(50% - 5px) !important;
                     padding: 15px !important;
@@ -298,14 +298,14 @@ patch(ProductScreen.prototype, {
                     border-radius: 8px !important;
                     min-height: 400px !important;
                     box-sizing: border-box !important;
-                    order: 1 !important;
+                    order: 2 !important; /* ahora order 2 para que aparezca a la derecha */
                 }
 
-                /* Subpads (numpad + botones) - Mitad derecha */
+                /* Subpads (numpad + botones) - Mitad izquierda */
                 .pos .product-screen .leftpane .pads .subpads {
                     width: calc(50% - 5px) !important;
                     box-sizing: border-box !important;
-                    order: 2 !important;
+                    order: 1 !important; /* ahora order 1 para que aparezca a la izquierda */
                     display: flex !important;
                     flex-direction: column !important;
                     min-height: 400px !important;
@@ -418,8 +418,8 @@ patch(ProductScreen.prototype, {
             customerPanel.id = 'customer-info-panel-injected';
             customerPanel.className = 'customer-info-panel';
 
-            // Insertar el panel DENTRO de .pads, al principio (antes de .control-buttons)
-            padsElement.insertBefore(customerPanel, padsElement.firstChild);
+            // Insertar el panel DENTRO de .pads AL FINAL (numpad primero en el DOM)
+            padsElement.appendChild(customerPanel);
 
 //            console.log('Panel de cliente inyectado correctamente dentro de .pads');
 
