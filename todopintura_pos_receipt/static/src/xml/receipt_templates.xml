@@ -2,7 +2,8 @@
 <templates id="template" xml:space="preserve">
     <t t-name="todopintura_pos_custom.ReceiptHeader" t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
 
-        <xpath expr="//div[hasclass('pos-receipt-customer') and contains(@t-if, 'order.partner_id')]" position="replace">
+        <xpath expr="//div[hasclass('pos-receipt-customer') and contains(@t-if, 'order.partner_id')]"
+               position="replace">
         </xpath>
         <xpath expr="//div[hasclass('pos-receipt-contact')]" position="replace">
             <t t-set="data" t-value="props.data || (props.order &amp;&amp; (props.order.raw || props.order))"/>
@@ -11,14 +12,22 @@
             <t t-if="data">
                 <div class="custom-header"
                      style="font-family: 'Courier New', monospace; font-weight: bold; letter-spacing: 0.5px; text-align: center; font-size: 16px;">
+                    Factura Simplificada<br/>
+                    <t t-esc="props.order &amp;&amp; props.order.name ? ' Nº ' + props.order.name : ''"/>
                     <t t-if="company &amp;&amp; Object.keys(company).length">
                         <div><t t-esc="company.name || ''"/></div>
-                        <div t-if="company.vat"><strong>NIF:</strong><t t-esc="company.vat"/></div>
                         <div t-if="company.street || company.zip || company.city">
                             <t t-esc="company.street || ''"/>
                             <t t-if="company.zip">, <t t-esc="company.zip"/></t>
                             <t t-if="company.city"> <t t-esc="company.city"/></t>
-                            <t t-if="company.state_id"> (<t t-esc="company.state_id.code || ''"/>) <t t-esc="company.city"/></t>
+                        </div>
+                        <div t-if="company.vat"><strong>NIF:</strong>
+                            <t t-esc="company.vat"/></div>
+                        <div t-if="props.order &amp;&amp; (props.order.user_id || props.order.employee_id)">
+                            <div class="served-by" style="font-size:14px; margin-top:4px;">
+                                Servido por <t
+                                t-esc="(props.order.user_id &amp;&amp; (props.order.user_id.name || props.order.user_id[1])) || (props.order.employee_id &amp;&amp; (props.order.employee_id.name || props.order.employee_id[1])) || ''"/>
+                            </div>
                         </div>
                     </t>
                     <div class="pt-2"/>
@@ -49,7 +58,7 @@
                             <t t-esc="' '"/>
                             <t t-esc="line.full_product_name or line.name"/>
                             <div t-if="line.customerNote" class="customer-note fst-italic ps-2" style="font-size: 80%;">
-                                [<t t-esc="line.customerNote" />]
+                                [<t t-esc="line.customerNote"/>]
                             </div>
                         </span>
                         <span class="w-25 text-end font-monospace">
@@ -87,10 +96,10 @@
                             <span t-out="formatCurrency(tax_group.tax_amount_currency)" class="ms-auto font-monospace"/>
                         </div>
                     </t>
-                </div >
+                </div>
 
                 <div class="pos-receipt-amount receipt-total fw-bolder d-flex justify-content-between"
-                    style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px;">
+                     style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px;">
                     <span class="label-total">TOTAL</span>
                     <span t-out="formatCurrency(taxTotals.order_sign * taxTotals.order_total)" class="font-monospace"/>
                 </div>
@@ -98,7 +107,7 @@
                 <div class="paymentlines pt-1">
                     <t t-foreach="paymentLines" t-as="line" t-key="line_index">
                         <div class="d-flex justify-content-between">
-                            <t t-esc="line.payment_method_id.name" />
+                            <t t-esc="line.payment_method_id.name"/>
                             <span t-out="formatCurrency(line.getAmount())" class="font-monospace"/>
                         </div>
                     </t>
@@ -121,8 +130,11 @@
         <xpath expr="//div[hasclass('gap-2','d-flex','flex-row','pt-3')]" position="replace"/>
         <xpath expr="//div[hasclass('pos-receipt-center-align')]" position="replace"/>
         <xpath expr="//div[hasclass('pos-receipt-order-data', 'd-flex', 'gap-2', 'pt-3')]" position="replace"/>
-        <xpath expr="//div[contains(@class, 'd-flex') and contains(@class, 'gap-2') and contains(@class, 'pt-3') and not(contains(@class, 'flex-row'))]" position="replace"/>
-        <xpath expr="//div[contains(., 'Powered by') and contains(@class, 'pos-receipt-order-data')]" position="replace"/>
+        <xpath
+            expr="//div[contains(@class, 'd-flex') and contains(@class, 'gap-2') and contains(@class, 'pt-3') and not(contains(@class, 'flex-row'))]"
+            position="replace"/>
+        <xpath expr="//div[contains(., 'Powered by') and contains(@class, 'pos-receipt-order-data')]"
+               position="replace"/>
 
         <xpath expr="//div[hasclass('after-footer')]" position="before">
             <div class="pos-receipt-center-align pt-4 fw-bolder">
