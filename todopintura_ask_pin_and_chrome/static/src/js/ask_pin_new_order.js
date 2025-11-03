@@ -59,15 +59,34 @@ patch(PosStore.prototype, {
 
             console.log('[todopintura] Total empleados:', allEmployees.length);
 
-            // Mostrar popup de selección de cajero (usando makeAwaitable)
-            const employee = await makeAwaitable(this.dialog, CashierSelectionPopup, {
-                currentCashier: this.getCashier() || undefined,
-                employees: allEmployees,
-            });
+            let employee = null;
+            let attempts = 0;
+            const maxAttempts = 100; // Permitir muchos intentos
+
+            // Bucle hasta que se seleccione un empleado válido
+            while (!employee && attempts < maxAttempts) {
+                attempts++;
+                console.log('[todopintura] Intento de selección de empleado:', attempts);
+
+                // Mostrar popup de selección de cajero (NO se puede cerrar con ESC gracias al patch)
+                employee = await makeAwaitable(this.dialog, CashierSelectionPopup, {
+                    currentCashier: this.getCashier() || undefined,
+                    employees: allEmployees,
+                });
+
+                if (!employee) {
+                    console.log('[todopintura] ⚠️ No se seleccionó empleado, mostrando advertencia...');
+                    this.notification.add(_t('Debes seleccionar un empleado para continuar'), {
+                        type: 'warning',
+                        sticky: true, // Mantener visible
+                    });
+                    // Esperar un momento antes de volver a mostrar el diálogo
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
 
             if (!employee) {
-                console.log('[todopintura] ❌ No se seleccionó empleado');
-                this.notification.add(_t('Debes seleccionar un empleado para continuar'), { type: 'warning' });
+                console.error('[todopintura] ❌ No se pudo seleccionar empleado después de', maxAttempts, 'intentos');
                 return false;
             }
 
@@ -77,29 +96,49 @@ patch(PosStore.prototype, {
             if (employee._pin) {
                 console.log('[todopintura] 🔑 Solicitando PIN...');
 
-                const inputPin = await makeAwaitable(this.dialog, NumberPopup, {
-                    formatDisplayedValue: (x) => x.replace(/./g, "•"),
-                    title: _t('PIN de %s', employee.name),
-                });
+                let pinValid = false;
+                let pinAttempts = 0;
+                const maxPinAttempts = 3;
 
-                if (!inputPin) {
-                    console.log('[todopintura] ❌ No se introdujo PIN');
-                    this.notification.add(_t('Debes introducir el PIN para continuar'), { type: 'warning' });
-                    return false;
-                }
+                while (!pinValid && pinAttempts < maxPinAttempts) {
+                    pinAttempts++;
+                    console.log('[todopintura] Intento de PIN:', pinAttempts, 'de', maxPinAttempts);
 
-                // Validar PIN (Odoo usa SHA1 hash)
-                /* global Sha1 */
-                if (employee._pin !== Sha1.hash(inputPin)) {
-                    console.log('[todopintura] ❌ PIN incorrecto');
-                    this.notification.add(_t('PIN incorrecto'), {
-                        type: 'warning',
-                        title: _t('PIN Incorrecto'),
+                    const inputPin = await makeAwaitable(this.dialog, NumberPopup, {
+                        formatDisplayedValue: (x) => x.replace(/./g, "•"),
+                        title: _t('PIN de %s', employee.name),
                     });
-                    return false;
+
+                    if (!inputPin) {
+                        console.log('[todopintura] ⚠️ No se introdujo PIN');
+                        this.notification.add(_t('Debes introducir el PIN para continuar'), {
+                            type: 'warning',
+                            sticky: true,
+                        });
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        continue;
+                    }
+
+                    // Validar PIN (Odoo usa SHA1 hash)
+                    /* global Sha1 */
+                    if (employee._pin !== Sha1.hash(inputPin)) {
+                        console.log('[todopintura] ❌ PIN incorrecto');
+                        this.notification.add(_t('PIN incorrecto. Intento %s de %s', pinAttempts, maxPinAttempts), {
+                            type: 'warning',
+                        });
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        continue;
+                    }
+
+                    pinValid = true;
+                    console.log('[todopintura] ✅ PIN correcto');
                 }
 
-                console.log('[todopintura] ✅ PIN correcto');
+                if (!pinValid) {
+                    console.error('[todopintura] ❌ PIN incorrecto después de', maxPinAttempts, 'intentos');
+                    this.notification.add(_t('Demasiados intentos fallidos'), { type: 'danger' });
+                    return false;
+                }
             }
 
             // El empleado fue seleccionado y el PIN validado, establecerlo
@@ -169,13 +208,18 @@ patch(PosStore.prototype, {
         if (this._orderCreationCount > 0 && this.config.module_pos_hr) {
             console.log('[todopintura] 🔐 Solicitando PIN antes de crear nueva orden (desde getEmptyOrder)');
 
-            const success = await this._askPinBeforeOrder();
-            if (!success) {
-                console.log('[todopintura] ❌ Validación de PIN fallida, retornando orden actual');
-                return this.get_order();
+            // Bucle hasta que se valide correctamente el PIN
+            let success = false;
+            while (!success) {
+                success = await this._askPinBeforeOrder();
+                if (!success) {
+                    console.log('[todopintura] ⚠️ Validación de PIN fallida, intentando de nuevo...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
             }
 
-            // Incrementar contador antes de crear
+            console.log('[todopintura] ✅ PIN validado correctamente');
+            // Incrementar contador después de validar
             this._orderCreationCount++;
         }
 
