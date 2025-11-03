@@ -9,6 +9,12 @@ patch(ProductScreen.prototype, {
     setup() {
         super.setup();
 
+        // Prevenir ejecución múltiple del setup
+        if (this._customSetupExecuted) {
+            return;
+        }
+        this._customSetupExecuted = true;
+
         console.log("Parche ProductScreen en Odoo 19");
 
         // CRÍTICO: Proteger window.onbeforeunload para prevenir errores
@@ -61,42 +67,13 @@ patch(ProductScreen.prototype, {
             }
         });
 
-        // Obtener el empleado actual y la lista de empleados avanzados
-        let currentEmployeeId = null;
-        let advancedEmployeeIds = [];
-        try {
-            // Intentar obtener el empleado actual
-            if (this.pos.get_cashier) {
-                currentEmployeeId = this.pos.get_cashier()?.id;
-            } else if (this.pos.employee) {
-                currentEmployeeId = this.pos.employee.id;
-            } else if (this.pos.get_cashier_user_id) {
-                currentEmployeeId = this.pos.get_cashier_user_id();
-            } else if (this.pos.session && this.pos.session.user_id) {
-                currentEmployeeId = this.pos.session.user_id.id;
-            }
-            // Obtener la lista de empleados avanzados
-            if (this.pos.config && this.pos.config.advanced_employee_ids) {
-                // Puede ser una lista de objetos o de ids
-                if (Array.isArray(this.pos.config.advanced_employee_ids)) {
-                    advancedEmployeeIds = this.pos.config.advanced_employee_ids.map(e => e.id || e);
-                } else if (typeof this.pos.config.advanced_employee_ids === 'object' && this.pos.config.advanced_employee_ids.length) {
-                    advancedEmployeeIds = Array.from(this.pos.config.advanced_employee_ids).map(e => e.id || e);
-                }
-            }
-        } catch (e) {
-            // Si hay error, no ocultar la barra por defecto
-            advancedEmployeeIds = [];
-        }
+        // Aplicar la interfaz simplificada para TODOS los usuarios
+        // (Se eliminó la lógica de advanced_employee_ids)
 
-        // Solo inyectar el CSS si el empleado actual NO está en advanced_employee_ids
-        const shouldHideSearchBar = !advancedEmployeeIds.includes(currentEmployeeId);
+        console.log('[POS CUSTOM] Aplicando interfaz simplificada para todos los usuarios');
 
-        console.log('[POS CUSTOM] currentEmployeeId:', currentEmployeeId);
-        console.log('[POS CUSTOM] advancedEmployeeIds:', advancedEmployeeIds);
-        console.log('[POS CUSTOM] shouldHideSearchBar:', shouldHideSearchBar);
-
-        if (shouldHideSearchBar) {
+        // Siempre inyectar el CSS con la interfaz simplificada
+        {
             const styleId = "pos-custom-style";
             if (!document.getElementById(styleId)) {
                 const style = document.createElement("style");
@@ -451,86 +428,8 @@ patch(ProductScreen.prototype, {
             };
             this.pos._custom_search_bar_patched = true;
         }
-        // Eliminar el intervalo si existe
-        if (this._searchBarInterval) {
-            clearInterval(this._searchBarInterval);
-            this._searchBarInterval = null;
-        }
-
-        // Intervalo eficiente para detectar cambio de cajero en Odoo 19 POS
-        let lastCashierId = null;
-        this._searchBarInterval = setInterval(() => {
-            // Obtener el cajero actual según la arquitectura de Odoo 19 POS
-            const currentCashier = this.pos.getCashier ? this.pos.getCashier() : this.pos.user;
-            const currentCashierId = currentCashier?.id;
-            let advancedEmployeeIds = [];
-            if (this.pos.config && this.pos.config.advanced_employee_ids) {
-                if (Array.isArray(this.pos.config.advanced_employee_ids)) {
-                    advancedEmployeeIds = this.pos.config.advanced_employee_ids.map(e => e.id || e);
-                } else if (typeof this.pos.config.advanced_employee_ids === 'object' && this.pos.config.advanced_employee_ids.length) {
-                    advancedEmployeeIds = Array.from(this.pos.config.advanced_employee_ids).map(e => e.id || e);
-                }
-            }
-            // Solo ejecutar la lógica si cambia el cajero
-            if (currentCashierId !== lastCashierId) {
-                lastCashierId = currentCashierId;
-                const shouldHideSearchBar = !advancedEmployeeIds.includes(currentCashierId);
-                // Log solo cuando cambia el cajero
-                console.log('[POS CUSTOM][cambio cajero] currentCashierId:', currentCashierId);
-                console.log('[POS CUSTOM][cambio cajero] advancedEmployeeIds:', advancedEmployeeIds);
-                console.log('[POS CUSTOM][cambio cajero] shouldHideSearchBar:', shouldHideSearchBar);
-                const styleId = "pos-custom-style";
-                const styleElement = document.getElementById(styleId);
-                if (shouldHideSearchBar) {
-                    if (!styleElement) {
-                        const style = document.createElement("style");
-                        style.id = styleId;
-                        style.textContent = `
-                            .pos .product-screen .search-bar,
-                            .pos .product-screen .searchbox,
-                            .pos .product-screen .product-search,
-                            .pos .search-bar-container,
-                            .pos .rightpane .search-bar,
-                            .pos .rightpane .searchbox,
-                            .pos-rightheader .input-group,
-                            .pos-rightheader.flex-grow-1 .input-group,
-                            .pos .pos-rightheader .input-group {
-                                display: none !important;
-                            }
-                        `;
-                        document.head.appendChild(style);
-                    }
-                } else {
-                    if (styleElement) {
-                        styleElement.remove();
-                    }
-                }
-            }
-        }, 500);
-        // Limpiar el intervalo al desmontar
-        onWillUnmount(() => {
-            if (this._searchBarInterval) {
-                clearInterval(this._searchBarInterval);
-                this._searchBarInterval = null;
-            }
-        });
-
-        // Watcher reactivo para forzar recarga total de la página al cambiar el cajero
-        let lastShowSearchBar = this.showSearchBar;
-        this._searchBarWatcher = setInterval(() => {
-            const currentShowSearchBar = this.showSearchBar;
-            if (currentShowSearchBar !== lastShowSearchBar) {
-                lastShowSearchBar = currentShowSearchBar;
-                // Recarga total de la página para asegurar reconstrucción completa
-                window.location.reload();
-            }
-        }, 500);
-        onWillUnmount(() => {
-            if (this._searchBarWatcher) {
-                clearInterval(this._searchBarWatcher);
-                this._searchBarWatcher = null;
-            }
-        });
+        // Ya no necesitamos intervalos para detectar cambios de cajero
+        // porque todos los usuarios tienen la misma interfaz
     },
 
     injectCustomerInfoPanel() {
@@ -609,11 +508,6 @@ patch(ProductScreen.prototype, {
         const customerPanel = document.getElementById('customer-info-panel-injected');
         if (!customerPanel) return;
 
-        // Ocultar el panel si el cajero es avanzado
-        if (this.showSearchBar) {
-            customerPanel.innerHTML = '';
-            return;
-        }
 
         // Obtener la orden actual
         let order = null;
@@ -767,19 +661,5 @@ patch(ProductScreen.prototype, {
             // Silenciar completamente cualquier error
             return null;
         }
-    },
-
-    get showSearchBar() {
-        const cashier = this.pos.getCashier ? this.pos.getCashier() : this.pos.user;
-        const cashierId = cashier?.id;
-        let advancedEmployeeIds = [];
-        if (this.pos.config && this.pos.config.advanced_employee_ids) {
-            if (Array.isArray(this.pos.config.advanced_employee_ids)) {
-                advancedEmployeeIds = this.pos.config.advanced_employee_ids.map(e => e.id || e);
-            } else if (typeof this.pos.config.advanced_employee_ids === 'object' && this.pos.config.advanced_employee_ids.length) {
-                advancedEmployeeIds = Array.from(this.pos.config.advanced_employee_ids).map(e => e.id || e);
-            }
-        }
-        return advancedEmployeeIds.includes(cashierId);
     },
 });
