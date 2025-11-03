@@ -72,36 +72,38 @@
 
         <xpath expr="//div[hasclass('before-footer')]" position="before">
             <t t-if="!props.basic_receipt">
-                <t t-set="taxTotals" t-value="props.order.taxTotals"/>
+                <t t-set="taxTotals" t-value="order.prices.taxDetails"/>
 
                 <div class="pt-3"/>
 
-                <div t-if="taxTotals and taxTotals.has_tax_groups" class="custom-receipt-totals">
-                    <t t-foreach="taxTotals.subtotals" t-as="subtotal" t-key="subtotal.name">
-                        <div class="d-flex justify-content-between">
-                            <span>Base Imponible</span>
-                            <span t-out="formatCurrency(subtotal.base_amount_currency)" class="font-monospace"/>
-                        </div>
-                        <div t-foreach="subtotal.tax_groups" t-as="tax_group" t-key="tax_group.id" class="d-flex">
-                            <span>
-                                <span t-esc="tax_group.group_name"/>
-                                <t t-if="showTaxGroupLabels">
-                                    (<span t-if="tax_group.group_label" t-out="tax_group.group_label"/>)
-                                </t>
-                                <t id="tax_base" t-if="!taxTotals.same_tax_base">
-                                    on
-                                    <span t-esc="formatCurrency(tax_group.base_amount_currency)"/>
-                                </t>
-                            </span>
-                            <span t-out="formatCurrency(tax_group.tax_amount_currency)" class="ms-auto font-monospace"/>
-                        </div>
-                    </t>
-                </div>
+                <t t-if="taxTotals and taxTotals.has_tax_groups">
+                    <div class="custom-receipt-totals">
+                        <t t-foreach="taxTotals.subtotals" t-as="subtotal" t-key="subtotal.name">
+                            <div class="d-flex justify-content-between">
+                                <span>Base Imponible</span>
+                                <span t-out="formatCurrency(order.priceExcl)" class="font-monospace"/>
+                            </div>
+                            <div t-foreach="subtotal.tax_groups" t-as="tax_group" t-key="tax_group.id" class="d-flex">
+                                <span>
+                                    <span t-esc="tax_group.group_name"/>
+                                    <t t-if="showTaxGroupLabels">
+                                        (<span t-if="tax_group.group_label" t-out="tax_group.group_label"/>)
+                                    </t>
+                                    <t id="tax_base" t-if="!taxTotals.same_tax_base">
+                                        on
+                                        <span t-esc="formatCurrency(tax_group.base_amount_currency)"/>
+                                    </t>
+                                </span>
+                                <span t-out="formatCurrency(tax_group.tax_amount_currency)" class="ms-auto font-monospace"/>
+                            </div>
+                        </t>
+                    </div>
+                </t>
 
                 <div class="pos-receipt-amount receipt-total fw-bolder d-flex justify-content-between"
                      style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px;">
                     <span class="label-total">TOTAL</span>
-                    <span t-out="formatCurrency(taxTotals.order_sign * taxTotals.order_total)" class="font-monospace"/>
+                    <span t-out="order.currencyDisplayPrice" class="font-monospace"/>
                 </div>
 
                 <div class="paymentlines pt-1">
@@ -113,9 +115,9 @@
                     </t>
                 </div>
 
-                <div t-if="props.order.showChange" class="pos-receipt-amount receipt-change fw-bolder pt-1">
+                <div t-if="order.showChange" class="pos-receipt-amount receipt-change fw-bolder pt-1">
                     <span class="label-change">Cambio</span>
-                    <span t-out="formatCurrency(props.order.orderChange)" class="font-monospace"/>
+                    <span t-out="formatCurrency(order.change)" class="font-monospace"/>
                 </div>
             </t>
         </xpath>
@@ -130,11 +132,8 @@
         <xpath expr="//div[hasclass('gap-2','d-flex','flex-row','pt-3')]" position="replace"/>
         <xpath expr="//div[hasclass('pos-receipt-center-align')]" position="replace"/>
         <xpath expr="//div[hasclass('pos-receipt-order-data', 'd-flex', 'gap-2', 'pt-3')]" position="replace"/>
-        <xpath
-            expr="//div[contains(@class, 'd-flex') and contains(@class, 'gap-2') and contains(@class, 'pt-3') and not(contains(@class, 'flex-row'))]"
-            position="replace"/>
-        <xpath expr="//div[contains(., 'Powered by') and contains(@class, 'pos-receipt-order-data')]"
-               position="replace"/>
+        <xpath expr="//div[hasclass('d-flex', 'gap-2', 'pt-3')]" position="replace"/>
+        <xpath expr="//div[contains(., 'Powered by') and hasclass('pos-receipt-order-data')]" position="replace"/>
 
         <xpath expr="//div[hasclass('after-footer')]" position="before">
             <div class="pos-receipt-center-align pt-4 fw-bolder">
