@@ -11,7 +11,7 @@
     'website': "",
     'category': 'Point of Sale',
     'version': '19.0.1.0.0',
-    'depends': ['point_of_sale',],
+    'depends': ['point_of_sale','todopintura_pos_custom'],
     'assets': {
         'point_of_sale._assets_pos': [
             'todopintura_pos_line_ubication/static/src/js/control_buttons.js',

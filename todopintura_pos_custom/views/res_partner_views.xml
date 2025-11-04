@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_custom_boolean_fields_form" model="ir.ui.view">
+        <field name="name">res.partner.custom.boolean.fields.form.inherit</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <field name="property_product_pricelist" position="after">
+                <field name="voucher" string="Vale"/>
+                <field name="assigned_persons" string="Personas asignadas"/>
+                <field name="assigned_persons_info"
+                       invisible="not assigned_persons"
+                       required="assigned_persons"
+                       placeholder="Información sobre las personas asignadas"/>
+                <field name="credit_sale" string="Venta a crédito"/>
+                <field name="credit_location_id"
+                       string="Ubicación para venta a crédito"
+                       invisible_depends="credit_sale"
+                       invisible="not credit_sale"
+                       options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+</odoo>

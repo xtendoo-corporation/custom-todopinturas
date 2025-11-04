@@ -16,11 +16,17 @@
     'depends': ['point_of_sale', 'l10n_es_pos'],
     'assets': {
         'point_of_sale._assets_pos': [
-
+            'todopintura_pos_custom/static/src/js/partner_line.js',
+            'todopintura_pos_custom/static/src/xml/partner_line.xml',
+            'todopintura_pos_custom/static/src/js/partner_orders_screen.js',
+            'todopintura_pos_custom/static/src/xml/partner_orders_screen.xml',
         ],
     },
     "data": [
         "views/res_config_settings_view.xml",
+        "views/report_sale_credit_document.xml",
+        "views/res_partner_views.xml",
+        "security/ir.model.access.csv",
     ],
     'license': 'LGPL-3',
 }
