@@ -100,28 +100,179 @@ export class PartnerOrdersScreen extends Component {
 
         try {
             const selectedOrders = Array.from(this.state.selectedIds);
+            console.log('[PARTNER ORDERS] Procesando órdenes seleccionadas:', selectedOrders);
 
-            // Cerrar este diálogo
-            this.props.close();
 
-            // También cerrar la pantalla de lista de partners
-            this.posService.closeScreen();
+            // Obtener el pedido actual - En Odoo 19 se accede de forma diferente
+            const pos = this.env.services.pos;
 
-            // Crear nuevo pedido POS
-            const order = this.pos.add_new_order();
-            order.set_partner(this.partner);
+            // Obtener el pedido actual desde el modelo reactivo
+            let currentOrder = null;
+
+            if (pos.selectedOrderUuid && pos.models && pos.models['pos.order']) {
+                currentOrder = pos.models['pos.order'].get(pos.selectedOrderUuid);
+                console.log('[PARTNER ORDERS] Pedido actual obtenido desde selectedOrderUuid');
+            }
+
+            if (!currentOrder) {
+                console.log('[PARTNER ORDERS] Creando nuevo pedido...');
+                // Crear un nuevo pedido
+                if (pos.models && pos.models['pos.order']) {
+                    currentOrder = pos.models['pos.order'].create({});
+                    pos.selectedOrderUuid = currentOrder.uuid;
+                    console.log('[PARTNER ORDERS] Nuevo pedido creado:', currentOrder.uuid);
+                }
+            }
+
+            if (!currentOrder) {
+                console.error('[PARTNER ORDERS] No se pudo obtener ni crear un pedido');
+                this.env.services.notification.add(
+                    'Error: No se pudo crear el pedido en el POS',
+                    { type: "danger" }
+                );
+                return;
+            }
+
+            // Establecer el partner en el pedido actual
+            if (this.partner) {
+                console.log('[PARTNER ORDERS] Estableciendo partner:', this.partner.name);
+
+                // Obtener el partner del modelo reactivo del POS
+                let partnerRecord = null;
+                if (pos.models && pos.models['res.partner']) {
+                    partnerRecord = pos.models['res.partner'].get(this.partner.id);
+                }
+
+                if (partnerRecord) {
+                    currentOrder.partner_id = partnerRecord;
+                    console.log('[PARTNER ORDERS] Partner establecido correctamente');
+                } else {
+                    console.warn('[PARTNER ORDERS] Partner no encontrado en el modelo POS, usando ID directo');
+                    currentOrder.partner_id = this.partner.id;
+                }
+            }
+
+            // Guardar las IDs de las órdenes de venta en el campo general_customer_note para vincularlas después
+            const saleOrderReference = `SALE_ORDERS:${selectedOrders.join(',')}`;
+            if (currentOrder.general_customer_note) {
+                if (!currentOrder.general_customer_note.includes('SALE_ORDERS:')) {
+                    currentOrder.general_customer_note = `${currentOrder.general_customer_note}\n${saleOrderReference}`;
+                }
+            } else {
+                currentOrder.general_customer_note = saleOrderReference;
+            }
+            console.log('[PARTNER ORDERS] Órdenes de venta guardadas en general_customer_note:', selectedOrders);
+            console.log('[PARTNER ORDERS] general_customer_note del pedido:', currentOrder.general_customer_note);
 
             // Procesar cada orden de venta seleccionada
             for (const orderId of selectedOrders) {
-                // Obtener los datos completos de la orden usando el método del PosStore
-                const saleOrder = await this.pos._getSaleOrder(orderId);
+                try {
+                    console.log('[PARTNER ORDERS] Procesando orden de venta:', orderId);
 
-                // Usar el método existente settleSO para procesar cada orden
-                await this.pos.settleSO(saleOrder);
+                    // Obtener los detalles de la orden de venta
+                    const saleOrderData = await this.orm.call(
+                        'sale.order',
+                        'read',
+                        [[orderId], ['order_line', 'name', 'amount_total']]
+                    );
+
+                    if (!saleOrderData || saleOrderData.length === 0) {
+                        console.warn('[PARTNER ORDERS] No se encontró la orden:', orderId);
+                        continue;
+                    }
+
+                    const saleOrder = saleOrderData[0];
+                    console.log('[PARTNER ORDERS] Datos de la orden:', saleOrder);
+
+                    // Obtener las líneas de la orden
+                    const orderLines = await this.orm.call(
+                        'sale.order.line',
+                        'read',
+                        [saleOrder.order_line, ['product_id', 'product_uom_qty', 'price_unit', 'discount', 'tax_ids']]
+                    );
+
+                    console.log('[PARTNER ORDERS] Líneas de la orden:', orderLines);
+
+                    // Agregar cada producto al pedido actual del POS
+                    for (const line of orderLines) {
+                        if (!line.product_id) continue;
+
+                        const productId = Array.isArray(line.product_id) ? line.product_id[0] : line.product_id;
+
+                        // Obtener el producto del modelo
+                        let product = null;
+                        if (pos.models && pos.models['product.product']) {
+                            product = pos.models['product.product'].get(productId);
+                        }
+
+                        if (!product) {
+                            console.warn('[PARTNER ORDERS] Producto no encontrado en POS:', productId);
+                            continue;
+                        }
+
+                        console.log('[PARTNER ORDERS] Agregando producto:', product.display_name);
+
+                        // Crear línea de pedido en el POS
+                        if (currentOrder && pos.models && pos.models['pos.order.line']) {
+                            try {
+                                const posLine = pos.models['pos.order.line'].create({
+                                    order_id: currentOrder.uuid,
+                                    product_id: product,  // Pasar el objeto completo en lugar del ID
+                                    qty: line.product_uom_qty || 1,
+                                    price_unit: line.price_unit || 0,
+                                    discount: line.discount || 0
+                                });
+                                console.log('[PARTNER ORDERS] Línea creada:', posLine);
+                            } catch (lineError) {
+                                console.error('[PARTNER ORDERS] Error al crear línea:', lineError);
+                            }
+                        }
+                    }
+
+                    console.log('[PARTNER ORDERS] ✅ Orden procesada:', saleOrder.name);
+
+                } catch (orderError) {
+                    console.error('[PARTNER ORDERS] Error al procesar orden', orderId, ':', orderError);
+                    console.error('[PARTNER ORDERS] Error message:', orderError.message);
+                    console.error('[PARTNER ORDERS] Error data:', orderError.data);
+
+                    let errorMsg = `Error al procesar la orden ${orderId}`;
+                    if (orderError.data && orderError.data.message) {
+                        errorMsg = `Orden ${orderId}: ${orderError.data.message}`;
+                    }
+
+                    this.env.services.notification.add(errorMsg, { type: "warning" });
+                }
             }
+
+            this.env.services.notification.add(
+                `Se procesaron ${selectedOrders.length} órdenes de venta`,
+                { type: "success" }
+            );
+
+            // Cerrar este diálogo
+            if (this.props.close) {
+                this.props.close();
+            }
+
+            // Cerrar el diálogo de selección de cliente (PartnerListScreen) si está abierto
+            // Navegando directamente a la pantalla de productos
+            if (pos.router && typeof pos.router.navigate === 'function') {
+                // Navegar a la pantalla de productos
+                pos.router.navigate({ screen: 'ProductScreen' });
+                console.log('[PARTNER ORDERS] Navegando a ProductScreen');
+            } else if (pos.showScreen && typeof pos.showScreen === 'function') {
+                // Método alternativo para cambiar de pantalla
+                pos.showScreen('ProductScreen');
+                console.log('[PARTNER ORDERS] Mostrando ProductScreen (método alternativo)');
+            }
+
         } catch (error) {
-            console.error("Error al procesar las órdenes:", error);
-            this.env.services.notification.add(error.message, { type: "danger" });
+            console.error("[PARTNER ORDERS] Error al procesar las órdenes:", error);
+            this.env.services.notification.add(
+                `Error al procesar las órdenes: ${error.message}`,
+                { type: "danger" }
+            );
         }
     }
 
