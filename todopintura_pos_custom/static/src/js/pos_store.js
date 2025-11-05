@@ -11,11 +11,12 @@ const originalSetup = PosStore.prototype.setup;
 patch(PosStore.prototype, {
 
     async selectPartner() {
-        const currentOrder = this.get_order();
+        // Obtener la orden actual usando la API de Odoo 19
+        const currentOrder = this.models["pos.order"].get(this.selectedOrderUuid);
         if (!currentOrder) {
             return false;
         }
-        const currentPartner = currentOrder.get_partner();
+        const currentPartner = currentOrder.partner_id;
         if (currentPartner && currentOrder.getHasRefundLines()) {
             this.dialog.add(AlertDialog, {
                 title: _t("Can't change customer"),
@@ -28,16 +29,21 @@ patch(PosStore.prototype, {
         }
         const payload = await makeAwaitable(this.dialog, PartnerList, {
             partner: currentPartner,
-            getPayload: (newPartner) => currentOrder.set_partner(newPartner),
+            getPayload: (newPartner) => {
+                currentOrder.partner_id = newPartner;
+                return newPartner;
+            },
         });
 
 
         let newPartner = false;
         if (payload) {
-        // Verificar si el cliente tiene personas asignadas
+        // Verificar si el cliente tiene personas asignadas o vales
         console.log("Payload:", payload);
         const tienePersonasAsignadas = payload.assigned_persons_info;
+        const tieneVales = payload.voucher;
         console.log("Tiene personas asignadas:", tienePersonasAsignadas);
+        console.log("Tiene vales:", tieneVales);
         console.log("Campo voucher:", payload.voucher);
         console.log("Campo assigned_persons:", payload.assigned_persons);
         console.log("Campo credit_sale:", payload.credit_sale);
@@ -72,7 +78,8 @@ patch(PosStore.prototype, {
                 });
             }
         }
-    if (tienePersonasAsignadas) {
+    // Mostrar el diálogo si tiene personas asignadas O vales
+    if (tienePersonasAsignadas || tieneVales) {
         try {
             // Verificamos qué servicios están disponibles
             console.log("this.dialog:", this.dialog);
@@ -82,7 +89,7 @@ patch(PosStore.prototype, {
             const option = await new Promise(resolve => {
                 this.dialog.add(CouponAndAssignedPeopleDialog, {
                     partner: payload,
-                    assignedPeopleInfo: tienePersonasAsignadas, // Pasamos la información de personas asignadas
+                    assignedPeopleInfo: tienePersonasAsignadas || false, // Pasamos la información de personas asignadas o false
                     confirm: resolve,
                     close: () => resolve(false)
                 });
@@ -97,9 +104,9 @@ patch(PosStore.prototype, {
     }
 
         newPartner = payload;
-        currentOrder.set_partner(newPartner);
+        currentOrder.partner_id = newPartner;
     } else {
-        currentOrder.set_partner(false);
+        currentOrder.partner_id = false;
     }
 
     return currentPartner;
@@ -123,7 +130,11 @@ patch(PosStore.prototype, {
     },
 
     async getProductInfo(product, quantity, priceExtra = 0) {
-        const order = this.get_order();
+        // Obtener la orden actual usando la API de Odoo 19
+        const order = this.models["pos.order"].get(this.selectedOrderUuid);
+        if (!order) {
+            return { productInfo: null };
+        }
 
         // Mantenemos la llamada al backend para obtener información del producto
         const productInfo = await this.data.call("product.product", "get_product_info_pos", [
@@ -143,20 +154,11 @@ patch(PosStore.prototype, {
             const url = new URL(window.location.href);
             url.searchParams.delete("from_backend");
             window.history.replaceState({}, "", url);
-
-            // Asigna el cajero automáticamente si no está asignado
-            if (!this.config.module_pos_hr || !this.cashier) {
-                this.set_cashier(this.user);
-            }
         }
         return "ProductScreen";
     },
     async setup() {
         await originalSetup.call(this, ...arguments);
-        // Asigna el cajero automáticamente si no está asignado
-        if (this.config.module_pos_hr && !this.cashier) {
-            this.set_cashier(this.user);
-        }
         this.employeeBuffer = [];
         window.addEventListener("online", () => {
             this.employeeBuffer.forEach((employee) =>

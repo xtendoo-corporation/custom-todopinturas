@@ -21,7 +21,7 @@ export class LocationLineDialog extends Dialog {
         super.setup();
         this.state = useState({
             selectedLocationId: this.props.currentLocationId ||
-                (this.props.locations.length > 0 ? this.props.locations[0].id : null),
+                (this.props.locations.length > 0 ? this.props.locations[0].id : 0),
         });
     }
 

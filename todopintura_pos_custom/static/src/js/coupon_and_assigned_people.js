@@ -14,7 +14,7 @@ export class CouponAndAssignedPeopleDialog extends Dialog {
         confirm: Function,
         close: Function,
         slots: { type: Array, optional: true },
-        assignedPeopleInfo: { type: String, optional: true },
+        assignedPeopleInfo: { type: [String, { value: false }], optional: true },
     };
 
     setup() {
@@ -32,6 +32,17 @@ export class CouponAndAssignedPeopleDialog extends Dialog {
 
     get assignedPeopleText() {
         return this.props.assignedPeopleInfo || '';
+    }
+
+    get hasVoucher() {
+        return this.props.partner && this.props.partner.voucher === true;
+    }
+
+    get voucherText() {
+        if (this.hasVoucher) {
+            return _t('Este cliente tiene vales disponibles para usar en sus compras');
+        }
+        return '';
     }
 }
 

@@ -4,26 +4,29 @@ import { patch } from "@web/core/utils/patch";
 
 patch(PosOrderline.prototype, {
     setup() {
+        super.setup(...arguments);
         this.locationData = {
             id: null,
             name: ""
         };
-        return super.setup(...arguments);
     },
 
-   set_location(locationId, locationName) {
-        this.order_id.assert_editable();
-
-        // Guardar datos en una propiedad separada de los props validados por Owl
+    set_location(locationId, locationName) {
+        // Guardar datos de ubicación
         this.locationData = {
             id: locationId ? Number(locationId) : null,
             name: locationName || ""
         };
-        this.setDirty();
+
+        // En Odoo 19, marcar como dirty se hace automáticamente al modificar propiedades
+        if (this._dirty !== undefined) {
+            this._dirty = true;
+        }
+
         return this;
     },
 
-     getDisplayData() {
+    getDisplayData() {
         const data = super.getDisplayData();
         if (this.locationData && this.locationData.name) {
             data.locationName = this.locationData.name;
