@@ -20,6 +20,9 @@
             'todopintura_pos_custom/static/src/xml/partner_line.xml',
             'todopintura_pos_custom/static/src/js/partner_orders_screen.js',
             'todopintura_pos_custom/static/src/xml/partner_orders_screen.xml',
+            # 'todopintura_pos_custom/static/src/js/coupon_and_assigned_people.js',
+            # 'todopintura_pos_custom/static/src/xml/coupon_and_assigned_people.xml',
+            # 'todopintura_pos_custom/static/src/js/pos_store.js',
         ],
     },
     "data": [

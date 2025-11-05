@@ -151,8 +151,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <t t-if="o.has_packages" name="has_packages">
-                                <t t-set="packages" t-value="o.move_line_ids.mapped('result_package_id')"/>
+                            <t t-set="has_packages" t-value="o.move_line_ids.mapped('result_package_id')"/>
+                            <t t-if="has_packages" name="has_packages">
+                                <t t-set="packages" t-value="has_packages"/>
                                 <t t-foreach="packages" t-as="package">
                                     <!-- Llamadas a bloques correspondientes por paquete -->
                                 </t>
@@ -171,33 +172,34 @@
                                     </tr>
                                 </t>
                                 <t t-else="" name="aggregated_move_lines">
-                                    <t t-set="aggregated_lines"
-                                       t-value="o.move_line_ids._get_aggregated_product_quantities()"/>
-                                    <tr t-foreach="aggregated_lines.keys()" t-as="line">
+                                    <tr t-foreach="o.move_ids.filtered(lambda x: x.product_uom_qty)" t-as="move">
                                         <td>
-                                            <span t-esc="aggregated_lines[line]['product'].name"/>
+                                            <span t-field="move.product_id"/>
+                                            <p t-if="move.description_picking and move.description_picking != move.product_id.name and move.description_picking != move.product_id.display_name">
+                                                <span t-field="move.description_picking"/>
+                                            </p>
                                         </td>
                                         <td class="text-center">
-                                            <span t-esc="aggregated_lines[line]['qty_ordered']"/>
+                                            <span t-field="move.product_uom_qty"/>
+                                            <span t-field="move.product_uom" groups="uom.group_uom"/>
                                         </td>
                                         <td class="text-center">
-                                            <span t-esc="aggregated_lines[line]['qty_done']"/>
+                                            <span t-field="move.quantity"/>
+                                            <span t-field="move.product_uom" groups="uom.group_uom"/>
                                         </td>
                                         <t t-if="o.partner_id.valued_picking">
                                             <td class="text-center">
-                                                <t t-set="move_obj"
-                                                   t-value="env['stock.move'].search([('product_id', '=', aggregated_lines[line]['product'].id), ('picking_id', '=', o.id)], limit=1)"/>
                                                 <t t-set="price_unit"
-                                                   t-value="move_obj.sale_line_id.price_unit if move_obj.sale_line_id else 0.0"/>
+                                                   t-value="move.sale_line_id.price_unit if move.sale_line_id else 0.0"/>
                                                 <t t-set="discount"
-                                                   t-value="move_obj.sale_line_id.discount if move_obj.sale_line_id else 0.0"/>
+                                                   t-value="move.sale_line_id.discount if move.sale_line_id else 0.0"/>
                                                 <t t-set="price_with_discount"
                                                    t-value="price_unit * (1 - discount / 100) if discount else price_unit"/>
                                                 <span t-esc="price_with_discount"
                                                       t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
                                             </td>
                                             <td class="text-center">
-                                                <span t-esc="price_with_discount * aggregated_lines[line]['qty_done']"
+                                                <span t-esc="price_with_discount * move.quantity"
                                                       t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
                                             </td>
                                         </t>

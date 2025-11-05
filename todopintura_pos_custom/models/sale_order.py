@@ -12,20 +12,11 @@ class SaleOrder(models.Model):
 
     @api.model
     def create_sale_from_pos(self, sale_data):
-        """Crea una orden de venta desde el POS y valida el albarán"""
+        """Crea una orden de venta desde el POS y valida el albarán automáticamente"""
         # Extraer y eliminar flags
         auto_validate = sale_data.pop('auto_validate_picking', False)
         custom_location_id = sale_data.pop('custom_location_id', False)
 
-        # Verificar si el cliente tiene venta a crédito habilitada
-        partner_id = sale_data.get('partner_id')
-        skip_validation = False
-        if partner_id:
-            partner = self.env['res.partner'].browse(partner_id)
-            if partner.exists() and partner.credit_sale and partner.credit_location_id:
-                skip_validation = True
-                _logger.info(
-                    f"Cliente {partner.name} tiene venta a crédito y ubicación asignada, no se validará el albarán")
 
         # Extraer ID del empleado cajero
         employee_cashier_id = sale_data.pop('employee_cashier_id', False)
@@ -66,8 +57,10 @@ class SaleOrder(models.Model):
         else:
             sale_order.with_context(**no_mail_context).action_confirm()
 
-        # Si se requiere validación automática del albarán y el cliente no tiene venta a crédito
-        if auto_validate and sale_order.picking_ids and not skip_validation:
+        # VALIDAR SIEMPRE EL ALBARÁN AUTOMÁTICAMENTE
+        if auto_validate and sale_order.picking_ids:
+            _logger.info(f"[SALE ORDER] Validando automáticamente {len(sale_order.picking_ids)} albaranes para orden {sale_order.name}")
+
             for picking in sale_order.picking_ids:
                 # Si hay un cajero específico, asignarlo como responsable del albarán
                 if cashier_id:
@@ -129,39 +122,6 @@ class SaleOrder(models.Model):
                             picking.with_user(cashier_id).with_context(**no_mail_context).button_validate()
                         else:
                             picking.with_context(**no_mail_context).button_validate()
-        # Si el cliente tiene venta a crédito, solo reservamos pero no validamos
-        elif auto_validate and sale_order.picking_ids and skip_validation:
-            for picking in sale_order.picking_ids:
-                # Asignar responsable y ubicación igual que antes
-                if cashier_id:
-                    picking.user_id = cashier_id
-                    picking.write({'user_id': cashier_id})
-
-                # Configurar ubicación igual que antes
-                if custom_location_id:
-                    custom_location = self.env['stock.location'].browse(custom_location_id)
-                    if custom_location.exists():
-                        picking.location_id = custom_location.id
-                        for move in picking.move_ids:
-                            if move.state not in ('done', 'cancel'):
-                                move.location_id = custom_location.id
-                elif warehouse_id:
-                    warehouse = self.env['stock.warehouse'].browse(warehouse_id)
-                    if warehouse.exists():
-                        stock_location = warehouse.lot_stock_id
-                        if stock_location:
-                            picking.location_id = stock_location.id
-                            for move in picking.move_ids:
-                                if move.state not in ('done', 'cancel'):
-                                    move.location_id = stock_location.id
-
-                # Solo reservar pero no validar
-                if cashier_id:
-                    picking.with_user(cashier_id).with_context(**no_mail_context).action_assign()
-                else:
-                    picking.with_context(**no_mail_context).action_assign()
-
-                _logger.info(f"Albarán {picking.name} reservado pero no validado por venta a crédito")
 
         return {
             'id': sale_order.id,
