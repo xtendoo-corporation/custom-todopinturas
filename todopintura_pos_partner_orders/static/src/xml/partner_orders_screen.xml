@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="todopintura_pos_custom.PartnerOrdersScreen" owl="1">
+        <Dialog title="props.title" size="'lg'" contentClass="'p-0'">
+            <div class="orders-container flex-grow-1 overflow-auto p-3">
+                <!-- Estado de carga -->
+                <div t-if="state.loading" class="d-flex justify-content-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+
+                <!-- Mensaje de error -->
+                <div t-elif="state.error" class="d-flex flex-column align-items-center justify-content-center p-5">
+                    <i class="fa fa-exclamation-triangle fa-4x mb-3 text-danger"></i>
+                    <p class="text-danger fw-bold">Error al cargar los pedidos</p>
+                    <p class="text-center" t-if="state.errorMessage"><t t-esc="state.errorMessage"/></p>
+                    <button class="btn btn-primary mt-3" t-on-click="loadOrders">
+                        <i class="fa fa-refresh me-1"></i> Intentar de nuevo
+                    </button>
+                </div>
+
+                <!-- Lista de pedidos -->
+                <t t-elif="state.pedidos.length > 0">
+                    <div class="header-row d-flex text-bg-700 fw-bolder">
+                        <div class="col-1 p-2">
+                            <input type="checkbox"
+                                   class="form-check-input"
+                                   t-att-checked="isAllSelected"
+                                   t-on-change="toggleSelectAll" />
+                        </div>
+                        <div class="col-3 p-2">Fecha</div>
+                        <div class="col-3 p-2">Referencia</div>
+                        <div class="col-3 p-2">Total</div>
+                        <div class="col-2 p-2">Estado</div>
+                    </div>
+
+                    <t t-foreach="state.pedidos" t-as="pedido" t-key="pedido.id">
+                        <div class="order-row d-flex border-bottom align-items-center"
+                             t-att-class="{ 'bg-light': isSelected(pedido.id) }">
+                            <div class="col-1 p-2">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       t-att-checked="isSelected(pedido.id)"
+                                       t-on-change="() => toggleSelect(pedido.id)" />
+                            </div>
+                            <div class="col-3 p-2"><t t-esc="formatDate(pedido.date_order)" /></div>
+                            <div class="col-3 p-2"><t t-esc="pedido.pos_reference || pedido.name" /></div>
+                            <div class="col-3 p-2"><t t-esc="formatCurrency(pedido.amount_total)" /></div>
+                            <div class="col-2 p-2"><t t-esc="traducirEstado(pedido.state)" /></div>
+                        </div>
+                    </t>
+                </t>
+
+                <!-- Sin pedidos -->
+                <div t-else="" class="no-orders d-flex flex-column align-items-center justify-content-center p-5">
+                    <i class="fa fa-shopping-cart fa-4x mb-3 text-muted"></i>
+                    <p class="text-muted">Este cliente no tiene pedidos registrados</p>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <div class="d-flex justify-content-between w-100">
+                    <div>
+                        <button class="btn btn-primary"
+                                t-if="hasSelectedOrders"
+                                t-on-click="processSelectedOrders">
+                            Procesar Seleccionados (<t t-esc="selectedCount" />)
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary" t-on-click="props.close">
+                        Cerrar
+                    </button>
+                </div>
+            </t>
+        </Dialog>
+    </t>
+</templates>

@@ -5,7 +5,7 @@ import { registry } from "@web/core/registry";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 
 export class LocationSelectionDialog extends Dialog {
-    static template = 'todopintura_pos_line_ubication.LocationSelectionDialog';
+    static template = 'todopintura_pos_line_location.LocationSelectionDialog';
     static components = { Dialog };
     static props = {
         ...Dialog.props,

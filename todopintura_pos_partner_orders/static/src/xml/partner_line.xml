@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="todopintura_pos_custom.PartnerLine" t-inherit="point_of_sale.PartnerLine" t-inherit-mode="extension" owl="1">
+
+        <!-- Añadir en la vista móvil -->
+        <xpath expr="//t[@t-if='ui.isSmall']//Dropdown//t[@t-set-slot='content']//DropdownItem[last()]" position="after">
+            <DropdownItem t-if="props.partner.credit_sale" onSelected="() => this.showCreditSales(props.partner)">
+                <i class="fa fa-fw fa-credit-card me-2 text-warning"/>Ventas a crédito
+            </DropdownItem>
+        </xpath>
+
+        <!-- Añadir en la vista normal -->
+        <xpath expr="//t[@t-else='']//Dropdown//t[@t-set-slot='content']//DropdownItem[last()]" position="after">
+            <DropdownItem t-if="props.partner.credit_sale" onSelected="() => this.showCreditSales(props.partner)">
+                <i class="fa fa-fw fa-credit-card me-2 text-warning"/>Ventas a crédito
+            </DropdownItem>
+        </xpath>
+
+    </t>
+</templates>

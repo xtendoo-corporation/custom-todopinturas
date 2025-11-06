@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="todopintura_pos_partner_info.CouponAndAssignedPeopleDialog" owl="1">
+        <Dialog title="'Información del cliente'" size="'md'">
+            <div class="p-3">
+                <p t-if="assignedPeopleText or hasVoucher">
+                    El cliente <strong t-esc="props.partner.name"></strong> tiene la siguiente información:
+                </p>
+
+                <!-- Información de personas asignadas -->
+                <div t-if="assignedPeopleText" class="mt-3 p-3 border rounded bg-light">
+                    <h6 class="mb-2"><i class="fa fa-users me-2"></i>Personas asignadas:</h6>
+                    <p t-esc="assignedPeopleText" class="mb-0"></p>
+                </div>
+
+                <!-- Información de vales disponibles -->
+                <div t-if="hasVoucher" class="mt-3 p-3 border rounded" style="background-color: #e7f3ff;">
+                    <h6 class="mb-2"><i class="fa fa-ticket me-2"></i>Vales disponibles:</h6>
+                    <p t-esc="voucherText" class="mb-0" style="color: #0066cc;"></p>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-secondary" t-on-click="onClickCancel">Cancelar</button>
+                <button class="btn btn-primary" t-on-click="onClickConfirm">Confirmar</button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

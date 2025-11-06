@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
-    <t t-name="todopintura_pos_line_ubication.ActionPadExtension" t-inherit="point_of_sale.ActionpadWidget"
+    <t t-name="todopintura_pos_line_location.ActionPadExtension" t-inherit="point_of_sale.ActionpadWidget"
        t-inherit-mode="extension">
         <xpath expr="//button[hasclass('pay')]" position="after">
             <button

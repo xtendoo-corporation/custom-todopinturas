@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_pos_info" model="ir.ui.view">
+        <field name="name">res.partner.form.pos.info</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook/page[@name='sales_purchases']" position="after">
+                <page string="Punto de Venta" name="pos_info">
+                    <group>
+                        <group string="Vales y Personas Asignadas">
+                            <field name="voucher"/>
+                            <field name="assigned_persons"/>
+                            <field name="assigned_persons_info"
+                                   invisible="not assigned_persons"
+                                   placeholder="Ingrese información sobre las personas asignadas..."/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

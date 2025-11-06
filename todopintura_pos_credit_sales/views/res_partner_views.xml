@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_credit_sales" model="ir.ui.view">
+        <field name="name">res.partner.form.credit.sales</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook/page[@name='sales_purchases']" position="after">
+                <page string="Ventas a Crédito" name="credit_sales">
+                    <group>
+                        <group string="Configuración de Crédito">
+                            <field name="credit_sale"/>
+                            <field name="credit_location_id"
+                                   invisible="not credit_sale"
+                                   options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+
