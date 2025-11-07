@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista de formulario de categoría de producto -->
+    <record id="product_category_form_view_inherit_custom_price" model="ir.ui.view">
+        <field name="name">product.category.form.custom.price</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='first']" position="after">
+                <group string="Punto de Venta">
+                    <field name="pos_require_custom_price"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

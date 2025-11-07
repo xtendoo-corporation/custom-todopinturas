@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Popup para introducir precio personalizado -->
+    <t t-name="todopintura_pos_custom_price.CustomPricePopup" owl="1">
+        <Dialog title="'Introducir Precio Personalizado'" size="'md'">
+            <div class="popup-custom-price">
+                <div class="mb-3">
+                    <p class="text-center mb-3">
+                        <strong>Producto:</strong> <t t-esc="props.product.display_name"/>
+                    </p>
+                    <p class="text-muted text-center mb-4">
+                        Por favor, introduce el precio personalizado para este producto
+                    </p>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label for="custom_price" class="form-label">
+                        <strong>Precio (€)</strong>
+                    </label>
+                    <input
+                        type="number"
+                        class="form-control form-control-lg text-end"
+                        id="custom_price"
+                        t-model="state.customPrice"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        t-ref="priceInput"
+                        style="font-size: 1.5rem; font-weight: bold;"
+                    />
+                </div>
+
+                <div class="alert alert-info" t-if="state.discountInfo">
+                    <p class="mb-1">
+                        <i class="fa fa-info-circle me-2"></i>
+                        <strong>Información de descuento:</strong>
+                    </p>
+                    <p class="mb-0" t-esc="state.discountInfo"/>
+                </div>
+            </div>
+
+            <t t-set-slot="footer">
+                <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-secondary" t-on-click="() => props.close()">
+                        Cancelar
+                    </button>
+                    <button
+                        class="btn btn-primary"
+                        t-on-click="confirmPrice"
+                        t-att-disabled="!state.customPrice or state.customPrice &lt;= 0">
+                        Confirmar
+                    </button>
+                </div>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>
+
