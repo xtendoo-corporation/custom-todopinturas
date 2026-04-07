@@ -1,8 +1,11 @@
 from odoo import api, fields, models
 import base64
-import xlrd
 from odoo.exceptions import UserError
 import io
+try:
+    import xlrd
+except ImportError:
+    xlrd = None
 try:
     import openpyxl
 except ImportError:
@@ -15,6 +18,142 @@ class ImportContactsWizard(models.TransientModel):
 
     file = fields.Binary('Subir archivo XLS o XLSX', required=True)
     file_name = fields.Char('Nombre del archivo')
+
+    @api.model
+    def _sanitize_import_text(self, value):
+        if value is None:
+            return ''
+        text = value.strip() if isinstance(value, str) else str(value).strip()
+        return '' if text and all(char == '*' for char in text) else text
+
+    @api.model
+    def _normalize_contact_vat(self, nif):
+        nif = self._sanitize_import_text(nif).upper()
+        if not nif:
+            return '', 'ES'
+
+        nif = ''.join(char for char in nif if char.isalnum())
+        country_code = nif[:2] if nif[:2].isalpha() else 'ES'
+        vat_number = nif[2:] if nif[:2].isalpha() else nif
+        if not vat_number:
+            return '', country_code
+        return f"{country_code}{vat_number}", country_code
+
+    @api.model
+    def _normalize_iban(self, iban):
+        iban = self._sanitize_import_text(iban).upper()
+        return ''.join(char for char in iban if char.isalnum())
+
+    @api.model
+    def _parse_credit_limit(self, value):
+        if value in (None, 0, 0.0, False):
+            return None
+        if isinstance(value, (int, float)):
+            return value
+
+        value = self._sanitize_import_text(value)
+        if not value:
+            return None
+
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @api.model
+    def _find_existing_contact(self, num_client, name, vat, iban=None):
+        partner_model = self.env['res.partner'].with_context(active_test=False)
+        base_domain = [('parent_id', '=', False), ('is_company', '=', True)]
+
+        search_domains = []
+        if num_client not in ['', None]:
+            search_domains.append(base_domain + [('ref', '=', num_client)])
+        if vat:
+            search_domains.append(base_domain + [('vat', '=', vat)])
+        if num_client not in ['', None] and name:
+            search_domains.append(base_domain + [('ref', '=', num_client), ('name', '=', name)])
+        if vat and name:
+            search_domains.append(base_domain + [('vat', '=', vat), ('name', '=', name)])
+
+        for domain in search_domains:
+            contact = partner_model.search(domain, limit=1)
+            if contact:
+                return contact
+
+        normalized_iban = self._normalize_iban(iban)
+        if normalized_iban:
+            bank_record = self.env['res.partner.bank'].with_context(active_test=False).search([
+                ('acc_number', '=', normalized_iban),
+            ], limit=1)
+            if bank_record:
+                return bank_record.partner_id.commercial_partner_id
+
+        return partner_model.browse()
+
+    @api.model
+    def _create_or_update_contact(self, num_client, name, record, iban=None):
+        contact = self._find_existing_contact(num_client, name, record.get('vat'), iban=iban)
+
+        try:
+            if contact:
+                contact.write(record)
+                print(f"Contacto actualizado: {contact.name}")
+            else:
+                contact = self.env['res.partner'].create(record)
+                print(f"Contacto creado: {name}")
+        except Exception as e:
+            print(f"Error al actualizar o crear el contacto: {e}")
+            fallback_record = dict(record, vat='')
+            contact = contact or self._find_existing_contact(num_client, name, record.get('vat'), iban=iban)
+            if contact:
+                contact.write(fallback_record)
+            else:
+                contact = self.env['res.partner'].create(fallback_record)
+
+        return contact
+
+    @api.model
+    def _ensure_bank_account(self, contact, iban):
+        normalized_iban = self._normalize_iban(iban)
+        if not normalized_iban or not contact:
+            return
+
+        bank_model = self.env['res.partner.bank'].with_context(active_test=False)
+        existing_bank_record = bank_model.search([
+            ('acc_number', '=', normalized_iban),
+            ('partner_id', '=', contact.id)
+        ], limit=1)
+        print("Contact ID 2: ", contact.id)
+        if not existing_bank_record:
+            existing_bank_record = bank_model.search([
+                ('acc_number', '=', normalized_iban),
+            ], limit=1)
+
+        if not existing_bank_record:
+            self.env['res.partner.bank'].create({
+                'acc_number': normalized_iban,
+                'partner_id': contact.id
+            })
+            print("Contact ID 3: ", contact.id)
+            print(f"Cuenta bancaria creada: {normalized_iban} para {contact.name}")
+        else:
+            print(
+                f"La cuenta bancaria con IBAN: {normalized_iban} ya existe para {existing_bank_record.partner_id.name}. No se crea una nueva.")
+
+    @api.model
+    def _prepare_contact_record(self, num_client, name, address, cp, telefono, vat, email, notes, country_id):
+        return {
+            'ref': num_client,
+            'name': name,
+            'street': address,
+            'zip': cp,
+            'country_id': country_id.id,
+            'phone': telefono,
+            'vat': vat,
+            'email': email,
+            'comment': notes,
+            'is_company': True,
+        }
 
     def action_import_contacts(self):
         if not self.file:
@@ -110,7 +249,6 @@ class ImportContactsWizard(models.TransientModel):
         if self.file_name:
             ext = self.file_name.split('.')[-1].lower()
         data = base64.b64decode(self.file)
-        # Detección por cabecera si la extensión no es fiable
         if not ext or ext not in ['xls', 'xlsx']:
             if data[:2] == b'PK':
                 ext = 'xlsx'
@@ -125,29 +263,34 @@ class ImportContactsWizard(models.TransientModel):
             wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
             sheet = wb.active
         elif ext == 'xls':
+            if not xlrd:
+                raise UserError("Falta la librería xlrd para procesar archivos .xls. Por favor, instálala.")
             book = xlrd.open_workbook(file_contents=data)
             sheet = book.sheet_by_index(0)
         else:
             raise UserError("Formato de archivo no soportado. Usa .xls o .xlsx")
 
+        country_id = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        if not country_id:
+            raise UserError("País 'España' no encontrado en la base de datos.")
+
         if is_xlsx:
             for row in sheet.iter_rows(min_row=2, values_only=True):
                 num_client = int(row[0]) if row[0] else ''
-                name = row[1] or ''
-                address = row[2] or ''
+                name = self._sanitize_import_text(row[1])
+                address = self._sanitize_import_text(row[2])
                 cp_value = row[3]
-                cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
+                cp = self._sanitize_import_text(str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else '')
                 telefono_value = row[4]
-                telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
-                nif = str(row[6]).strip() if row[6] else ''
+                telefono = self._sanitize_import_text(str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else '')
+                nif = self._sanitize_import_text(row[6])
                 try:
                     forma_pago = str(int(row[8])) if row[8] else ''
-                except ValueError:
+                except (ValueError, TypeError):
                     forma_pago = ''
-                email = str(row[23]).strip() if len(row) > 23 and row[23] else ''
-                credit_limit = row[11] if len(row) > 11 else None
-                credit_limit = credit_limit if credit_limit not in [None, 0] else None
-                iban = row[14].strip() if len(row) > 14 and row[14] else None
+                email = self._sanitize_import_text(row[23]) if len(row) > 23 else ''
+                credit_limit = self._parse_credit_limit(row[11] if len(row) > 11 else None)
+                iban = self._sanitize_import_text(row[14]) if len(row) > 14 else ''
                 observation1 = str(row[19]).strip() if len(row) > 19 and row[16] is not None else ''
                 observation2 = str(row[20]).strip() if len(row) > 20 and row[17] is not None else ''
                 observation3 = str(row[21]).strip() if len(row) > 21 and row[18] is not None else ''
@@ -162,30 +305,9 @@ class ImportContactsWizard(models.TransientModel):
                     print("Todos los datos están vacíos. Terminando la importación.")
                     break
 
-                observations = [
-                    observation1,
-                    observation2,
-                    observation3,
-                    observation4,
-                ]
-                notes = "<br/>".join(filter(None, observations))
-
-                country_id = self.env['res.country'].search([('name', '=', 'España')], limit=1)
-                if not country_id:
-                    raise UserError("País 'España' no encontrado en la base de datos.")
-
-                record = {
-                    'ref': num_client,
-                    'name': name,
-                    'street': address,
-                    'zip': cp,
-                    'country_id': country_id.id,
-                    'phone': telefono,
-                    'vat': f"ES{nif}" if nif else '',
-                    'email': email,
-                    'comment': notes,
-                    'is_company': True,
-                }
+                notes = "<br/>".join(filter(None, [observation1, observation2, observation3, observation4]))
+                vat, _country_code = self._normalize_contact_vat(nif)
+                record = self._prepare_contact_record(num_client, name, address, cp, telefono, vat, email, notes, country_id)
 
                 if credit_limit is not None:
                     record['use_partner_credit_limit'] = True
@@ -201,62 +323,27 @@ class ImportContactsWizard(models.TransientModel):
                     else:
                         print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
 
-                contact = self.env['res.partner'].search([('ref', '=', num_client), ('name', '=', name)], limit=1)
-
-                if contact:
-                    try:
-                        contact.write(record)
-                        print(f"Contacto actualizado: {contact.name}")
-                    except Exception as e:
-                        record['vat'] = ''
-                        contact.write(record)
-                        print(f"Error al actualizar NIF, se ha puesto vacío: {str(e)}")
-                else:
-                    try:
-                        self.env['res.partner'].create(record)
-                        print(f"Contacto creado: {name}")
-                    except Exception as e:
-                        record['vat'] = ''
-                        self.env['res.partner'].create(record)
-                        print(f"Error al crear NIF, se ha puesto vacío: {str(e)}")
-
+                contact = self._create_or_update_contact(num_client, name, record, iban=iban)
                 self.env.cr.flush()
-                contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
                 print("Contact ID: ", contact.id)
-                if iban:
-                    existing_bank_record = self.env['res.partner.bank'].search([
-                        ('acc_number', '=', iban),
-                        ('partner_id', '=', contact.id)
-                    ], limit=1)
-                    print("Contact ID 2: ", contact.id)
-                    if not existing_bank_record:
-                        self.env['res.partner.bank'].create({
-                            'acc_number': iban,
-                            'partner_id': contact.id
-                        })
-                        print("Contact ID 3: ", contact.id)
-                        print(f"Cuenta bancaria creada: {iban} para {contact.name}")
-                    else:
-                        print(
-                            f"La cuenta bancaria con IBAN: {iban} ya existe para {contact.name}. No se crea una nueva.")
+                self._ensure_bank_account(contact, iban)
         else:
             for row in range(1, sheet.nrows):
                 num_client = int(sheet.cell(row, 0).value) if sheet.cell(row, 0).value else ''
-                name = sheet.cell(row, 1).value or ''
-                address = sheet.cell(row, 2).value or ''
+                name = self._sanitize_import_text(sheet.cell(row, 1).value)
+                address = self._sanitize_import_text(sheet.cell(row, 2).value)
                 cp_value = sheet.cell(row, 3).value
-                cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
+                cp = self._sanitize_import_text(str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else '')
                 telefono_value = sheet.cell(row, 4).value
-                telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
-                nif = str(sheet.cell(row, 6).value).strip() if sheet.cell(row, 6).value else ''
+                telefono = self._sanitize_import_text(str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else '')
+                nif = self._sanitize_import_text(sheet.cell(row, 6).value)
                 try:
                     forma_pago = str(int(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value else ''
-                except ValueError:
+                except (ValueError, TypeError):
                     forma_pago = ''
-                email = str(sheet.cell(row, 23).value).strip() if sheet.cell(row, 23).value else ''
-                credit_limit = sheet.cell(row, 11).value
-                credit_limit = credit_limit if credit_limit not in [None, 0] else None
-                iban = sheet.cell(row, 14).value.strip() if sheet.cell(row, 14).value else None
+                email = self._sanitize_import_text(sheet.cell(row, 23).value)
+                credit_limit = self._parse_credit_limit(sheet.cell(row, 11).value)
+                iban = self._sanitize_import_text(sheet.cell(row, 14).value)
                 observation1 = str(sheet.cell(row, 19).value).strip() if sheet.cell(row, 16).value is not None else ''
                 observation2 = str(sheet.cell(row, 20).value).strip() if sheet.cell(row, 17).value is not None else ''
                 observation3 = str(sheet.cell(row, 21).value).strip() if sheet.cell(row, 18).value is not None else ''
@@ -271,30 +358,9 @@ class ImportContactsWizard(models.TransientModel):
                     print("Todos los datos están vacíos. Terminando la importación.")
                     break
 
-                observations = [
-                    observation1,
-                    observation2,
-                    observation3,
-                    observation4,
-                ]
-                notes = "<br/>".join(filter(None, observations))
-
-                country_id = self.env['res.country'].search([('name', '=', 'España')], limit=1)
-                if not country_id:
-                    raise UserError("País 'España' no encontrado en la base de datos.")
-
-                record = {
-                    'ref': num_client,
-                    'name': name,
-                    'street': address,
-                    'zip': cp,
-                    'country_id': country_id.id,
-                    'phone': telefono,
-                    'vat': f"ES{nif}" if nif else '',
-                    'email': email,
-                    'comment': notes,
-                    'is_company': True,
-                }
+                notes = "<br/>".join(filter(None, [observation1, observation2, observation3, observation4]))
+                vat, _country_code = self._normalize_contact_vat(nif)
+                record = self._prepare_contact_record(num_client, name, address, cp, telefono, vat, email, notes, country_id)
 
                 if credit_limit is not None:
                     record['use_partner_credit_limit'] = True
@@ -310,41 +376,7 @@ class ImportContactsWizard(models.TransientModel):
                     else:
                         print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
 
-                contact = self.env['res.partner'].search([('ref', '=', num_client), ('name', '=', name)], limit=1)
-
-                if contact:
-                    try:
-                        contact.write(record)
-                        print(f"Contacto actualizado: {contact.name}")
-                    except Exception as e:
-                        record['vat'] = ''
-                        contact.write(record)
-                        print(f"Error al actualizar NIF, se ha puesto vacío: {str(e)}")
-                else:
-                    try:
-                        self.env['res.partner'].create(record)
-                        print(f"Contacto creado: {name}")
-                    except Exception as e:
-                        record['vat'] = ''
-                        self.env['res.partner'].create(record)
-                        print(f"Error al crear NIF, se ha puesto vacío: {str(e)}")
-
+                contact = self._create_or_update_contact(num_client, name, record, iban=iban)
                 self.env.cr.flush()
-                contact = self.env['res.partner'].search([('ref', '=', num_client)], limit=1)
                 print("Contact ID: ", contact.id)
-                if iban:
-                    existing_bank_record = self.env['res.partner.bank'].search([
-                        ('acc_number', '=', iban),
-                        ('partner_id', '=', contact.id)
-                    ], limit=1)
-                    print("Contact ID 2: ", contact.id)
-                    if not existing_bank_record:
-                        self.env['res.partner.bank'].create({
-                            'acc_number': iban,
-                            'partner_id': contact.id
-                        })
-                        print("Contact ID 3: ", contact.id)
-                        print(f"Cuenta bancaria creada: {iban} para {contact.name}")
-                    else:
-                        print(
-                            f"La cuenta bancaria con IBAN: {iban} ya existe para {contact.name}. No se crea una nueva.")
+                self._ensure_bank_account(contact, iban)
