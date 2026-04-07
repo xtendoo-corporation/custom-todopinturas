@@ -1,8 +1,11 @@
 from odoo import api, fields, models
 import base64
-import xlrd
 from odoo.exceptions import UserError
 import io
+try:
+    import xlrd
+except ImportError:
+    xlrd = None
 try:
     import openpyxl
 except ImportError:
@@ -15,6 +18,97 @@ class ImportSuppliersWizard(models.TransientModel):
 
     file = fields.Binary('Subir archivo XLS o XLSX', required=True)
     file_name = fields.Char('Nombre del archivo')
+
+    @api.model
+    def _sanitize_import_text(self, value):
+        if value is None:
+            return ''
+        text = value.strip() if isinstance(value, str) else str(value).strip()
+        return '' if text and all(char == '*' for char in text) else text
+
+    @api.model
+    def _normalize_supplier_vat(self, nif):
+        nif = self._sanitize_import_text(nif).upper()
+        if not nif:
+            return '', 'ES'
+
+        nif = ''.join(char for char in nif if char.isalnum())
+        country_code = nif[:2] if nif[:2] in {'ES', 'DE', 'GB'} else 'ES'
+        vat_number = nif[2:] if nif[:2] in {'ES', 'DE', 'GB'} else nif
+        return f"{country_code}{vat_number}" if vat_number else '', country_code
+
+    @api.model
+    def _find_existing_supplier(self, num_prov, name, vat):
+        partner_model = self.env['res.partner'].with_context(active_test=False)
+        base_domain = [('parent_id', '=', False), ('is_company', '=', True)]
+
+        search_domains = []
+        if num_prov:
+            search_domains.append(base_domain + [('ref', '=', num_prov)])
+        if vat:
+            search_domains.append(base_domain + [('vat', '=', vat)])
+        if num_prov and name:
+            search_domains.append(base_domain + [('ref', '=', num_prov), ('name', '=', name)])
+        if vat and name:
+            search_domains.append(base_domain + [('vat', '=', vat), ('name', '=', name)])
+
+        for domain in search_domains:
+            supplier = partner_model.search(domain, limit=1)
+            if supplier:
+                return supplier
+
+        return partner_model.browse()
+
+    @api.model
+    def _create_or_update_supplier(self, num_prov, name, record):
+        supplier = self._find_existing_supplier(num_prov, name, record.get('vat'))
+
+        try:
+            if supplier:
+                supplier.write(record)
+                print(f"Proveedor actualizado: {supplier.name}")
+            else:
+                supplier = self.env['res.partner'].create(record)
+                print(f"Proveedor creado: {name}")
+        except Exception as e:
+            print(f"Error al actualizar o crear el proveedor: {e}")
+            fallback_record = dict(record, vat='')
+            supplier = supplier or self._find_existing_supplier(num_prov, name, record.get('vat'))
+            if supplier:
+                supplier.write(fallback_record)
+            else:
+                supplier = self.env['res.partner'].create(fallback_record)
+
+        return supplier
+
+    @api.model
+    def _upsert_secondary_address(self, supplier, name, address2, cp2):
+        if not (address2 or cp2):
+            return
+
+        contact_address = {
+            'name': "Otra dirección " + str(name),
+            'parent_id': supplier.id,
+            'type': 'other',
+            'street': address2,
+            'zip': cp2,
+        }
+        existing_contact = self.env['res.partner'].with_context(active_test=False).search([
+            ('name', '=', "Otra dirección " + str(name)),
+            ('parent_id', '=', supplier.id),
+            ('type', '=', 'other'),
+            ('street', '=', address2),
+            ('zip', '=', cp2)
+        ], limit=1)
+
+        if existing_contact:
+            existing_contact.write(contact_address)
+            print(
+                f"Dirección secundaria actualizada: {address2}, Nombre: {existing_contact.name}, Parent ID: {existing_contact.parent_id.id}")
+        else:
+            self.env['res.partner'].create(contact_address)
+            print(
+                f"Dirección secundaria creada: {address2}, Nombre: {contact_address['name']}, Parent ID: {contact_address['parent_id']}")
 
     def action_import_suppliers(self):
         if not self.file:
@@ -125,6 +219,8 @@ class ImportSuppliersWizard(models.TransientModel):
             wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
             sheet = wb.active
         elif ext == 'xls':
+            if not xlrd:
+                raise UserError("Falta la librería xlrd para procesar archivos .xls. Por favor, instálala.")
             book = xlrd.open_workbook(file_contents=data)
             sheet = book.sheet_by_index(0)
         else:
@@ -133,27 +229,24 @@ class ImportSuppliersWizard(models.TransientModel):
         if is_xlsx:
             for row in sheet.iter_rows(min_row=2, values_only=True):
                 num_prov = '0' + str(int(row[0])) if row[0] else ''
-                name = row[1].strip() if row[1] else ''
-                address = row[2].strip() if row[2] else ''
-                address = '' if all(char == '*' for char in address) else address
+                name = self._sanitize_import_text(row[1])
+                address = self._sanitize_import_text(row[2])
                 telefono_value = row[3]
                 telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
-                telefono = '' if all(char == '*' for char in telefono) else telefono
+                telefono = self._sanitize_import_text(telefono)
                 telefono2_value = row[4]
                 telefono2 = str(int(telefono2_value)) if telefono2_value and isinstance(telefono2_value, (int, float)) else ''
-                telefono2 = '' if all(char == '*' for char in telefono2) else telefono2
+                telefono2 = self._sanitize_import_text(telefono2)
                 nif_value = row[5]
-                nif = str(nif_value).strip() if nif_value else ''
-                nif = '' if all(char == '*' for char in nif) else nif
+                nif = self._sanitize_import_text(nif_value)
                 forma_pago = str(int(row[8])) if row[8] else ''
                 cp_value = row[7]
                 cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
-                cp = '' if all(char == '*' for char in cp) else cp
-                address2 = str(row[9]).strip() if row[9] else ''
-                address2 = '' if all(char == '*' for char in address2) else address2
+                cp = self._sanitize_import_text(cp)
+                address2 = self._sanitize_import_text(row[9])
                 cp2_value = row[10]
                 cp2 = str(int(cp2_value)) if cp2_value and isinstance(cp2_value, (int, float)) else ''
-                cp2 = '' if all(char == '*' for char in cp2) else cp2
+                cp2 = self._sanitize_import_text(cp2)
                 activo = row[15] if len(row) > 15 else ''
                 # Observaciones
                 observations = [str(row[i]).strip() if len(row) > i and row[i] is not None else '' for i in range(16, 40)]
@@ -163,9 +256,8 @@ class ImportSuppliersWizard(models.TransientModel):
                     print("Todos los datos están vacíos. Terminando la importación.")
                     break
 
-                es_country = self.env['res.country'].search(
-                    [('code', '=', 'DE' if nif.startswith('DE') else 'GB' if nif.startswith('GB') else 'ES')],
-                    limit=1)
+                vat, country_code = self._normalize_supplier_vat(nif)
+                es_country = self.env['res.country'].search([('code', '=', country_code)], limit=1)
                 print(es_country.id, es_country.name)
 
                 record = {
@@ -176,7 +268,7 @@ class ImportSuppliersWizard(models.TransientModel):
                     'is_company': True,
                     'country_id': es_country.id,
                     'phone': telefono,
-                    'vat': f"{'ES' if es_country.code == 'ES' else 'DE' if es_country.code == 'DE' else 'GB'}{nif}" if nif else '',
+                    'vat': vat,
                     'active': False if activo == 'N' else True,
                     'comment': notes,
                 }
@@ -191,47 +283,8 @@ class ImportSuppliersWizard(models.TransientModel):
                     else:
                         print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
 
-                try:
-                    supplier = self.env['res.partner'].search([('ref', '=', num_prov), ('name', '=', name)], limit=1)
-
-                    if supplier:
-                        supplier.write(record)
-                        print(f"Proveedor actualizado: {supplier.name}")
-                    else:
-                        supplier = self.env['res.partner'].create(record)
-                        print(f"Proveedor creado: {name}")
-                except Exception as e:
-                    print(f"Error al actualizar o crear el proveedor: {e}")
-                    record['vat'] = ''
-                    if supplier:
-                        supplier.write(record)
-                    else:
-                        supplier = self.env['res.partner'].create(record)
-
-                if address2 or cp2:
-                    contact_address = {
-                        'name': "Otra dirección "+ str(name),
-                        'parent_id': supplier.id,
-                        'type': 'other',
-                        'street': address2,
-                        'zip': cp2,
-                    }
-                    existing_contact = self.env['res.partner'].search([
-                        ('name', '=', "Otra dirección " + str(name)),
-                        ('parent_id', '=', supplier.id),
-                        ('type', '=', 'other'),
-                        ('street', '=', address2),
-                        ('zip', '=', cp2)
-                    ], limit=1)
-
-                    if existing_contact:
-                        existing_contact.write(contact_address)
-                        print(
-                            f"Dirección secundaria actualizada: {address2}, Nombre: {existing_contact.name}, Parent ID: {existing_contact.parent_id.id}")
-                    else:
-                        self.env['res.partner'].create(contact_address)
-                        print(
-                            f"Dirección secundaria creada: {address2}, Nombre: {contact_address['name']}, Parent ID: {contact_address['parent_id']}")
+                supplier = self._create_or_update_supplier(num_prov, name, record)
+                self._upsert_secondary_address(supplier, name, address2, cp2)
         else:
             # ...existing code para xlrd (xls)...
             data = base64.b64decode(self.file)
@@ -239,27 +292,24 @@ class ImportSuppliersWizard(models.TransientModel):
             sheet = book.sheet_by_index(0)
             for row in range(1, sheet.nrows):
                 num_prov = '0' + str(int(sheet.cell(row, 0).value))
-                name = sheet.cell(row, 1).value.strip()
-                address = sheet.cell(row, 2).value.strip()
-                address = '' if all(char == '*' for char in address) else address
+                name = self._sanitize_import_text(sheet.cell(row, 1).value)
+                address = self._sanitize_import_text(sheet.cell(row, 2).value)
                 telefono_value = sheet.cell(row, 3).value
                 telefono = str(int(telefono_value)) if telefono_value and isinstance(telefono_value, (int, float)) else ''
-                telefono = '' if all(char == '*' for char in telefono) else telefono
+                telefono = self._sanitize_import_text(telefono)
                 telefono2_value = sheet.cell(row, 4).value
                 telefono2 = str(int(telefono2_value)) if telefono2_value and isinstance(telefono2_value, (int, float)) else ''
-                telefono2 = '' if all(char == '*' for char in telefono2) else telefono2
+                telefono2 = self._sanitize_import_text(telefono2)
                 nif_value = sheet.cell(row, 5).value
-                nif = str(nif_value).strip() if nif_value else ''
-                nif = '' if all(char == '*' for char in nif) else nif
+                nif = self._sanitize_import_text(nif_value)
                 forma_pago = str(int(sheet.cell(row, 8).value)) if sheet.cell(row, 8).value else ''
                 cp_value = sheet.cell(row, 7).value
                 cp = str(int(cp_value)) if cp_value and isinstance(cp_value, (int, float)) else ''
-                cp = '' if all(char == '*' for char in cp) else cp
-                address2 = str(sheet.cell(row, 9).value).strip() if isinstance(sheet.cell(row, 9).value, float) else sheet.cell(row, 9).value.strip()
-                address2 = '' if all(char == '*' for char in address2) else address2
+                cp = self._sanitize_import_text(cp)
+                address2 = self._sanitize_import_text(sheet.cell(row, 9).value)
                 cp2_value = sheet.cell(row, 10).value
                 cp2 = str(int(cp2_value)) if cp2_value and isinstance(cp2_value, (int, float)) else ''
-                cp2 = '' if all(char == '*' for char in cp2) else cp2
+                cp2 = self._sanitize_import_text(cp2)
                 activo = sheet.cell(row, 15).value
                 observations = [str(sheet.cell(row, i).value).strip() if sheet.cell(row, i).value is not None else '' for i in range(16, 40)]
                 notes = "<br/>".join(filter(None, observations))
@@ -268,9 +318,8 @@ class ImportSuppliersWizard(models.TransientModel):
                     print("Todos los datos están vacíos. Terminando la importación.")
                     break
 
-                es_country = self.env['res.country'].search(
-                    [('code', '=', 'DE' if nif.startswith('DE') else 'GB' if nif.startswith('GB') else 'ES')],
-                    limit=1)
+                vat, country_code = self._normalize_supplier_vat(nif)
+                es_country = self.env['res.country'].search([('code', '=', country_code)], limit=1)
                 print(es_country.id, es_country.name)
 
                 record = {
@@ -281,7 +330,7 @@ class ImportSuppliersWizard(models.TransientModel):
                     'is_company': True,
                     'country_id': es_country.id,
                     'phone': telefono,
-                    'vat': f"{'ES' if es_country.code == 'ES' else 'DE' if es_country.code == 'DE' else 'GB'}{nif}" if nif else '',
+                    'vat': vat,
                     'active': False if activo == 'N' else True,
                     'comment': notes,
                 }
@@ -296,44 +345,5 @@ class ImportSuppliersWizard(models.TransientModel):
                     else:
                         print(f"No se encontró un término de pago para: {payment_terms[forma_pago]}")
 
-                try:
-                    supplier = self.env['res.partner'].search([('ref', '=', num_prov), ('name', '=', name)], limit=1)
-
-                    if supplier:
-                        supplier.write(record)
-                        print(f"Proveedor actualizado: {supplier.name}")
-                    else:
-                        supplier = self.env['res.partner'].create(record)
-                        print(f"Proveedor creado: {name}")
-                except Exception as e:
-                    print(f"Error al actualizar o crear el proveedor: {e}")
-                    record['vat'] = ''
-                    if supplier:
-                        supplier.write(record)
-                    else:
-                        supplier = self.env['res.partner'].create(record)
-
-                if address2 or cp2:
-                    contact_address = {
-                        'name': "Otra dirección "+ str(name),
-                        'parent_id': supplier.id,
-                        'type': 'other',
-                        'street': address2,
-                        'zip': cp2,
-                    }
-                    existing_contact = self.env['res.partner'].search([
-                        ('name', '=', "Otra dirección " + str(name)),
-                        ('parent_id', '=', supplier.id),
-                        ('type', '=', 'other'),
-                        ('street', '=', address2),
-                        ('zip', '=', cp2)
-                    ], limit=1)
-
-                    if existing_contact:
-                        existing_contact.write(contact_address)
-                        print(
-                            f"Dirección secundaria actualizada: {address2}, Nombre: {existing_contact.name}, Parent ID: {existing_contact.parent_id.id}")
-                    else:
-                        self.env['res.partner'].create(contact_address)
-                        print(
-                            f"Dirección secundaria creada: {address2}, Nombre: {contact_address['name']}, Parent ID: {contact_address['parent_id']}")
+                supplier = self._create_or_update_supplier(num_prov, name, record)
+                self._upsert_secondary_address(supplier, name, address2, cp2)
