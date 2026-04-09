@@ -1,10 +1,14 @@
-from odoo import api, fields, models
+import logging
+from odoo import fields, models
 import base64
 import xlrd
 from odoo.exceptions import UserError
 from datetime import date
 import openpyxl
 import io
+
+
+_logger = logging.getLogger(__name__)
 
 class ImportStockMinWizard(models.TransientModel):
     _name = 'import.stock.min.wizard'
@@ -13,6 +17,52 @@ class ImportStockMinWizard(models.TransientModel):
     file = fields.Binary('Subir archivo XLS', required=True)
     file_name = fields.Char('Nombre del archivo')
     error_log = fields.Text('Errores', readonly=True)
+
+    @staticmethod
+    def _is_empty_value(value):
+        return value is None or (isinstance(value, str) and not value.strip())
+
+    @classmethod
+    def _is_empty_row(cls, row):
+        return all(cls._is_empty_value(value) for value in row)
+
+    @staticmethod
+    def _to_int(value, default=0):
+        if value is None:
+            return default
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return default
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _normalize_ref(value):
+        if value is None:
+            return False
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return False
+        try:
+            numeric_value = float(value)
+            if numeric_value.is_integer():
+                return str(int(numeric_value))
+        except (TypeError, ValueError):
+            pass
+        return str(value).strip()
+
+    def _append_warning(self, error_log, row_idx, message, ref=None, location_name=None):
+        detail = f"Fila {row_idx}: {message}"
+        if ref:
+            detail += f" | Referencia: {ref}"
+        if location_name:
+            detail += f" | Ubicación: {location_name}"
+        error_log.append(detail)
+        _logger.warning(detail)
 
     def action_import_stock_min(self):
         if not self.file:
@@ -27,59 +77,68 @@ class ImportStockMinWizard(models.TransientModel):
         if is_xlsx:
             wb = openpyxl.load_workbook(io.BytesIO(data), data_only=True, read_only=True)
             sheet = wb.active
-            nrows = sheet.max_row
             ncols = sheet.max_column
-            get_cell = lambda r, c: sheet.cell(row=r + 1, column=c + 1).value
+            rows = sheet.iter_rows(min_row=2, max_col=ncols, values_only=True)
         elif is_xls:
             book = xlrd.open_workbook(file_contents=data)
             sheet = book.sheet_by_index(0)
-            nrows = sheet.nrows
             ncols = sheet.ncols
-            get_cell = lambda r, c: sheet.cell(r, c).value
+            rows = (tuple(sheet.row_values(row_idx, start_colx=0, end_colx=ncols)) for row_idx in range(1, sheet.nrows))
         else:
             raise UserError("Formato de archivo no soportado. Solo se aceptan .xls o .xlsx")
 
-        for row_idx in range(1, nrows):  # Asumiendo la primera fila como cabecera
-            try:
-                raw_location = get_cell(row_idx, 2)
-                location_id = int(str(raw_location).strip()) if raw_location is not None else 1
-            except Exception:
+        empty_row_streak = 0
+        processed_rows = 0
+        warning_count = 0
+
+        _logger.info("Iniciando importación de stock mínimo desde %s", self.file_name)
+
+        for row_idx, row in enumerate(rows, start=2):
+            if self._is_empty_row(row):
+                empty_row_streak += 1
+                if empty_row_streak >= 20:
+                    _logger.info("Importación detenida tras %s filas vacías consecutivas en %s", empty_row_streak, self.file_name)
+                    break
+                continue
+            empty_row_streak = 0
+
+            raw_location = row[2] if len(row) > 2 else None
+            location_id = self._to_int(raw_location, default=1)
+
+            ref = self._normalize_ref(row[3] if len(row) > 3 else None)
+            if not ref:
                 continue
 
-            try:
-                ref = str(int(get_cell(row_idx, 3)))
-            except Exception:
-                ref = str(get_cell(row_idx, 3))
-            try:
-                min_qty = int(get_cell(row_idx, 7))
-            except Exception:
-                min_qty = 0
-            try:
-                max_qty_cell = get_cell(row_idx, 8)
-                max_qty = int(max_qty_cell) if max_qty_cell and str(max_qty_cell).isdigit() else 0
-            except Exception:
-                max_qty = 0
-            try:
-                qty_multiple = int(get_cell(row_idx, 5))
-            except Exception:
-                qty_multiple = 1
+            min_qty = self._to_int(row[7] if len(row) > 7 else None, default=0)
+            max_qty = self._to_int(row[8] if len(row) > 8 else None, default=0)
+            qty_multiple = self._to_int(row[5] if len(row) > 5 else None, default=1) or 1
 
-            # Mueve el print aquí
-            print(f"Fila {row_idx}")
+            processed_rows += 1
+            if processed_rows == 1 or processed_rows % 25 == 0:
+                _logger.info("Procesadas %s filas útiles de %s (última fila Excel: %s)", processed_rows, self.file_name, row_idx)
 
-            # Ahora busca la ubicación
             location_name = "WH/Central" if location_id == 1 else f"T{location_id}/Stock"
             location = self.env['stock.location'].search([('complete_name', '=', location_name)], limit=1)
             if not location:
-                error_log.append(f"Ubicación no encontrada: {location_name}")
+                warning_count += 1
+                self._append_warning(error_log, row_idx, "Ubicación no encontrada", ref=ref, location_name=location_name)
                 continue
 
             product = self.env['product.product'].search([('default_code', '=', ref)], limit=1)
 
             if not product:
-                error_log.append(f"Producto no encontrado: {ref}")
+                warning_count += 1
+                self._append_warning(error_log, row_idx, "Producto no encontrado", ref=ref, location_name=location_name)
                 continue
             if max_qty < min_qty:
+                warning_count += 1
+                self._append_warning(
+                    error_log,
+                    row_idx,
+                    f"Máximo menor que mínimo. Se ajusta automáticamente a {min_qty * 2}",
+                    ref=ref,
+                    location_name=location_name,
+                )
                 max_qty = min_qty * 2
 
             orderpoint_vals = {
@@ -102,11 +161,7 @@ class ImportStockMinWizard(models.TransientModel):
                 orderpoint = self.env['stock.warehouse.orderpoint'].create(orderpoint_vals)
 
             for month_idx in range(9, ncols):
-                try:
-                    cell_value = get_cell(row_idx, month_idx)
-                    month_qty = int(cell_value) if cell_value is not None and str(cell_value).isdigit() else min_qty
-                except Exception:
-                    month_qty = min_qty
+                month_qty = self._to_int(row[month_idx] if len(row) > month_idx else None, default=min_qty)
                 if not month_qty:
                     month_qty = min_qty
 
@@ -133,4 +188,30 @@ class ImportStockMinWizard(models.TransientModel):
                 else:
                     self.env['stock.min.dates'].create(stock_min_dates_vals)
 
-        self.error_log = "\n".join(error_log) if error_log else "Importación completada sin errores."
+        summary_lines = [
+            f"Archivo: {self.file_name}",
+            f"Filas útiles procesadas: {processed_rows}",
+            f"Incidencias detectadas: {warning_count}",
+        ]
+        if error_log:
+            summary_lines.append("")
+            summary_lines.append("Detalle de incidencias:")
+            summary_lines.extend(error_log)
+        else:
+            summary_lines.append("")
+            summary_lines.append("Importación completada sin errores.")
+
+        self.error_log = "\n".join(summary_lines)
+        _logger.info(
+            "Importación de %s finalizada. Filas procesadas: %s. Incidencias: %s",
+            self.file_name,
+            processed_rows,
+            warning_count,
+        )
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': self._name,
+            'view_mode': 'form',
+            'res_id': self.id,
+            'target': 'new',
+        }
