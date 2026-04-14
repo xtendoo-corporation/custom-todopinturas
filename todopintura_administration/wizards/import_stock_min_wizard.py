@@ -1,11 +1,14 @@
 import logging
-from odoo import fields, models
 import base64
-import xlrd
-from odoo.exceptions import UserError
-from datetime import date
-import openpyxl
 import io
+import unicodedata
+from datetime import date
+
+import openpyxl
+import xlrd
+
+from odoo import fields, models
+from odoo.exceptions import UserError
 
 
 _logger = logging.getLogger(__name__)
@@ -13,6 +16,30 @@ _logger = logging.getLogger(__name__)
 class ImportStockMinWizard(models.TransientModel):
     _name = 'import.stock.min.wizard'
     _description = 'Wizard para importar el stock mín desde un archivo XLS'
+
+    _DEFAULT_LAYOUT = {
+        'location': 2,
+        'ref': 3,
+        'qty_multiple': 5,
+        'min_qty': 7,
+        'max_qty': 20,
+        'month_columns': {month: 7 + month for month in range(1, 13)},
+    }
+
+    _MONTH_TOKENS = {
+        1: ('ENERO', 'ENE'),
+        2: ('FEBRE', 'FEBR', 'FEB'),
+        3: ('MARZO', 'MAR'),
+        4: ('ABRIL', 'ABR'),
+        5: ('MAYO', 'MAY'),
+        6: ('JUNIO', 'JUN'),
+        7: ('JULIO', 'JUL'),
+        8: ('AGOST', 'AGO'),
+        9: ('SEPBR', 'SEPT', 'SEP'),
+        10: ('OCTUB', 'OCT'),
+        11: ('NOVBR', 'NOV'),
+        12: ('DICBR', 'DIC'),
+    }
 
     file = fields.Binary('Subir archivo XLS', required=True)
     file_name = fields.Char('Nombre del archivo')
@@ -55,6 +82,63 @@ class ImportStockMinWizard(models.TransientModel):
             pass
         return str(value).strip()
 
+    @staticmethod
+    def _normalize_header(value):
+        if value is None:
+            return ''
+        text = unicodedata.normalize('NFKD', str(value)).encode('ascii', 'ignore').decode('ascii')
+        return ''.join(char for char in text.upper().strip() if char.isalnum())
+
+    @classmethod
+    def _match_month_number(cls, header):
+        for month_number, tokens in cls._MONTH_TOKENS.items():
+            if any(header.startswith(token) for token in tokens):
+                return month_number
+        return False
+
+    @classmethod
+    def _extract_layout_from_header_row(cls, row):
+        normalized_headers = [cls._normalize_header(value) for value in row]
+        month_columns = {}
+        max_columns = []
+        layout = {}
+
+        for index, header in enumerate(normalized_headers):
+            if not header:
+                continue
+            if 'ALMACEN' in header and 'location' not in layout:
+                layout['location'] = index
+            elif 'NUMERO' in header and 'ref' not in layout:
+                layout['ref'] = index
+            elif 'UNIDAD' in header and 'qty_multiple' not in layout:
+                layout['qty_multiple'] = index
+            elif 'MINIMO' in header and 'min_qty' not in layout:
+                layout['min_qty'] = index
+            elif 'MAXIMO' in header:
+                max_columns.append(index)
+
+            month_number = cls._match_month_number(header)
+            if month_number and month_number not in month_columns:
+                month_columns[month_number] = index
+
+        if len(month_columns) == 12:
+            layout['month_columns'] = month_columns
+        if max_columns:
+            layout['max_qty'] = max_columns[-1]
+
+        required_keys = {'location', 'ref', 'qty_multiple', 'min_qty', 'month_columns', 'max_qty'}
+        if required_keys.issubset(layout):
+            return layout
+        return False
+
+    @classmethod
+    def _get_layout(cls, rows):
+        for row_index, row in enumerate(rows, start=1):
+            layout = cls._extract_layout_from_header_row(row)
+            if layout:
+                return row_index, layout
+        return 1, dict(cls._DEFAULT_LAYOUT)
+
     def _append_warning(self, error_log, row_idx, message, ref=None, location_name=None):
         detail = f"Fila {row_idx}: {message}"
         if ref:
@@ -77,15 +161,27 @@ class ImportStockMinWizard(models.TransientModel):
         if is_xlsx:
             wb = openpyxl.load_workbook(io.BytesIO(data), data_only=True, read_only=True)
             sheet = wb.active
-            ncols = sheet.max_column
-            rows = sheet.iter_rows(min_row=2, max_col=ncols, values_only=True)
+            rows = list(sheet.iter_rows(values_only=True))
         elif is_xls:
             book = xlrd.open_workbook(file_contents=data)
             sheet = book.sheet_by_index(0)
-            ncols = sheet.ncols
-            rows = (tuple(sheet.row_values(row_idx, start_colx=0, end_colx=ncols)) for row_idx in range(1, sheet.nrows))
+            rows = [tuple(sheet.row_values(row_idx, start_colx=0, end_colx=sheet.ncols)) for row_idx in range(sheet.nrows)]
         else:
             raise UserError("Formato de archivo no soportado. Solo se aceptan .xls o .xlsx")
+
+        header_row_idx, layout = self._get_layout(rows)
+        if header_row_idx == 1 and layout == self._DEFAULT_LAYOUT:
+            _logger.warning(
+                "No se pudo detectar la cabecera del archivo %s. Se usará el mapeo por defecto.",
+                self.file_name,
+            )
+        else:
+            _logger.info(
+                "Cabecera detectada en la fila %s del archivo %s. Columnas mensuales: %s",
+                header_row_idx,
+                self.file_name,
+                sorted(layout['month_columns'].items()),
+            )
 
         empty_row_streak = 0
         processed_rows = 0
@@ -93,7 +189,7 @@ class ImportStockMinWizard(models.TransientModel):
 
         _logger.info("Iniciando importación de stock mínimo desde %s", self.file_name)
 
-        for row_idx, row in enumerate(rows, start=2):
+        for row_idx, row in enumerate(rows[header_row_idx:], start=header_row_idx + 1):
             if self._is_empty_row(row):
                 empty_row_streak += 1
                 if empty_row_streak >= 20:
@@ -102,16 +198,16 @@ class ImportStockMinWizard(models.TransientModel):
                 continue
             empty_row_streak = 0
 
-            raw_location = row[2] if len(row) > 2 else None
+            raw_location = row[layout['location']] if len(row) > layout['location'] else None
             location_id = self._to_int(raw_location, default=1)
 
-            ref = self._normalize_ref(row[3] if len(row) > 3 else None)
+            ref = self._normalize_ref(row[layout['ref']] if len(row) > layout['ref'] else None)
             if not ref:
                 continue
 
-            min_qty = self._to_int(row[7] if len(row) > 7 else None, default=0)
-            max_qty = self._to_int(row[8] if len(row) > 8 else None, default=0)
-            qty_multiple = self._to_int(row[5] if len(row) > 5 else None, default=1) or 1
+            min_qty = self._to_int(row[layout['min_qty']] if len(row) > layout['min_qty'] else None, default=0)
+            max_qty = self._to_int(row[layout['max_qty']] if len(row) > layout['max_qty'] else None, default=min_qty)
+            qty_multiple = self._to_int(row[layout['qty_multiple']] if len(row) > layout['qty_multiple'] else None, default=1) or 1
 
             processed_rows += 1
             if processed_rows == 1 or processed_rows % 25 == 0:
@@ -160,12 +256,11 @@ class ImportStockMinWizard(models.TransientModel):
             else:
                 orderpoint = self.env['stock.warehouse.orderpoint'].create(orderpoint_vals)
 
-            for month_idx in range(9, ncols):
+            for month, month_idx in sorted(layout['month_columns'].items()):
                 month_qty = self._to_int(row[month_idx] if len(row) > month_idx else None, default=min_qty)
                 if not month_qty:
                     month_qty = min_qty
 
-                month = month_idx - 8
                 year = date.today().year
                 start_date = date(year, month, 1)
                 end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
