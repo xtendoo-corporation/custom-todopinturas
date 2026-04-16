@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="report_albaran_80mm_cross_store_info"
+              inherit_id="pos_conventional_picking_integration.report_albaran_80mm">
+        <xpath expr="//div[@t-if='o.partner_id']" position="after">
+            <t t-if="o.pos_order_id and o.pos_order_id.origin_warehouse_id">
+                <div style="margin-bottom: 3px;">
+                    <strong>Tienda de venta:</strong><br/>
+                    <span t-out="o.pos_order_id.origin_warehouse_id.display_name"/>
+                </div>
+                <div t-if="o.pos_order_id.has_cross_store_pickup_lines and o.pos_order_id.pickup_warehouse_summary" style="margin-bottom: 5px;">
+                    <strong>Recogida por líneas:</strong><br/>
+                    <span t-out="o.pos_order_id.pickup_warehouse_summary"/>
+                </div>
+            </t>
+        </xpath>
+    </template>
+</odoo>
+
+

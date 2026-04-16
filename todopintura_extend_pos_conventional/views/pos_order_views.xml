@@ -1,37 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Ruta en cabecera: heredar la reestructuración de pos_conventional -->
+    <!-- Vista antigua de cabecera: se sobrescribe y desactiva para upgrades -->
     <record id="view_pos_order_form_inherit_route_header" model="ir.ui.view">
-        <field name="name">pos.order.form.inherit.route.header</field>
+        <field name="name">pos.order.form.inherit.route.header.obsolete</field>
         <field name="model">pos.order</field>
-        <field name="inherit_id" ref="pos_conventional.view_pos_order_form_inherit_totals" />
+        <field name="active" eval="False"/>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form" />
         <field name="arch" type="xml">
-            <xpath expr="//group[@name='order_fields']//field[@name='date_order']" position="after">
-                <field name="route_id" options="{'no_create': True}" />
+            <xpath expr="//field[@name='lines']" position="attributes">
+                <attribute name="readonly">state != 'draft'</attribute>
             </xpath>
         </field>
     </record>
 
-    <!-- Ruta en líneas: añadir columna en el tree de productos -->
+    <!-- Recogida por línea del pedido -->
     <record id="view_pos_order_form_inherit_route_lines" model="ir.ui.view">
-        <field name="name">pos.order.form.inherit.route.lines</field>
+        <field name="name">pos.order.form.inherit.pickup.lines</field>
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form" />
         <field name="arch" type="xml">
-            <!-- Insertar en el list editable de líneas (no en kanban) -->
             <xpath expr="//page[@name='products']//field[@name='lines']/list//field[@name='product_id']" position="after">
-                <field name="route_id"
+                <field name="pickup_warehouse_id"
+                    string="Tienda recogida"
                     domain="['|', ('company_id', '=', False), ('company_id', '=', parent.company_id)]"
-                    options="{'no_create': True}" />
+                    options="{'no_create': True, 'no_open': True}"/>
             </xpath>
-
-            <!-- Añadir también en el form de la línea -->
             <xpath expr="//page[@name='products']//field[@name='lines']/form//field[@name='discount']" position="after">
-                <field name="route_id"
+                <field name="pickup_warehouse_id"
+                    string="Tienda de recogida"
                     domain="['|', ('company_id', '=', False), ('company_id', '=', parent.company_id)]"
-                    options="{'no_create': True}" />
+                    options="{'no_create': True, 'no_open': True}"/>
             </xpath>
         </field>
     </record>
+
 </odoo>
 
