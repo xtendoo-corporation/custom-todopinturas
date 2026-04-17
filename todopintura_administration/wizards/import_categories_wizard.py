@@ -1,7 +1,14 @@
-from odoo import models, fields, api
 import base64
-import xlrd
 import io
+
+from odoo import fields, models
+from odoo.exceptions import UserError
+
+try:
+    import xlrd
+except ImportError:
+    xlrd = None
+
 try:
     import openpyxl
 except ImportError:
@@ -14,7 +21,65 @@ class ImportCategoriesWizard(models.TransientModel):
     file = fields.Binary(string='File', required=True)
     file_name = fields.Char(string='File Name')
 
+    def _safe_category_id(self, value):
+        if value in (None, False, ''):
+            return None
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return None
+
+    def _iter_category_rows(self, sheet, is_xlsx):
+        if is_xlsx:
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                yield tuple(row)
+            return
+
+        for row_idx in range(1, sheet.nrows):
+            yield tuple(sheet.row_values(row_idx))
+
+    def _get_parent_reference(self, category_ref):
+        if category_ref % 10000 == 0:
+            return None
+        if category_ref % 100 == 0:
+            return category_ref - (category_ref % 10000)
+        return (category_ref // 100) * 100
+
+    def _import_category_rows(self, rows):
+        category_dict = {}
+        pos_category_model = self.env['pos.category']
+
+        for row in rows:
+            category_ref = self._safe_category_id(row[0] if len(row) > 0 else None)
+            category_name = str(row[1]).strip() if len(row) > 1 and row[1] else ''
+            if not category_ref or not category_name:
+                continue
+
+            parent_ref = self._get_parent_reference(category_ref)
+            parent_id = category_dict.get(parent_ref) if parent_ref else False
+
+            category = pos_category_model.search(
+                [('referencia_todopintura', '=', category_ref)],
+                order='id asc',
+                limit=1,
+            )
+
+            values = {
+                'name': category_name,
+                'parent_id': parent_id,
+            }
+            if category:
+                category.write(values)
+            else:
+                values['referencia_todopintura'] = category_ref
+                category = pos_category_model.create(values)
+
+            category_dict[category_ref] = category.id
+
     def action_import_categories(self):
+        if not self.file:
+            raise UserError("Por favor, sube un archivo XLS o XLSX.")
+
         data = base64.b64decode(self.file)
         ext = ''
         if self.file_name:
@@ -28,63 +93,20 @@ class ImportCategoriesWizard(models.TransientModel):
         sheet = None
         is_xlsx = False
         if ext == 'xlsx':
-            if not openpyxl:
-                raise Exception("Falta la librería openpyxl para procesar archivos .xlsx. Por favor, instálala.")
+            xlsx_reader = openpyxl
+            if not xlsx_reader:
+                raise UserError("Falta la librería openpyxl para procesar archivos .xlsx. Por favor, instálala.")
             is_xlsx = True
-            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            wb = xlsx_reader.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
             sheet = wb.active
         elif ext == 'xls':
-            book = xlrd.open_workbook(file_contents=data)
+            xls_reader = xlrd
+            if not xls_reader:
+                raise UserError("Falta la librería xlrd para procesar archivos .xls. Por favor, instálala.")
+            book = xls_reader.open_workbook(file_contents=data)
             sheet = book.sheet_by_index(0)
         else:
-            raise Exception("Formato de archivo no soportado. Usa .xls o .xlsx")
+            raise UserError("Formato de archivo no soportado. Usa .xls o .xlsx")
 
-        category_dict = {}
-
-        if is_xlsx:
-            for row in sheet.iter_rows(min_row=2, values_only=True):
-                category_id = int(row[0]) if row[0] else None
-                category_name = str(row[1]).strip() if row[1] else ''
-                if not category_name:
-                    continue
-                parent_id = None
-                if category_id % 10000 == 0:
-                    parent_id = None
-                elif category_id % 100 == 0:
-                    parent_id = category_dict.get(category_id - (category_id % 10000))
-                else:
-                    parent_id = category_dict.get((category_id // 100) * 100)
-                category = self.env['pos.category'].search([('id', '=', category_id)], limit=1)
-                if category:
-                    category.write({'name': category_name, 'parent_id': parent_id})
-                else:
-                    category = self.env['pos.category'].create({
-                        'referencia_todopintura': category_id,
-                        'name': category_name,
-                        'parent_id': parent_id,
-                    })
-                category_dict[category_id] = category.id
-        else:
-            for row in range(1, sheet.nrows):
-                category_id = int(sheet.cell(row, 0).value)
-                category_name = sheet.cell(row, 1).value.strip()
-                if not category_name:
-                    continue
-                parent_id = None
-                if category_id % 10000 == 0:
-                    parent_id = None
-                elif category_id % 100 == 0:
-                    parent_id = category_dict.get(category_id - (category_id % 10000))
-                else:
-                    parent_id = category_dict.get((category_id // 100) * 100)
-                category = self.env['pos.category'].search([('id', '=', category_id)], limit=1)
-                if category:
-                    category.write({'name': category_name, 'parent_id': parent_id})
-                else:
-                    category = self.env['pos.category'].create({
-                        'referencia_todopintura': category_id,
-                        'name': category_name,
-                        'parent_id': parent_id,
-                    })
-                category_dict[category_id] = category.id
+        self._import_category_rows(self._iter_category_rows(sheet, is_xlsx))
         return {'type': 'ir.actions.client', 'tag': 'reload'}
