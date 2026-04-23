@@ -30,12 +30,19 @@ class TestImportCategoriesWizard(TransactionCase):
         categories = self.env['pos.category'].search([
             ('referencia_todopintura', 'in', [10000, 10100, 10101]),
         ])
+        inventory_categories = self.env['product.category'].search([
+            ('referencia_todopintura', 'in', [10000, 10100, 10101]),
+        ])
 
         self.assertEqual(len(categories), 3)
+        self.assertEqual(len(inventory_categories), 3)
 
         root = self.env['pos.category'].search([('referencia_todopintura', '=', 10000)], limit=1)
         child = self.env['pos.category'].search([('referencia_todopintura', '=', 10100)], limit=1)
         leaf = self.env['pos.category'].search([('referencia_todopintura', '=', 10101)], limit=1)
+        inventory_root = self.env['product.category'].search([('referencia_todopintura', '=', 10000)], limit=1)
+        inventory_child = self.env['product.category'].search([('referencia_todopintura', '=', 10100)], limit=1)
+        inventory_leaf = self.env['product.category'].search([('referencia_todopintura', '=', 10101)], limit=1)
 
         self.assertEqual(root.name, 'Pinturas y barnices')
         self.assertEqual(child.name, 'Interior premium')
@@ -43,3 +50,11 @@ class TestImportCategoriesWizard(TransactionCase):
         self.assertFalse(root.parent_id)
         self.assertEqual(child.parent_id, root)
         self.assertEqual(leaf.parent_id, child)
+
+        self.assertEqual(inventory_root.name, 'Pinturas y barnices')
+        self.assertEqual(inventory_child.name, 'Interior premium')
+        self.assertEqual(inventory_leaf.name, 'Lavable mate')
+        self.assertFalse(inventory_root.parent_id)
+        self.assertEqual(inventory_child.parent_id, inventory_root)
+        self.assertEqual(inventory_leaf.parent_id, inventory_child)
+

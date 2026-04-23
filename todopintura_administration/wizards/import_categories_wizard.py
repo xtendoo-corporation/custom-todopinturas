@@ -14,6 +14,7 @@ try:
 except ImportError:
     openpyxl = None
 
+
 class ImportCategoriesWizard(models.TransientModel):
     _name = 'import.categories.wizard'
     _description = 'Import Categories Wizard'
@@ -45,9 +46,46 @@ class ImportCategoriesWizard(models.TransientModel):
             return category_ref - (category_ref % 10000)
         return (category_ref // 100) * 100
 
+    def _get_category_parent_id(self, category_model, parent_ref, category_refs):
+        if not parent_ref:
+            return False
+
+        parent_id = category_refs.get(parent_ref)
+        if parent_id:
+            return parent_id
+
+        parent = category_model.search(
+            [('referencia_todopintura', '=', parent_ref)],
+            order='id asc',
+            limit=1,
+        )
+        return parent.id or False
+
+    def _create_or_update_category(self, category_model, category_ref, category_name, parent_id):
+        category = category_model.search(
+            [('referencia_todopintura', '=', category_ref)],
+            order='id asc',
+            limit=1,
+        )
+
+        values = {
+            'name': category_name,
+            'parent_id': parent_id,
+        }
+        if category:
+            category.write(values)
+        else:
+            values['referencia_todopintura'] = category_ref
+            category = category_model.create(values)
+
+        return category
+
     def _import_category_rows(self, rows):
-        category_dict = {}
-        pos_category_model = self.env['pos.category']
+        category_models = {
+            'pos': self.env['pos.category'],
+            'product': self.env['product.category'],
+        }
+        category_refs = {key: {} for key in category_models}
 
         for row in rows:
             category_ref = self._safe_category_id(row[0] if len(row) > 0 else None)
@@ -56,25 +94,15 @@ class ImportCategoriesWizard(models.TransientModel):
                 continue
 
             parent_ref = self._get_parent_reference(category_ref)
-            parent_id = category_dict.get(parent_ref) if parent_ref else False
-
-            category = pos_category_model.search(
-                [('referencia_todopintura', '=', category_ref)],
-                order='id asc',
-                limit=1,
-            )
-
-            values = {
-                'name': category_name,
-                'parent_id': parent_id,
-            }
-            if category:
-                category.write(values)
-            else:
-                values['referencia_todopintura'] = category_ref
-                category = pos_category_model.create(values)
-
-            category_dict[category_ref] = category.id
+            for key, category_model in category_models.items():
+                parent_id = self._get_category_parent_id(category_model, parent_ref, category_refs[key])
+                category = self._create_or_update_category(
+                    category_model,
+                    category_ref,
+                    category_name,
+                    parent_id,
+                )
+                category_refs[key][category_ref] = category.id
 
     def action_import_categories(self):
         if not self.file:

@@ -152,3 +152,68 @@ class TestImportProductsWizard(TransactionCase):
         self.assertEqual(product.id, existing_product.id)
         self.assertFalse(product.barcode)
 
+    def test_resolve_categories_from_reference_returns_existing_inventory_category(self):
+        category_ref = 987650101
+        pos_category = self.env['pos.category'].create({
+            'name': 'TPV Pinturas',
+            'referencia_todopintura': category_ref,
+        })
+        product_category = self.env['product.category'].create({
+            'name': 'Inventario Pinturas',
+            'referencia_todopintura': category_ref,
+        })
+
+        resolved_pos, resolved_product = self.wizard._resolve_categories_from_reference(category_ref)
+
+        self.assertEqual(resolved_pos, pos_category)
+        self.assertEqual(resolved_product, product_category)
+
+    def test_crear_categoria_con_padres_copies_reference_and_hierarchy_from_pos(self):
+        root_ref = 987660000
+        child_ref = 987660100
+        pos_root = self.env['pos.category'].create({
+            'name': 'Pinturas',
+            'referencia_todopintura': root_ref,
+        })
+        pos_child = self.env['pos.category'].create({
+            'name': 'Interior',
+            'referencia_todopintura': child_ref,
+            'parent_id': pos_root.id,
+        })
+
+        product_child = self.wizard.crear_categoria_con_padres(pos_child)
+
+        self.assertEqual(product_child.referencia_todopintura, child_ref)
+        self.assertEqual(product_child.parent_id.referencia_todopintura, root_ref)
+        self.assertEqual(product_child.parent_id.name, 'Pinturas')
+
+    def test_build_product_record_assigns_categories_from_reference(self):
+        category_ref = 987670200
+        pos_category = self.env['pos.category'].create({
+            'name': 'TPV Interior',
+            'referencia_todopintura': category_ref,
+        })
+        product_category = self.env['product.category'].create({
+            'name': 'Inventario Interior',
+            'referencia_todopintura': category_ref,
+        })
+
+        record, resolved_pos, resolved_product = self.wizard._build_product_record({
+            'num_prod': 2001,
+            'name': 'Producto Categoría Ref',
+            'barcode': '',
+            'notes': '',
+            'coste': 2.5,
+            'invoice_description': '',
+            'prices': [12.0],
+            'discounts': [5.0],
+            'pos_categ_ref': category_ref,
+            'num_prov': None,
+            'price_last_buy': None,
+        })
+
+        self.assertEqual(resolved_pos, pos_category)
+        self.assertEqual(resolved_product, product_category)
+        self.assertEqual(record['categ_id'], product_category.id)
+        self.assertEqual(record['pos_categ_ids'], [(6, 0, [pos_category.id])])
+

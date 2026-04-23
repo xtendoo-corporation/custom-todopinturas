@@ -169,6 +169,55 @@ class ImportProductsWizard(models.TransientModel):
             'discounts': discounts,
         }
 
+    def _find_category_by_reference(self, model_name, category_ref):
+        if not category_ref:
+            return False
+
+        return self.env[model_name].search(
+            [('referencia_todopintura', '=', category_ref)],
+            order='id asc',
+            limit=1,
+        )
+
+    def _resolve_categories_from_reference(self, category_ref):
+        pos_categ = self._find_category_by_reference('pos.category', category_ref)
+        product_categ = self._find_category_by_reference('product.category', category_ref)
+
+        if not product_categ and pos_categ:
+            product_categ = self.crear_categoria_con_padres(pos_categ)
+
+        return pos_categ, product_categ
+
+    def _build_product_record(self, values, tax_id=False, partner=False):
+        pos_categ, product_categ = self._resolve_categories_from_reference(values['pos_categ_ref'])
+        list_price = next((price for price in values['prices'] if price is not None), 0.0)
+
+        record = {
+            'default_code': values['num_prod'],
+            'name': values['name'],
+            'list_price': list_price,
+            'taxes_id': [(6, 0, [tax_id])] if tax_id else [],
+            'barcode': values['barcode'] if values['barcode'] else None,
+            'description': values['notes'] if values['notes'] else None,
+            'standard_price': values['coste'] if values['coste'] else 0,
+            'invoice_description': values['invoice_description'] if values['invoice_description'] else None,
+            'type': "consu",
+            'is_storable': True,
+            'invoice_policy': "delivery",
+            'available_in_pos': True,
+            'pos_categ_ids': [(6, 0, [pos_categ.id])] if pos_categ else [],
+        }
+
+        if product_categ:
+            record['categ_id'] = product_categ.id
+        elif partner and not values['pos_categ_ref']:
+            category = self.env['product.category'].search([('name', '=', partner.name)], limit=1)
+            if not category:
+                category = self.env['product.category'].create({'name': partner.name})
+            record['categ_id'] = category.id
+
+        return record, pos_categ, product_categ
+
     def action_import_products(self):
         if not self.file:
             raise UserError("Por favor, sube un archivo XLS o XLSX.")
@@ -221,11 +270,6 @@ class ImportProductsWizard(models.TransientModel):
                 print("Todos los datos están vacíos. Terminando la importación.")
                 break
 
-            pos_categ = self.env['pos.category'].search(
-                [('referencia_todopintura', '=', values['pos_categ_ref'])], limit=1
-            ) if values['pos_categ_ref'] else False
-            print(f"pos_categ: {pos_categ}")
-
             partner = None
             if values['num_prov']:
                 print(f"Buscando proveedor con referencia: 0{values['num_prov']}")
@@ -236,36 +280,18 @@ class ImportProductsWizard(models.TransientModel):
                     print(f"No se encontró proveedor con referencia 0{values['num_prov']}")
 
             tax_id = self.env['account.tax'].search([('name', '=', '21% G')], limit=1).id
-            list_price = next((price for price in values['prices'] if price is not None), 0.0)
-            record = {
-                'default_code': values['num_prod'],
-                'name': values['name'],
-                'list_price': list_price,
-                'taxes_id': [(6, 0, [tax_id])] if tax_id else [],
-                'barcode': values['barcode'] if values['barcode'] else None,
-                'description': values['notes'] if values['notes'] else None,
-                'standard_price': values['coste'] if values['coste'] else 0,
-                'invoice_description': values['invoice_description'] if values['invoice_description'] else None,
-                'type': "consu",
-                'is_storable': True,
-                'invoice_policy': "delivery",
-                'available_in_pos': True,
-                'pos_categ_ids': [(6, 0, [pos_categ.id])] if pos_categ else [],
-            }
             print("*" * 40)
             print(f"Producto: {values['name']} (ID: {values['num_prod']})")
             print("*" * 40)
 
             supplier_partner = partner if (values['num_prov'] and values['price_last_buy']) else None
-            if pos_categ:
-                category = self.crear_categoria_con_padres(pos_categ, supplier_partner)
-                record['categ_id'] = category.id
-                print(f"category: {category}")
-            elif supplier_partner:
-                category = self.env['product.category'].search([('name', '=', supplier_partner.name)], limit=1)
-                if not category:
-                    category = self.env['product.category'].create({'name': supplier_partner.name})
-                record['categ_id'] = category.id
+            record, pos_categ, category = self._build_product_record(
+                values,
+                tax_id=tax_id,
+                partner=supplier_partner,
+            )
+            print(f"pos_categ: {pos_categ}")
+            print(f"category: {category}")
 
             product = self._create_or_update_product(record)
             if not product:
@@ -408,38 +434,25 @@ class ImportProductsWizard(models.TransientModel):
             self.env['product.pricelist.item'].create(pricelist_item_vals)
 
     def crear_categoria_con_padres(self, pos_categ, partner=None):
-        """
-        Crea una estructura de categorías donde:
-        1. Si hay proveedor, crea/busca una categoría con su nombre
-        2. Crea una subcategoría específica para este proveedor+categoría
-        """
-        if not partner:
+        category_ref = pos_categ.referencia_todopintura or False
+        category = self._find_category_by_reference('product.category', category_ref)
+        if not category and not category_ref:
             category = self.env['product.category'].search([('name', '=', pos_categ.name)], limit=1)
-            if not category:
-                category = self.env['product.category'].create({'name': pos_categ.name})
-                print(f"Categoría creada sin proveedor: {pos_categ.name}")
-            else:
-                print(f"Usando categoría existente: {pos_categ.name}")
-            parent_pos = pos_categ.parent_id
-            if parent_pos and not category.parent_id:
-                parent_category = self.crear_categoria_con_padres(parent_pos)
-                category.write({'parent_id': parent_category.id})
-                print(f"Actualizada jerarquía para: {category.name}")
+
+        parent_category = self.crear_categoria_con_padres(pos_categ.parent_id) if pos_categ.parent_id else False
+        values = {
+            'name': pos_categ.name,
+            'parent_id': parent_category.id if parent_category else False,
+        }
+
+        if category:
+            category.write(values)
+            print(f"Usando categoría existente por referencia: {pos_categ.name}")
             return category
-        provider_category = self.env['product.category'].search([('name', '=', partner.name)], limit=1)
-        if not provider_category:
-            provider_category = self.env['product.category'].create({'name': partner.name})
-            print(f"Creada categoría de proveedor: {partner.name}")
-        specific_category = self.env['product.category'].search([
-            ('name', '=', pos_categ.name),
-            ('parent_id', '=', provider_category.id)
-        ], limit=1)
-        if not specific_category:
-            specific_category = self.env['product.category'].create({
-                'name': pos_categ.name,
-                'parent_id': provider_category.id
-            })
-            print(f"Creada subcategoría: {pos_categ.name} bajo proveedor: {partner.name}")
-        else:
-            print(f"Usando categoría existente: {pos_categ.name} bajo proveedor: {partner.name}")
-        return specific_category
+
+        if category_ref:
+            values['referencia_todopintura'] = category_ref
+
+        category = self.env['product.category'].create(values)
+        print(f"Categoría creada desde TPV: {pos_categ.name}")
+        return category

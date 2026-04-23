@@ -20,6 +20,7 @@
         'views/menu.xml',
         'views/product_template.xml',
         'views/pos_category.xml',
+        'views/product_category.xml',
         'views/product_pricelist_view_inherit.xml',
         'security/ir.model.access.csv',
         # 'views/res_partner_views.xml',
