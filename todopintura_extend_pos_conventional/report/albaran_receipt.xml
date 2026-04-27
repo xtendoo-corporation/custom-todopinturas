@@ -12,6 +12,14 @@
                     <strong>Recogida por líneas:</strong><br/>
                     <span t-out="o.pos_order_id.pickup_warehouse_summary"/>
                 </div>
+                <div t-if="o.pos_order_id.partner_requires_voucher" style="margin-bottom: 5px;">
+                    <strong>Vale requerido:</strong><br/>
+                    <span t-out="o.pos_order_id.partner_voucher_reference or 'Sí'"/>
+                </div>
+                <div t-if="o.pos_order_id.partner_pickup_persons_display" style="margin-bottom: 5px; white-space: pre-line;">
+                    <strong>Autorizados de recogida:</strong><br/>
+                    <span t-out="o.pos_order_id.partner_pickup_persons_display"/>
+                </div>
             </t>
         </xpath>
     </template>

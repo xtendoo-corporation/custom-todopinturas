@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_conventional_location" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.conventional.location</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='pos_inventory_section']/setting[field[@name='pos_picking_type_id']]" position="after">
+                <setting string="Ubicación de la caja POS Conventional"
+                         help="Las cajas POS Conventional usan la ubicación origen del tipo de operación. Debe estar configurada para poder usar la caja.">
+                    <field name="pos_conventional_source_location_id" readonly="1"/>
+                    <div class="text-muted mt-1">
+                        La ubicación se toma del tipo de operación seleccionado en la caja.
+                    </div>
+                    <div class="alert alert-warning mt-2" role="alert"
+                         invisible="not pos_config_id or not pos_non_touch or pos_conventional_source_location_id">
+                        Esta caja POS Conventional no tiene ubicación vinculada. Configure la ubicación origen en el tipo de operación.
+                    </div>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

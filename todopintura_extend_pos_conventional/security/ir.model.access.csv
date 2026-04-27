@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_res_partner_pickup_person_user,res.partner.pickup.person user,model_res_partner_pickup_person,base.group_user,1,1,1,1
+access_pos_conventional_credit_override_wizard_user,pos.conventional.credit.override.wizard user,model_pos_conventional_credit_override_wizard,base.group_user,1,1,1,1
+

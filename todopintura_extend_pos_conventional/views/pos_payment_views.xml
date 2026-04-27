@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_payment_form_conventional_credit" model="ir.ui.view">
+        <field name="name">pos.make.payment.form.conventional.credit</field>
+        <field name="model">pos.make.payment</field>
+        <field name="inherit_id" ref="pos_conventional_payment_wizard.view_pos_payment_form_inherit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('row') and hasclass('g-2')]" position="after">
+                <field name="config_currency_id" invisible="1"/>
+                <field name="is_pay_later_payment" invisible="1"/>
+                <div class="mt-3" invisible="not is_pay_later_payment">
+                    <div class="alert alert-info mb-2" role="status">
+                        <h4 class="fw-bold mb-2">
+                            <i class="fa fa-credit-card me-2"/>Venta a crédito / cobro posterior
+                        </h4>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-4">
+                                <div class="o_form_label fw-bold">Deuda POS pendiente</div>
+                                <field name="order_current_due" readonly="1" widget="monetary" options="{'currency_field': 'config_currency_id'}"/>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="o_form_label fw-bold">Importe a crédito</div>
+                                <field name="amount" readonly="1" widget="monetary" options="{'currency_field': 'config_currency_id'}"/>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="o_form_label fw-bold">Total tras la venta</div>
+                                <field name="order_total_due_after_payment" readonly="1" widget="monetary" options="{'currency_field': 'config_currency_id'}"/>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <div class="o_form_label fw-bold">Límite de riesgo</div>
+                                <field name="order_credit_limit" readonly="1" widget="monetary" options="{'currency_field': 'config_currency_id'}"/>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="o_form_label fw-bold">Ubicación de la caja</div>
+                                <field name="order_current_credit_location_name" readonly="1"/>
+                            </div>
+                        </div>
+                        <div class="mb-2" invisible="not order_allowed_credit_location_names">
+                            <div class="o_form_label fw-bold">Ubicaciones permitidas</div>
+                            <field name="order_allowed_credit_location_names" readonly="1"/>
+                        </div>
+                        <div class="mb-2" invisible="not order_requires_voucher">
+                            <div class="o_form_label fw-bold">Vale requerido</div>
+                            <field name="order_voucher_reference" readonly="1" placeholder="Cliente con vale requerido"/>
+                        </div>
+                        <div class="mb-2" invisible="not order_pickup_people">
+                            <div class="o_form_label fw-bold">Autorizados de recogida</div>
+                            <field name="order_pickup_people" readonly="1" widget="text" nolabel="1"/>
+                        </div>
+                        <div class="alert alert-warning mb-0" role="alert" invisible="not order_credit_warning_message">
+                            <field name="order_credit_warning_message" readonly="1" widget="text" nolabel="1"/>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

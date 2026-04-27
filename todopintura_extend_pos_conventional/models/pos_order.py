@@ -4,6 +4,7 @@ import logging
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import float_compare
 
 _logger = logging.getLogger(__name__)
 
@@ -25,6 +26,61 @@ class PosOrder(models.Model):
         string="Tiene recogidas en otra tienda",
         compute="_compute_pickup_warehouse_summary",
     )
+    current_credit_location_name = fields.Char(
+        string="Ubicación actual de cobro/crédito",
+        compute="_compute_partner_credit_policy",
+    )
+    partner_credit_location_names = fields.Char(
+        string="Ubicaciones permitidas para crédito",
+        compute="_compute_partner_credit_policy",
+    )
+    partner_pickup_persons_display = fields.Text(
+        string="Autorizados de recogida",
+        compute="_compute_partner_credit_policy",
+    )
+    partner_requires_voucher = fields.Boolean(
+        string="Necesita vale",
+        compute="_compute_partner_credit_policy",
+    )
+    partner_voucher_reference = fields.Char(
+        string="Código / documento del vale",
+        compute="_compute_partner_credit_policy",
+    )
+    partner_current_total_due = fields.Monetary(
+        string="Deuda POS pendiente",
+        compute="_compute_partner_credit_policy",
+        currency_field="currency_id",
+    )
+    partner_credit_limit_amount = fields.Monetary(
+        string="Límite de riesgo",
+        compute="_compute_partner_credit_policy",
+        currency_field="currency_id",
+    )
+    partner_total_due_after_order = fields.Monetary(
+        string="Deuda tras el pedido",
+        compute="_compute_partner_credit_policy",
+        currency_field="currency_id",
+    )
+    partner_credit_warning_message = fields.Text(
+        string="Aviso de crédito",
+        compute="_compute_partner_credit_policy",
+    )
+    credit_limit_override_approved = fields.Boolean(
+        string="Override de límite aprobado",
+        readonly=True,
+        copy=False,
+    )
+    credit_limit_override_user_id = fields.Many2one(
+        comodel_name="res.users",
+        string="Override aprobado por",
+        readonly=True,
+        copy=False,
+    )
+    credit_limit_override_date = fields.Datetime(
+        string="Fecha override límite",
+        readonly=True,
+        copy=False,
+    )
 
     @api.depends("config_id.warehouse_id", "lines.pickup_warehouse_id")
     def _compute_pickup_warehouse_summary(self):
@@ -39,6 +95,40 @@ class PosOrder(models.Model):
                     or (origin_warehouse and warehouses != origin_warehouse)
                 )
             )
+
+    @api.depends(
+        "partner_id",
+        "partner_id.commercial_partner_id",
+        "amount_total",
+        "amount_paid",
+        "config_id",
+        "config_id.picking_type_id",
+        "config_id.picking_type_id.default_location_src_id",
+    )
+    def _compute_partner_credit_policy(self):
+        for order in self:
+            order.current_credit_location_name = False
+            order.partner_credit_location_names = False
+            order.partner_pickup_persons_display = False
+            order.partner_requires_voucher = False
+            order.partner_voucher_reference = False
+            order.partner_current_total_due = 0.0
+            order.partner_credit_limit_amount = 0.0
+            order.partner_total_due_after_order = 0.0
+            order.partner_credit_warning_message = False
+            if not order.partner_id:
+                continue
+
+            policy = order._get_conventional_credit_policy_data()
+            order.current_credit_location_name = policy["current_location_name"]
+            order.partner_credit_location_names = policy["allowed_location_names"]
+            order.partner_pickup_persons_display = policy["pickup_people"]
+            order.partner_requires_voucher = policy["requires_voucher"]
+            order.partner_voucher_reference = policy["voucher_reference"]
+            order.partner_current_total_due = policy["current_due"]
+            order.partner_credit_limit_amount = policy["credit_limit"]
+            order.partner_total_due_after_order = policy["total_after"]
+            order.partner_credit_warning_message = policy["warning_message"]
 
     def _get_pickup_warehouse_for_line(self, line):
         self.ensure_one()
@@ -56,6 +146,135 @@ class PosOrder(models.Model):
     def _get_fulfillment_picking_type(self, warehouse):
         self.ensure_one()
         return warehouse.out_type_id or self.config_id.picking_type_id
+
+    def _get_credit_source_location(self):
+        self.ensure_one()
+        return self.config_id.picking_type_id.default_location_src_id if self.config_id and self.config_id.picking_type_id else self.env["stock.location"]
+
+    def _get_partner_credit_policy_partner(self):
+        self.ensure_one()
+        return self.partner_id.commercial_partner_id
+
+    def _get_credit_amount_to_check(self, amount=None):
+        self.ensure_one()
+        if amount is None:
+            amount = max(self.amount_total - self.amount_paid, 0.0)
+        return max(amount, 0.0)
+
+    def _build_credit_warning_message(self, policy):
+        self.ensure_one()
+        lines = []
+        if not policy["credit_sale_allowed"]:
+            lines.append(policy["error_message"])
+        elif not policy["location_allowed"]:
+            lines.append(policy["location_error"])
+        elif policy["needs_limit_override"]:
+            lines.append(
+                _(
+                    "La deuda pendiente del cliente (%(current).2f) más esta venta (%(sale).2f) supera el límite de riesgo (%(limit).2f)."
+                )
+                % {
+                    "current": policy["current_due"],
+                    "sale": policy["order_amount"],
+                    "limit": policy["credit_limit"],
+                }
+            )
+        elif policy["limit_exceeded"]:
+            lines.append(
+                _("La venta supera el límite de riesgo, pero ya fue autorizada mediante override.")
+            )
+
+        if policy["requires_voucher"]:
+            voucher_line = _("El cliente requiere vale")
+            if policy["voucher_reference"]:
+                voucher_line = _("%s: %s") % (voucher_line, policy["voucher_reference"])
+            lines.append(voucher_line)
+
+        return "\n".join(lines) or False
+
+    def _get_conventional_credit_policy_data(self, amount=None, payment_method=None, allow_limit_override=False):
+        self.ensure_one()
+
+        partner = self._get_partner_credit_policy_partner()
+        source_location = self._get_credit_source_location()
+        currency = self.currency_id or self.company_id.currency_id
+        order_amount = self._get_credit_amount_to_check(amount=amount)
+        allowed_locations = partner._get_conventional_credit_locations() if partner else self.env["stock.location"]
+        current_due = partner._get_conventional_total_due(self.config_id) if partner else 0.0
+        credit_limit = partner._get_conventional_credit_limit(self.config_id) if partner else 0.0
+        credit_limit_enabled = bool(
+            partner
+            and "use_partner_credit_limit" in partner._fields
+            and partner.use_partner_credit_limit
+            and credit_limit > 0
+        )
+        limit_exceeded = bool(
+            credit_limit_enabled
+            and float_compare(
+                current_due + order_amount,
+                credit_limit,
+                precision_rounding=currency.rounding,
+            )
+            > 0
+        )
+        evaluate_as_credit_sale = payment_method.type == "pay_later" if payment_method else True
+        credit_sale_allowed = bool(partner and partner.pos_credit_sale_enabled) if evaluate_as_credit_sale else True
+        location_allowed = True
+        location_error = False
+        if evaluate_as_credit_sale and allowed_locations:
+            location_allowed = bool(source_location and source_location in allowed_locations)
+            if not source_location:
+                location_error = _("La caja no tiene ubicación origen configurada.")
+            elif not location_allowed:
+                location_error = _(
+                    "El cliente solo puede operarse a crédito en: %s. La caja actual usa: %s."
+                ) % (", ".join(allowed_locations.mapped("display_name")), source_location.display_name)
+
+        error_message = False
+        if evaluate_as_credit_sale and not credit_sale_allowed:
+            error_message = _("El cliente no está habilitado para ventas a crédito en POS convencional.")
+
+        policy = {
+            "order_amount": order_amount,
+            "current_due": current_due,
+            "credit_limit": credit_limit,
+            "credit_limit_enabled": credit_limit_enabled,
+            "limit_exceeded": limit_exceeded,
+            "needs_limit_override": bool(evaluate_as_credit_sale and limit_exceeded and not allow_limit_override),
+            "credit_sale_allowed": credit_sale_allowed,
+            "location_allowed": location_allowed,
+            "location_error": location_error,
+            "error_message": error_message,
+            "allowed_location_names": ", ".join(allowed_locations.mapped("display_name")) or False,
+            "current_location_name": source_location.display_name if source_location else False,
+            "pickup_people": partner._get_conventional_pickup_people_display() if partner else False,
+            "requires_voucher": partner._uses_conventional_voucher() if partner else False,
+            "voucher_reference": partner._get_conventional_voucher_reference() if partner else False,
+            "total_after": current_due + order_amount,
+        }
+        policy["warning_message"] = self._build_credit_warning_message(policy)
+        return policy
+
+    def _open_credit_limit_override_wizard(self, payment_wizard, policy):
+        self.ensure_one()
+        action = self.env.ref(
+            "todopintura_extend_pos_conventional.action_pos_conventional_credit_override_wizard"
+        ).read()[0]
+        action["context"] = {
+            "default_order_id": self.id,
+            "default_payment_wizard_id": payment_wizard.id,
+            "default_current_due": policy["current_due"],
+            "default_credit_limit": policy["credit_limit"],
+            "default_payment_amount": policy["order_amount"],
+            "default_total_after": policy["total_after"],
+            "default_current_location_name": policy["current_location_name"],
+            "default_allowed_location_names": policy["allowed_location_names"],
+            "default_pickup_people": policy["pickup_people"],
+            "default_requires_voucher": policy["requires_voucher"],
+            "default_voucher_reference": policy["voucher_reference"],
+            "default_warning_message": policy["warning_message"],
+        }
+        return action
 
     def _group_lines_by_pickup_warehouse(self, lines=None):
         self.ensure_one()
@@ -81,6 +300,23 @@ class PosOrder(models.Model):
                 sale_note,
                 _("Recogida por líneas en: %s") % self.pickup_warehouse_summary,
             )
+        partner = self._get_partner_credit_policy_partner()
+        if partner:
+            if partner._uses_conventional_voucher():
+                voucher_text = _("Cliente con vale requerido")
+                if partner._get_conventional_voucher_reference():
+                    voucher_text = _("%s: %s") % (
+                        voucher_text,
+                        partner._get_conventional_voucher_reference(),
+                    )
+                sale_note = "%s\n%s" % (sale_note, voucher_text)
+            pickup_people = partner._get_conventional_pickup_people_display()
+            if pickup_people:
+                sale_note = "%s\n%s\n%s" % (
+                    sale_note,
+                    _("Autorizados de recogida:"),
+                    pickup_people,
+                )
         return sale_note
 
     def _prepare_sale_order_line_command(self, pos_line):

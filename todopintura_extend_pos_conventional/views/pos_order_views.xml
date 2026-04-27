@@ -34,5 +34,59 @@
         </field>
     </record>
 
+    <record id="view_pos_order_form_inherit_credit_policy_panel" model="ir.ui.view">
+        <field name="name">pos.order.form.inherit.credit.policy.panel</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/field[@name='failed_pickings']" position="after">
+                <field name="partner_current_total_due" invisible="1"/>
+                <field name="partner_credit_limit_amount" invisible="1"/>
+                <field name="partner_total_due_after_order" invisible="1"/>
+                <field name="partner_requires_voucher" invisible="1"/>
+                <div class="alert alert-secondary mb-3" role="status" invisible="not partner_id or is_linked_to_sale">
+                    <h4 class="fw-bold mb-2">
+                        <i class="fa fa-address-card me-2"/>Cliente: crédito, cobro y recogida
+                    </h4>
+                    <div class="row g-2 mb-2">
+                        <div class="col-lg-4 col-md-6">
+                            <div class="o_form_label fw-bold">Deuda POS pendiente</div>
+                            <field name="partner_current_total_due" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="o_form_label fw-bold">Límite de riesgo</div>
+                            <field name="partner_credit_limit_amount" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="o_form_label fw-bold">Deuda tras el pedido</div>
+                            <field name="partner_total_due_after_order" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-lg-6 col-md-6">
+                            <div class="o_form_label fw-bold">Ubicación actual de la caja</div>
+                            <field name="current_credit_location_name" readonly="1"/>
+                        </div>
+                        <div class="col-lg-6 col-md-6" invisible="not partner_credit_location_names">
+                            <div class="o_form_label fw-bold">Ubicaciones permitidas para crédito</div>
+                            <field name="partner_credit_location_names" readonly="1"/>
+                        </div>
+                    </div>
+                    <div class="mb-2" invisible="not partner_requires_voucher">
+                        <div class="o_form_label fw-bold">Vale requerido</div>
+                        <field name="partner_voucher_reference" readonly="1" placeholder="Cliente con vale requerido"/>
+                    </div>
+                    <div class="mb-2" invisible="not partner_pickup_persons_display">
+                        <div class="o_form_label fw-bold">Autorizados de recogida</div>
+                        <field name="partner_pickup_persons_display" readonly="1" widget="text" nolabel="1"/>
+                    </div>
+                    <div class="alert alert-warning mb-0" role="alert" invisible="not partner_credit_warning_message">
+                        <field name="partner_credit_warning_message" readonly="1" widget="text" nolabel="1"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>
 
