@@ -38,6 +38,10 @@ class PosOrder(models.Model):
         string="Autorizados de recogida",
         compute="_compute_partner_credit_policy",
     )
+    partner_pickup_persons_inline = fields.Char(
+        string="Autorizados de recogida (resumen)",
+        compute="_compute_partner_credit_policy",
+    )
     partner_requires_voucher = fields.Boolean(
         string="Necesita vale",
         compute="_compute_partner_credit_policy",
@@ -110,6 +114,7 @@ class PosOrder(models.Model):
             order.current_credit_location_name = False
             order.partner_credit_location_names = False
             order.partner_pickup_persons_display = False
+            order.partner_pickup_persons_inline = False
             order.partner_requires_voucher = False
             order.partner_voucher_reference = False
             order.partner_current_total_due = 0.0
@@ -123,12 +128,20 @@ class PosOrder(models.Model):
             order.current_credit_location_name = policy["current_location_name"]
             order.partner_credit_location_names = policy["allowed_location_names"]
             order.partner_pickup_persons_display = policy["pickup_people"]
+            order.partner_pickup_persons_inline = order._format_pickup_people_inline(policy["pickup_people"])
             order.partner_requires_voucher = policy["requires_voucher"]
             order.partner_voucher_reference = policy["voucher_reference"]
             order.partner_current_total_due = policy["current_due"]
             order.partner_credit_limit_amount = policy["credit_limit"]
             order.partner_total_due_after_order = policy["total_after"]
             order.partner_credit_warning_message = policy["warning_message"]
+
+    def _format_pickup_people_inline(self, pickup_people):
+        self.ensure_one()
+        if not pickup_people:
+            return False
+        parts = [part.strip() for part in pickup_people.splitlines() if part.strip()]
+        return ", ".join(parts) or pickup_people.strip()
 
     def _get_pickup_warehouse_for_line(self, line):
         self.ensure_one()
@@ -184,11 +197,6 @@ class PosOrder(models.Model):
                 _("La venta supera el límite de riesgo, pero ya fue autorizada mediante override.")
             )
 
-        if policy["requires_voucher"]:
-            voucher_line = _("El cliente requiere vale")
-            if policy["voucher_reference"]:
-                voucher_line = _("%s: %s") % (voucher_line, policy["voucher_reference"])
-            lines.append(voucher_line)
 
         return "\n".join(lines) or False
 
