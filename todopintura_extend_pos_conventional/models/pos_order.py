@@ -520,6 +520,59 @@ class PosOrderLine(models.Model):
         string="Tienda de recogida",
         help="Tienda en la que se recogerá esta línea del pedido.",
     )
+    stock_status = fields.Selection([
+        ('available', 'Localmente Disponible'),
+        ('partial', 'Disponible combinando tiendas'),
+        ('out', 'Sin stock'),
+    ], compute='_compute_stock_status', store=True)
+
+    # Dummy field to avoid ParseError during module upgrade due to cached XML views in DB.
+    is_available_in_warehouse = fields.Boolean(compute='_compute_dummy_is_available', store=False)
+
+    def _compute_dummy_is_available(self):
+        for line in self:
+            line.is_available_in_warehouse = False
+
+    @api.depends("product_id", "pickup_warehouse_id", "qty", "order_id.config_id", "order_id.origin_warehouse_id")
+    def _compute_stock_status(self):
+        for line in self:
+            if not line.product_id or line.product_id.type == 'service':
+                line.stock_status = 'available'
+                continue
+                
+            warehouse = line.pickup_warehouse_id or line.order_id.origin_warehouse_id or (line.order_id.config_id and line.order_id.config_id.warehouse_id)
+            if not warehouse:
+                line.stock_status = 'out'
+                continue
+                
+            # Forzamos el cálculo de cantidades para este almacén específico
+            # Usamos 'free_qty' (Disponible real) para no contar compras futuras que aún no han llegado
+            res_local = line.product_id.with_context(warehouse_id=warehouse.id)._compute_quantities_dict(None, None, None)
+            qty_local = res_local.get(line.product_id.id, {}).get('free_qty', 0.0)
+            
+            if qty_local >= line.qty:
+                line.stock_status = 'available'
+            else:
+                # Calculamos el global usando también free_qty
+                res_global = line.product_id.with_context(warehouse_id=False, location=False)._compute_quantities_dict(None, None, None)
+                qty_global = res_global.get(line.product_id.id, {}).get('free_qty', 0.0)
+                
+                if qty_global >= line.qty:
+                    line.stock_status = 'partial'
+                else:
+                    line.stock_status = 'out'
+
+    def action_open_stock_forecast(self):
+        self.ensure_one()
+        warehouse = self.pickup_warehouse_id or self.order_id.origin_warehouse_id or (self.order_id.config_id and self.order_id.config_id.warehouse_id)
+        action = self.env['ir.actions.client']._for_xml_id('stock.stock_forecasted_product_product_action')
+        action['context'] = {
+            'active_id': self.product_id.id,
+            'active_model': 'product.product',
+            'warehouse_id': warehouse.id if warehouse else False,
+        }
+        # Abierto a pantalla completa (por defecto) en lugar de ventana para que se vea a máxima resolución.
+        return action
 
     @api.onchange("order_id")
     def _onchange_order_id_set_pickup_warehouse(self):

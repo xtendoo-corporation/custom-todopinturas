@@ -25,6 +25,12 @@
                     domain="['|', ('company_id', '=', False), ('company_id', '=', parent.company_id)]"
                     options="{'no_create': True, 'no_open': True}"/>
             </xpath>
+            <xpath expr="//page[@name='products']//field[@name='lines']/list//field[@name='qty']" position="after">
+                <field name="stock_status" column_invisible="True"/>
+                <button name="action_open_stock_forecast" type="object" icon="fa-area-chart text-success" title="Hay stock en la tienda seleccionada" invisible="stock_status != 'available'" />
+                <button name="action_open_stock_forecast" type="object" icon="fa-area-chart text-warning fw-bold" title="Sin stock en esta tienda pero disponible sumando otras" invisible="stock_status != 'partial'" />
+                <button name="action_open_stock_forecast" type="object" icon="fa-area-chart text-danger fw-bold" title="Sin stock suficiente de ninguna manera. Ver ubicaciones" invisible="stock_status != 'out'" />
+            </xpath>
             <xpath expr="//page[@name='products']//field[@name='lines']/form//field[@name='discount']" position="after">
                 <field name="pickup_warehouse_id"
                     string="Tienda de recogida"

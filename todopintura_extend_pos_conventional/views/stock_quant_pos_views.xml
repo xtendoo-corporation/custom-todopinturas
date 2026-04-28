@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stock_quant_pos_modal_tree" model="ir.ui.view">
+        <field name="name">stock.quant.pos.modal.tree</field>
+        <field name="model">stock.quant</field>
+        <field name="arch" type="xml">
+            <list string="Disponibilidad de Stock (Tiendas)" create="false" edit="false" delete="false">
+                <field name="location_id" string="Ubicación"/>
+                <field name="product_id" string="Producto"/>
+                <field name="inventory_quantity_auto_apply" string="Cantidad" />
+                <field name="reserved_quantity" string="Reservado" column_invisible="True" />
+                <field name="product_uom_id" string="Unidad" />
+            </list>
+        </field>
+    </record>
+</odoo>
