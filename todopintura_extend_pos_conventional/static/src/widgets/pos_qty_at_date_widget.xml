@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<template id="template" xml:space="preserve">
+    <t t-name="todopintura_extend_pos_conventional.PosQtyAtDatePopover">
+        <div class="p-2" style="min-width: 200px;">
+            <h6 class="border-bottom pb-2 mb-2">Disponibilidad en Tiendas</h6>
+            <table class="table table-sm table-borderless mb-0">
+                <thead>
+                    <tr class="text-muted border-bottom">
+                        <th class="ps-0">Tienda / Almacén</th>
+                        <th class="text-end pe-0">Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="stockAtLocations" t-as="loc" t-key="loc.location">
+                        <tr class="border-bottom-0">
+                            <td class="ps-0 pt-1 pb-1"><t t-out="loc.location"/></td>
+                            <td class="text-end pe-0 pt-1 pb-1">
+                                <b t-out="loc.qty"/>
+                            </td>
+                        </tr>
+                    </t>
+                    <t t-if="stockAtLocations.length === 0">
+                        <tr>
+                            <td colspan="2" class="text-muted text-center py-3">No hay stock disponible</td>
+                        </tr>
+                    </t>
+                </tbody>
+                <tfoot t-if="stockAtLocations.length > 0">
+                    <tr class="border-top">
+                        <td class="ps-0 pt-2 pb-1"><strong>TOTAL GLOBAL</strong></td>
+                        <td class="text-end pe-0 pt-2 pb-1">
+                            <h6 class="mb-0"><strong><t t-out="totalStock"/></strong></h6>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            <div class="border-top mt-2 pt-2">
+                <button class="btn btn-link btn-sm p-0 w-100 text-start" type="button" t-on-click="openForecast">
+                    <i class="oi oi-arrow-right me-1"/> Ver pronóstico completo
+                </button>
+            </div>
+        </div>
+    </t>
+</template>

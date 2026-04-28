@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import json
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
@@ -518,60 +519,134 @@ class PosOrderLine(models.Model):
     pickup_warehouse_id = fields.Many2one(
         comodel_name="stock.warehouse",
         string="Tienda de recogida",
-        help="Tienda en la que se recogerá esta línea del pedido.",
     )
-    stock_status = fields.Selection([
-        ('available', 'Localmente Disponible'),
-        ('partial', 'Disponible combinando tiendas'),
-        ('out', 'Sin stock'),
-    ], compute='_compute_stock_status', store=True)
+    stock_status = fields.Selection(
+        selection=[
+            ('available', 'Disponible'),
+            ('partial', 'Parcialmente'),
+            ('out', 'Sin Stock'),
+        ],
+        string="Estado Stock",
+        compute="_compute_stock_status",
+        store=True,
+    )
+    is_available_in_warehouse = fields.Boolean(
+        string="Disponible en tienda (Legacy)",
+        help="Campo dummy para evitar errores de vista durante la transición",
+    )
 
-    # Dummy field to avoid ParseError during module upgrade due to cached XML views in DB.
-    is_available_in_warehouse = fields.Boolean(compute='_compute_dummy_is_available', store=False)
+    # Campos necesarios para que el widget 'qty_at_date_widget' funcione (bocadillo de comic)
+    display_qty_widget = fields.Boolean(compute="_compute_qty_at_date_data")
+    free_qty_today = fields.Float(compute="_compute_qty_at_date_data")
+    forecast_expected_date = fields.Datetime(compute="_compute_qty_at_date_data")
+    is_mto = fields.Boolean(compute="_compute_qty_at_date_data")
+    move_ids = fields.One2many('stock.move', compute="_compute_qty_at_date_data")
+    qty_available_today = fields.Float(compute="_compute_qty_at_date_data")
+    qty_to_deliver = fields.Float(compute="_compute_qty_at_date_data")
+    scheduled_date = fields.Datetime(compute="_compute_qty_at_date_data")
+    virtual_available_at_date = fields.Float(compute="_compute_qty_at_date_data")
+    warehouse_id = fields.Many2one('stock.warehouse', compute="_compute_qty_at_date_data")
+    stock_at_locations_json = fields.Text(compute="_compute_stock_at_locations_json")
+    state = fields.Selection(related="order_id.state")
 
-    def _compute_dummy_is_available(self):
+    def _compute_stock_at_locations_json(self):
         for line in self:
-            line.is_available_in_warehouse = False
+            if not line.product_id:
+                line.stock_at_locations_json = "[]"
+                continue
+            quants = self.env['stock.quant'].search([
+                ('product_id', '=', line.product_id.id),
+                ('location_id.usage', '=', 'internal'),
+                ('quantity', '>', 0)
+            ])
+            data = []
+            # Agrupar por almacén para que sea más legible
+            wh_stocks = {}
+            for q in quants:
+                wh_name = q.warehouse_id.name or q.location_id.display_name
+                wh_stocks[wh_name] = wh_stocks.get(wh_name, 0.0) + q.available_quantity
+            
+            for name, qty in wh_stocks.items():
+                data.append({'location': name, 'qty': qty})
+            line.stock_at_locations_json = json.dumps(data)
 
-    @api.depends("product_id", "pickup_warehouse_id", "qty", "order_id.config_id", "order_id.origin_warehouse_id")
+    @api.depends('product_id', 'qty', 'pickup_warehouse_id')
+    def _compute_qty_at_date_data(self):
+        for line in self:
+            warehouse = line.pickup_warehouse_id or line.order_id.config_id.warehouse_id
+            product = line.product_id
+            
+            # En Odoo 19 'consu' suele ser el tipo para productos con stock (Goods)
+            is_storable = product and product.type == 'consu'
+            
+            line.display_qty_widget = is_storable
+            line.warehouse_id = warehouse.id if warehouse else False
+            line.qty_to_deliver = line.qty
+            line.scheduled_date = line.order_id.date_order or fields.Datetime.now()
+            
+            if is_storable and warehouse:
+                res = product.with_context(warehouse_id=warehouse.id)._compute_quantities_dict(None, None, None)
+                qty_data = res.get(product.id, {})
+                line.free_qty_today = qty_data.get('free_qty', 0.0)
+                line.virtual_available_at_date = qty_data.get('virtual_available', 0.0)
+                line.qty_available_today = qty_data.get('qty_available', 0.0)
+            else:
+                line.free_qty_today = 0.0
+                line.virtual_available_at_date = 0.0
+                line.qty_available_today = 0.0
+            
+            line.forecast_expected_date = False
+            line.is_mto = False
+            line.move_ids = self.env['stock.move']
+
+    @api.depends('product_id', 'qty', 'pickup_warehouse_id', 'order_id.config_id.warehouse_id')
     def _compute_stock_status(self):
         for line in self:
-            if not line.product_id or line.product_id.type == 'service':
+            if not line.product_id or line.product_id.type != 'consu':
                 line.stock_status = 'available'
                 continue
-                
-            warehouse = line.pickup_warehouse_id or line.order_id.origin_warehouse_id or (line.order_id.config_id and line.order_id.config_id.warehouse_id)
+            
+            # 1. Stock en la tienda seleccionada (o tienda origen)
+            warehouse = line.pickup_warehouse_id or line.order_id.origin_warehouse_id
             if not warehouse:
                 line.stock_status = 'out'
                 continue
                 
-            # Forzamos el cálculo de cantidades para este almacén específico
-            # Usamos 'free_qty' (Disponible real) para no contar compras futuras que aún no han llegado
-            res_local = line.product_id.with_context(warehouse_id=warehouse.id)._compute_quantities_dict(None, None, None)
-            qty_local = res_local.get(line.product_id.id, {}).get('free_qty', 0.0)
+            res = line.product_id.with_context(warehouse_id=warehouse.id)._compute_quantities_dict(None, None, None)
+            available_qty = res.get(line.product_id.id, {}).get('free_qty', 0.0)
             
-            if qty_local >= line.qty:
+            if available_qty >= line.qty:
                 line.stock_status = 'available'
             else:
-                # Calculamos el global usando también free_qty
-                res_global = line.product_id.with_context(warehouse_id=False, location=False)._compute_quantities_dict(None, None, None)
-                qty_global = res_global.get(line.product_id.id, {}).get('free_qty', 0.0)
-                
-                if qty_global >= line.qty:
+                # 2. Si no hay en esta tienda, ver si hay en la suma de todas las tiendas (internal locations)
+                all_res = line.product_id._compute_quantities_dict(None, None, None)
+                total_available = all_res.get(line.product_id.id, {}).get('free_qty', 0.0)
+                if total_available >= line.qty:
                     line.stock_status = 'partial'
                 else:
                     line.stock_status = 'out'
 
     def action_open_stock_forecast(self):
         self.ensure_one()
-        warehouse = self.pickup_warehouse_id or self.order_id.origin_warehouse_id or (self.order_id.config_id and self.order_id.config_id.warehouse_id)
-        action = self.env['ir.actions.client']._for_xml_id('stock.stock_forecasted_product_product_action')
-        action['context'] = {
-            'active_id': self.product_id.id,
-            'active_model': 'product.product',
-            'warehouse_id': warehouse.id if warehouse else False,
+        # Mantenemos el modal para ver detalles por ubicación si el usuario pulsa en el semáforo
+        action = {
+            'name': _('Disponibilidad de: %s') % self.product_id.name,
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.quant',
+            'view_mode': 'list',
+            'domain': [
+                ('product_id', '=', self.product_id.id),
+                ('location_id.usage', '=', 'internal'),
+                ('quantity', '>', 0)
+            ],
+            'context': {
+                'search_default_internal_p_loc': True,
+                'dialog_size': 'large',
+            },
+            'target': 'new',
         }
-        # Abierto a pantalla completa (por defecto) en lugar de ventana para que se vea a máxima resolución.
+        view_id = self.env.ref('todopintura_extend_pos_conventional.view_stock_quant_pos_modal_tree').id
+        action['views'] = [(view_id, 'list')]
         return action
 
     @api.onchange("order_id")

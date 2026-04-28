@@ -4,12 +4,11 @@
         <field name="name">stock.quant.pos.modal.tree</field>
         <field name="model">stock.quant</field>
         <field name="arch" type="xml">
-            <list string="Disponibilidad de Stock (Tiendas)" create="false" edit="false" delete="false">
-                <field name="location_id" string="Ubicación"/>
-                <field name="product_id" string="Producto"/>
-                <field name="inventory_quantity_auto_apply" string="Cantidad" />
-                <field name="reserved_quantity" string="Reservado" column_invisible="True" />
-                <field name="product_uom_id" string="Unidad" />
+            <list string="Stock por Tiendas" create="false" edit="false" delete="false">
+                <field name="warehouse_id" string="Tienda / Almacén" />
+                <field name="location_id" string="Ubicación" optional="show" />
+                <field name="available_quantity" string="Stock Disponible" decoration-success="available_quantity &gt; 0" />
+                <field name="product_uom_id" string="Unidad" options="{'no_open': True}"/>
             </list>
         </field>
     </record>

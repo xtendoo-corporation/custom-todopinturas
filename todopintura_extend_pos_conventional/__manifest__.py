@@ -19,10 +19,15 @@
         'views/res_config_settings_views.xml',
         'views/res_partner_views.xml',
         'views/pos_order_views.xml',
-        #'views/pos_payment_views.xml',
+        'views/stock_quant_pos_views.xml',
         'views/credit_override_wizard_views.xml',
         'report/albaran_receipt.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'todopintura_extend_pos_conventional/static/src/widgets/**/*',
+        ],
+    },
     'installable': True,
     'application': False,
     'auto_install': False,
