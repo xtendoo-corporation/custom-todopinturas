@@ -188,6 +188,35 @@ class ImportProductsWizard(models.TransientModel):
 
         return pos_categ, product_categ
 
+    def _find_sale_goods_tax(self, tax_value):
+        tax_amount = self._safe_float(tax_value, default=None)
+        if tax_amount is None:
+            return False
+
+        company_ids = [False]
+        if self.env.company:
+            company_ids.insert(0, self.env.company.id)
+
+        tax = self.env['account.tax'].search([
+            ('type_tax_use', '=', 'sale'),
+            ('amount_type', '=', 'percent'),
+            ('amount', '=', tax_amount),
+            ('tax_scope', 'in', ('consu', False)),
+            ('active', '=', True),
+            ('company_id', 'in', company_ids),
+        ], order='company_id desc, sequence asc, id asc', limit=1)
+
+        if tax:
+            return tax
+
+        tax_name = f"{int(tax_amount)}% G" if tax_amount.is_integer() else f"{tax_amount}% G"
+        return self.env['account.tax'].search([
+            ('type_tax_use', '=', 'sale'),
+            ('name', '=', tax_name),
+            ('active', '=', True),
+            ('company_id', 'in', company_ids),
+        ], order='company_id desc, sequence asc, id asc', limit=1)
+
     def _build_product_record(self, values, tax_id=False, partner=False):
         pos_categ, product_categ = self._resolve_categories_from_reference(values['pos_categ_ref'])
         list_price = next((price for price in values['prices'] if price is not None), 0.0)
@@ -196,7 +225,6 @@ class ImportProductsWizard(models.TransientModel):
             'default_code': values['num_prod'],
             'name': values['name'],
             'list_price': list_price,
-            'taxes_id': [(6, 0, [tax_id])] if tax_id else [],
             'barcode': values['barcode'] if values['barcode'] else None,
             'description': values['notes'] if values['notes'] else None,
             'standard_price': values['coste'] if values['coste'] else 0,
@@ -207,6 +235,9 @@ class ImportProductsWizard(models.TransientModel):
             'available_in_pos': True,
             'pos_categ_ids': [(6, 0, [pos_categ.id])] if pos_categ else [],
         }
+
+        if tax_id:
+            record['taxes_id'] = [(6, 0, [tax_id])]
 
         if product_categ:
             record['categ_id'] = product_categ.id
@@ -279,7 +310,20 @@ class ImportProductsWizard(models.TransientModel):
                 else:
                     print(f"No se encontró proveedor con referencia 0{values['num_prov']}")
 
-            tax_id = self.env['account.tax'].search([('name', '=', '21% G')], limit=1).id
+            sale_tax = False
+            if values['taxes_id_name'] == 21:
+                sale_tax = self._find_sale_goods_tax(values['taxes_id_name'])
+                if sale_tax:
+                    print(f"Impuesto de venta asignado: {sale_tax.display_name} (ID: {sale_tax.id})")
+                else:
+                    errors.append(
+                        f"Fila {excel_row}: no se encontró el impuesto de venta de bienes al 21%."
+                    )
+                    _logger.warning(
+                        "No se encontró impuesto de venta de bienes al %s%% para la fila %s.",
+                        values['taxes_id_name'],
+                        excel_row,
+                    )
             print("*" * 40)
             print(f"Producto: {values['name']} (ID: {values['num_prod']})")
             print("*" * 40)
@@ -287,7 +331,7 @@ class ImportProductsWizard(models.TransientModel):
             supplier_partner = partner if (values['num_prov'] and values['price_last_buy']) else None
             record, pos_categ, category = self._build_product_record(
                 values,
-                tax_id=tax_id,
+                tax_id=sale_tax.id if sale_tax else False,
                 partner=supplier_partner,
             )
             print(f"pos_categ: {pos_categ}")
