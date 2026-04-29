@@ -1,0 +1,9 @@
+.pos-receipt .pos-receipt-left-padding {
+    white-space: normal !important;
+    word-break: break-word !important;
+    display: block !important;
+}
+
+.pos-receipt .pos-receipt-order-data {
+    white-space: normal !important;
+}

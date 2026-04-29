@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="todopintura_extend_pos_conventional.Orderline" t-inherit="point_of_sale.Orderline" t-inherit-mode="extension">
+        <xpath expr="//li[hasclass('price-per-unit')]" position="after">
+            <!-- Nombre de ubicación personalizado para el ticket -->
+            <t t-set="warehouseId" t-value="line.pickup_warehouse_id"/>
+            <t t-if="warehouseId and warehouseId != props.pos.config.warehouse_id[0]">
+                <t t-set="warehouse" t-value="props.pos.models['stock.warehouse']?.get(warehouseId)"/>
+                <li t-if="warehouse" class="pos-receipt-customer-note" style="font-size: 0.8em; margin-left: 10px; color: #000;">
+                    <t t-if="warehouse.lot_stock_id">
+                        <t t-set="location" t-value="props.pos.models['stock.location']?.get(warehouse.lot_stock_id)"/>
+                        <t t-if="location and location.pos_receipt_name">
+                             - <t t-esc="location.pos_receipt_name"/>
+                        </t>
+                    </t>
+                </li>
+            </t>
+        </xpath>
+    </t>
+</templates>

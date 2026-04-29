@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_factura_simplificada_80mm_inherit_wrap" inherit_id="pos_conventional_receipt_custom.report_factura_simplificada_80mm">
+        <xpath expr="//style" position="after">
+            <style>
+                .col-name { 
+                    white-space: normal !important; 
+                    word-break: break-word !important; 
+                    overflow: visible !important; 
+                    text-overflow: clip !important; 
+                }
+            </style>
+        </xpath>
+        
+        <!-- Añadimos el nombre de la ubicación (desde el almacén de la línea) -->
+        <xpath expr="//td[hasclass('col-name')]/*[last()]" position="after">
+            <t t-set="default_warehouse" t-value="line.move_id.pos_order_ids[0].config_id.warehouse_id if line.move_id.pos_order_ids else False"/>
+            <t t-if="line.pickup_warehouse_id and line.pickup_warehouse_id != default_warehouse">
+                <div style="font-size: 0.8em; color: #000; margin-top: 2px;">
+                    <t t-set="location" t-value="line.pickup_warehouse_id.lot_stock_id"/>
+                    <t t-if="location and location.pos_receipt_name">
+                         - <span t-out="location.pos_receipt_name"/>
+                    </t>
+                </div>
+            </t>
+        </xpath>
+    </template>
+</odoo>

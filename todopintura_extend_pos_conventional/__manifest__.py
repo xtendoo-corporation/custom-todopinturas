@@ -8,6 +8,8 @@
     'website': 'https://xtendoo.es',
     'license': 'LGPL-3',
     'depends': [
+        'point_of_sale',
+        'account',
         'pos_conventional_core',
         'pos_conventional_payment_wizard',
         'pos_conventional_picking_integration',
@@ -21,12 +23,18 @@
         'views/pos_order_views.xml',
         'views/stock_quant_pos_views.xml',
         'views/credit_override_wizard_views.xml',
+        'views/stock_location_views.xml',
         'report/albaran_receipt.xml',
+        'report/report_factura_simplificada_inherit.xml',
     ],
     'assets': {
         'web.assets_backend': [
             'todopintura_extend_pos_conventional/static/src/widgets/**/*',
-            'todopintura_extend_pos_conventional/static/src/js/**/*',
+        ],
+        'point_of_sale._assets_pos': [
+            'todopintura_extend_pos_conventional/static/src/app/**/*',
+            'todopintura_extend_pos_conventional/static/src/xml/pos_receipt_templates.xml',
+            'todopintura_extend_pos_conventional/static/src/css/pos_receipt.css',
         ],
     },
     'installable': True,

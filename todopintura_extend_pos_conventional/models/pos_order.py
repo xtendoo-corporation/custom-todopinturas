@@ -517,6 +517,14 @@ class PosOrder(models.Model):
         }
 
 
+    def _get_invoice_lines_values(self, line_values, pos_line, move_type):
+        res = super()._get_invoice_lines_values(line_values, pos_line, move_type)
+        default_warehouse = self.origin_warehouse_id or self.config_id.warehouse_id
+        if pos_line.pickup_warehouse_id and pos_line.pickup_warehouse_id != default_warehouse:
+            res["pickup_warehouse_id"] = pos_line.pickup_warehouse_id.id
+        return res
+
+
 class PosOrderLine(models.Model):
     _inherit = "pos.order.line"
 
@@ -679,6 +687,16 @@ class SaleOrderLine(models.Model):
         comodel_name="stock.warehouse",
         string="Tienda de recogida",
         help="Tienda desde la que se servirá esta línea de venta creada desde POS.",
+    )
+
+
+class AccountMoveLine(models.Model):
+    _inherit = "account.move.line"
+
+    pickup_warehouse_id = fields.Many2one(
+        comodel_name="stock.warehouse",
+        string="Tienda de recogida",
+        help="Tienda desde la que se servirá esta línea de factura creada desde POS.",
     )
 
 
