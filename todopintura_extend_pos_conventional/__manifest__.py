@@ -26,6 +26,7 @@
     'assets': {
         'web.assets_backend': [
             'todopintura_extend_pos_conventional/static/src/widgets/**/*',
+            'todopintura_extend_pos_conventional/static/src/js/**/*',
         ],
     },
     'installable': True,

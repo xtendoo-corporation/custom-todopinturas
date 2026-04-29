@@ -208,6 +208,9 @@
                     </div>
                 </page>
             </xpath>
+            <xpath expr="//field[@name='pricelist_id']" position="after">
+                <field name="is_a4_invoice" widget="boolean_toggle" invisible="state != 'draft'"/>
+            </xpath>
         </field>
     </record>
 

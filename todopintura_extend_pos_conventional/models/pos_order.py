@@ -19,6 +19,10 @@ class PosOrder(models.Model):
         related="config_id.warehouse_id",
         readonly=True,
     )
+    is_a4_invoice = fields.Boolean(
+        string="Factura A4",
+        default=False,
+    )
     pickup_warehouse_summary = fields.Char(
         string="Resumen tiendas de recogida",
         compute="_compute_pickup_warehouse_summary",
