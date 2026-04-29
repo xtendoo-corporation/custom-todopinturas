@@ -62,7 +62,7 @@
         <field name="priority">110</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form" />
         <field name="arch" type="xml">
-            <xpath expr="//sheet/notebook" position="before">
+            <xpath expr="//widget[@name='pos_cash_change_banner']" position="after">
                 <field name="partner_current_total_due" invisible="1" />
                 <field name="partner_credit_limit_amount" invisible="1" />
                 <field name="partner_total_due_after_order" invisible="1" />
@@ -95,7 +95,7 @@
                                 nolabel="1" widget="monetary"
                                 options="{'currency_field': 'currency_id'}" />
                             <span
-                                invisible="partner_total_due_after_order == 0">· Tras pedido <field
+                                invisible="partner_total_due_after_order == partner_current_total_due">· Tras pedido <field
                                     name="partner_total_due_after_order" readonly="1" nolabel="1"
                                     widget="monetary" options="{'currency_field': 'currency_id'}" /></span>
                         </div>
