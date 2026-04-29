@@ -106,101 +106,27 @@
             </xpath>
             <xpath expr="//page[@name='notes']" position="after">
                 <page string="Información Extra del cliente" name="customer_extra_info">
-                    <div invisible="not partner_id or is_linked_to_sale">
-                        <div class="row g-3">
-                            <div class="col-xl-6">
-                                <div class="border rounded-3 bg-light h-100 p-3">
-                                    <div class="d-flex align-items-center gap-2 mb-3">
-                                        <span class="fa fa-credit-card text-primary" title="Crédito" />
-                                        <div class="fw-bold">Crédito y cobro</div>
-                                    </div>
-                                    <div class="row g-3 mb-3">
-                                        <div class="col-md-6">
-                                            <div
-                                                class="small text-muted text-uppercase fw-semibold mb-1">Deuda
-                                                POS pendiente</div>
-                                            <field name="partner_current_total_due" readonly="1"
-                                                nolabel="1" widget="monetary"
-                                                options="{'currency_field': 'currency_id'}" />
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div
-                                                class="small text-muted text-uppercase fw-semibold mb-1">Límite
-                                                de riesgo</div>
-                                            <field name="partner_credit_limit_amount" readonly="1"
-                                                nolabel="1" widget="monetary"
-                                                options="{'currency_field': 'currency_id'}" />
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div
-                                                class="small text-muted text-uppercase fw-semibold mb-1">Deuda
-                                                tras el pedido</div>
-                                            <field name="partner_total_due_after_order" readonly="1"
-                                                nolabel="1" widget="monetary"
-                                                options="{'currency_field': 'currency_id'}" />
-                                        </div>
-                                        <div class="col-md-6"
-                                            invisible="not partner_credit_location_names">
-                                            <div
-                                                class="small text-muted text-uppercase fw-semibold mb-1">Venta
-                                                a crédito permitida en</div>
-                                            <field name="partner_credit_location_names" readonly="1"
-                                                nolabel="1" />
-                                        </div>
-                                    </div>
-                                    <div class="bg-white border rounded-3 p-3 small text-muted"
-                                        invisible="not partner_credit_warning_message">
-                                        <div class="fw-semibold text-body mb-1">Observación de
-                                            crédito</div>
-                                        <field name="partner_credit_warning_message" readonly="1"
-                                            widget="text" nolabel="1" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-xl-6">
-                                <div class="border rounded-3 bg-light h-100 p-3">
-                                    <div class="d-flex align-items-center gap-2 mb-3">
-                                        <span class="fa fa-users text-primary" title="Recogida" />
-                                        <div class="fw-bold">Vale y recogida</div>
-                                    </div>
-                                    <div class="row g-3 mb-3">
-                                        <div class="col-md-6">
-                                            <div
-                                                class="small text-muted text-uppercase fw-semibold mb-1">Necesita
-                                                vale</div>
-                                            <field name="partner_requires_voucher" readonly="1"
-                                                nolabel="1" />
-                                        </div>
-                                        <div class="col-md-6"
-                                            invisible="not partner_requires_voucher">
-                                            <div
-                                                class="small text-muted text-uppercase fw-semibold mb-1">Código
-                                                / documento</div>
-                                            <field name="partner_voucher_reference" readonly="1"
-                                                nolabel="1" placeholder="Cliente con vale requerido" />
-                                        </div>
-                                        <div class="col-12"
-                                            invisible="not partner_pickup_persons_display">
-                                            <div
-                                                class="small text-muted text-uppercase fw-semibold mb-1">Autorizados
-                                                de recogida</div>
-                                            <div class="bg-white border rounded-3 p-3">
-                                                <field name="partner_pickup_persons_display"
-                                                    readonly="1" widget="text" nolabel="1" />
-                                            </div>
-                                        </div>
-                                        <div class="col-12"
-                                            invisible="partner_requires_voucher or partner_pickup_persons_display">
-                                            <div class="alert alert-light border mb-0" role="status">
-                                                No hay restricciones adicionales de vale o recogida
-                                                para este cliente.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <group invisible="not partner_id or is_linked_to_sale">
+                        <group string="Crédito y cobro" name="credit_info">
+                            <field name="partner_current_total_due" readonly="1" widget="monetary"
+                                options="{'currency_field': 'currency_id'}" string="Deuda POS pendiente" />
+                            <field name="partner_credit_limit_amount" readonly="1" widget="monetary"
+                                options="{'currency_field': 'currency_id'}" string="Límite de riesgo" />
+                            <field name="partner_total_due_after_order" readonly="1" widget="monetary"
+                                options="{'currency_field': 'currency_id'}" string="Deuda tras el pedido" />
+                            <field name="partner_credit_location_names" readonly="1" 
+                                invisible="not partner_credit_location_names" string="Venta a crédito permitida en" />
+                            <field name="partner_credit_warning_message" readonly="1" widget="text" 
+                                invisible="not partner_credit_warning_message" string="Observación de crédito" />
+                        </group>
+                        <group string="Vale y recogida" name="pickup_info">
+                            <field name="partner_requires_voucher" readonly="1" string="Necesita vale" />
+                            <field name="partner_voucher_reference" readonly="1" 
+                                invisible="not partner_requires_voucher" string="Código / documento" />
+                            <field name="partner_pickup_persons_display" readonly="1" widget="text" 
+                                invisible="not partner_pickup_persons_display" string="Autorizados de recogida" />
+                        </group>
+                    </group>
                     <div invisible="partner_id and not is_linked_to_sale">
                         <div class="alert alert-info border-0 rounded-3 shadow-sm mb-0"
                             role="status">
