@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { QtyAtDateWidget, QtyAtDatePopover } from "@sale_stock/widgets/qty_at_date_widget";
+import { QtyAtDateWidget, QtyAtDatePopover, qtyAtDateWidget } from "@sale_stock/widgets/qty_at_date_widget";
 import { registry } from "@web/core/registry";
 
 export class PosQtyAtDatePopover extends QtyAtDatePopover {
@@ -24,7 +24,7 @@ export class PosQtyAtDateWidget extends QtyAtDateWidget {
 }
 
 export const posQtyAtDateWidget = {
-    ...QtyAtDateWidget,
+    ...qtyAtDateWidget,
     component: PosQtyAtDateWidget,
 };
 
