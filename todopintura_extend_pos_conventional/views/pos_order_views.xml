@@ -59,6 +59,7 @@
     <record id="view_pos_order_form_inherit_credit_policy_panel" model="ir.ui.view">
         <field name="name">pos.order.form.inherit.credit.policy.panel</field>
         <field name="model">pos.order</field>
+        <field name="priority">110</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form" />
         <field name="arch" type="xml">
             <xpath expr="//sheet/notebook" position="before">
