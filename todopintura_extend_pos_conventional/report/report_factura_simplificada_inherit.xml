@@ -24,5 +24,29 @@
                 </div>
             </t>
         </xpath>
+
+        <!-- Añadimos el nombre de la caja al final -->
+        <xpath expr="//div[hasclass('page')]" position="inside">
+            <t t-if="o.pos_order_ids and len(o.pos_order_ids) &gt; 0">
+                <div class="text-center" style="font-size: 1em; margin-top: 4px;">
+                    Caja: <span t-field="o.pos_order_ids[0].config_id.name"/>
+                </div>
+            </t>
+        </xpath>
+    </template>
+    
+    <template id="report_pos_order_80mm_inherit" inherit_id="pos_conventional_receipt_custom.report_pos_order_80mm">
+        <!-- Añadimos el nombre de la ubicación en el ticket de pedido -->
+        <xpath expr="//span[@t-field='line.product_id.name']" position="after">
+            <t t-set="default_warehouse" t-value="o.config_id.warehouse_id"/>
+            <t t-if="line.pickup_warehouse_id and line.pickup_warehouse_id != default_warehouse">
+                <div style="font-size: 0.9em; color: #000; margin-top: 1px; font-weight: normal;">
+                    <t t-set="location" t-value="line.pickup_warehouse_id.lot_stock_id"/>
+                    <t t-if="location and location.pos_receipt_name">
+                         - <span t-out="location.pos_receipt_name"/>
+                    </t>
+                </div>
+            </t>
+        </xpath>
     </template>
 </odoo>
