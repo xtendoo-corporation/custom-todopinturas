@@ -117,6 +117,10 @@ class PosMakePaymentConventional(models.TransientModel):
                 raise UserError(policy["location_error"])
             if policy["needs_limit_override"]:
                 return order._open_credit_limit_override_wizard(self, policy)
+            return order._process_conventional_pay_later(
+                payment_method=self.payment_method_id,
+                amount=self.amount,
+            )
 
         return super().check(payment_method_id=payment_method_id)
 

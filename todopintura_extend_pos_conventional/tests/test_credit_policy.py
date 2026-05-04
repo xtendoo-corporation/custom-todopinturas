@@ -116,6 +116,92 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         self.assertTrue(policy["needs_limit_override"])
         self.assertGreater(policy["total_after"], policy["credit_limit"])
 
+    def test_draft_order_with_pay_later_payment_can_leave(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+
+        self._add_payment(order, self.pay_later_pm, order.amount_total)
+
+        self.assertTrue(order.has_draft_pay_later_payment())
+
+    def test_draft_order_without_pay_later_payment_keeps_restriction(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+
+        self._add_payment(order, self.cash_pm, order.amount_total / 2.0)
+
+        self.assertFalse(order.has_draft_pay_later_payment())
+
+    def test_action_pos_convention_pay_with_pay_later_processes_order(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+            }
+        )
+
+        action = order.action_pos_convention_pay_with_method(self.pay_later_pm.id)
+
+        self.assertTrue(action)
+        self.assertEqual(order.state, "linked")
+        self.assertTrue(order.is_linked_to_sale)
+        self.assertTrue(order.linked_sale_order_id)
+        self.assertFalse(order.account_move)
+        self.assertFalse(order.to_invoice)
+
+    def test_pos_make_payment_pay_later_creates_linked_sale_without_invoice(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+            }
+        )
+
+        wizard = self.env["pos.make.payment"].with_context(active_id=order.id).create(
+            {
+                "amount": order.amount_total,
+                "payment_method_id": self.pay_later_pm.id,
+            }
+        )
+        action = wizard.check()
+
+        self.assertTrue(action)
+        self.assertEqual(order.state, "linked")
+        self.assertTrue(order.is_linked_to_sale)
+        self.assertTrue(order.linked_sale_order_id)
+        self.assertFalse(order.account_move)
+
+    def test_payment_popup_pay_later_creates_linked_sale_without_invoice(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+            }
+        )
+
+        wizard = self.env["pos.make.payment.wizard"].with_context(active_id=order.id).create(
+            {
+                "order_id": order.id,
+                "payment_method_id": self.pay_later_pm.id,
+                "amount_tendered": order.amount_total,
+            }
+        )
+        action = wizard.action_add_payment()
+
+        self.assertTrue(action)
+        self.assertEqual(order.state, "linked")
+        self.assertTrue(order.is_linked_to_sale)
+        self.assertTrue(order.linked_sale_order_id)
+        self.assertFalse(order.account_move)
+
     def test_conventional_config_exposes_source_location(self):
         self.assertTrue(self.pos_config.pos_non_touch)
         self.assertEqual(

@@ -11,6 +11,7 @@
         'point_of_sale',
         'account',
         'pos_conventional_core',
+        'pos_conventional_order_barcode',
         'pos_conventional_payment_wizard',
         'pos_conventional_picking_integration',
         'pos_settle_due',

@@ -13,6 +13,40 @@ _logger = logging.getLogger(__name__)
 class PosOrder(models.Model):
     _inherit = "pos.order"
 
+    def _process_conventional_pay_later(self, payment_method=None, amount=None):
+        self.ensure_one()
+        reset_vals = {}
+        if "to_invoice" in self._fields:
+            reset_vals["to_invoice"] = False
+        if "is_l10n_es_simplified_invoice" in self._fields:
+            reset_vals["is_l10n_es_simplified_invoice"] = False
+        if reset_vals:
+            self.with_context(skip_completeness_check=True).write(reset_vals)
+        return self.action_pay_account()
+
+    def action_pos_convention_pay_with_method(self, payment_method_id):
+        self.ensure_one()
+
+        payment_method = payment_method_id
+        if not hasattr(payment_method, "id"):
+            try:
+                payment_method = self.env["pos.payment.method"].browse(int(payment_method_id))
+            except (TypeError, ValueError):
+                return super().action_pos_convention_pay_with_method(payment_method_id)
+
+        if payment_method and payment_method.exists() and payment_method.type == "pay_later":
+            amount_due = self.amount_total - self.amount_paid
+            if amount_due <= 0:
+                raise UserError(_("The order is already fully paid."))
+
+            wizard = self.env["pos.make.payment"].with_context(active_id=self.id).create({
+                "amount": amount_due,
+                "payment_method_id": payment_method.id,
+            })
+            return wizard.check()
+
+        return super().action_pos_convention_pay_with_method(payment_method_id)
+
     origin_warehouse_id = fields.Many2one(
         comodel_name="stock.warehouse",
         string="Tienda de venta",
@@ -168,6 +202,15 @@ class PosOrder(models.Model):
     def _get_credit_source_location(self):
         self.ensure_one()
         return self.config_id.picking_type_id.default_location_src_id if self.config_id and self.config_id.picking_type_id else self.env["stock.location"]
+
+    def has_draft_pay_later_payment(self):
+        self.ensure_one()
+        return bool(
+            self.state == "draft"
+            and self.payment_ids.filtered(
+                lambda payment: payment.payment_method_id.type == "pay_later"
+            )
+        )
 
     def _get_partner_credit_policy_partner(self):
         self.ensure_one()
@@ -414,6 +457,14 @@ class PosOrder(models.Model):
         """
         self.ensure_one()
 
+        reset_vals = {}
+        if "to_invoice" in self._fields:
+            reset_vals["to_invoice"] = False
+        if "is_l10n_es_simplified_invoice" in self._fields:
+            reset_vals["is_l10n_es_simplified_invoice"] = False
+        if reset_vals:
+            self.with_context(skip_completeness_check=True).write(reset_vals)
+
         if self.state != "draft":
             raise UserError(
                 _("Solo se pueden convertir a albarán pedidos en estado borrador.")
@@ -577,7 +628,7 @@ class PosOrderLine(models.Model):
             for q in quants:
                 wh_name = q.warehouse_id.name or q.location_id.display_name
                 wh_stocks[wh_name] = wh_stocks.get(wh_name, 0.0) + q.available_quantity
-            
+
             for name, qty in wh_stocks.items():
                 data.append({'location': name, 'qty': qty})
             line.stock_at_locations_json = json.dumps(data)
@@ -587,15 +638,15 @@ class PosOrderLine(models.Model):
         for line in self:
             warehouse = line.pickup_warehouse_id or line.order_id.config_id.warehouse_id
             product = line.product_id
-            
+
             # En Odoo 19 'consu' suele ser el tipo para productos con stock (Goods)
             is_storable = product and product.type == 'consu'
-            
+
             line.display_qty_widget = is_storable
             line.warehouse_id = warehouse.id if warehouse else False
             line.qty_to_deliver = line.qty
             line.scheduled_date = line.order_id.date_order or fields.Datetime.now()
-            
+
             if is_storable and warehouse:
                 res = product.with_context(warehouse_id=warehouse.id)._compute_quantities_dict(None, None, None)
                 qty_data = res.get(product.id, {})
@@ -606,7 +657,7 @@ class PosOrderLine(models.Model):
                 line.free_qty_today = 0.0
                 line.virtual_available_at_date = 0.0
                 line.qty_available_today = 0.0
-            
+
             line.forecast_expected_date = False
             line.is_mto = False
             line.move_ids = self.env['stock.move']
@@ -617,16 +668,16 @@ class PosOrderLine(models.Model):
             if not line.product_id or line.product_id.type != 'consu':
                 line.stock_status = 'available'
                 continue
-            
+
             # 1. Stock en la tienda seleccionada (o tienda origen)
             warehouse = line.pickup_warehouse_id or line.order_id.origin_warehouse_id
             if not warehouse:
                 line.stock_status = 'out'
                 continue
-                
+
             res = line.product_id.with_context(warehouse_id=warehouse.id)._compute_quantities_dict(None, None, None)
             available_qty = res.get(line.product_id.id, {}).get('free_qty', 0.0)
-            
+
             if available_qty >= line.qty:
                 line.stock_status = 'available'
             else:
