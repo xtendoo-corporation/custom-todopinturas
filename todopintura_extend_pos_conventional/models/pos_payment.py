@@ -7,6 +7,40 @@ from odoo.exceptions import UserError
 class PosMakePaymentConventional(models.TransientModel):
     _inherit = "pos.make.payment"
 
+    def _should_print_a4_invoice(self, order, params=None):
+        self.ensure_one()
+        params = params or {}
+        if "is_a4_invoice" in params:
+            return bool(params.get("is_a4_invoice"))
+        return bool(getattr(order, "is_a4_invoice", False))
+
+    def _convert_receipt_client_action_to_window(self, action, order):
+        self.ensure_one()
+        if not isinstance(action, dict) or action.get("tag") != "pos_conventional_print_receipt_client":
+            return action
+
+        params = dict(action.get("params") or {})
+        params["is_a4_invoice"] = self._should_print_a4_invoice(order, params=params)
+        move_id = params.get("move_id")
+        if not move_id:
+            return action
+
+        report_xmlid = (
+            "account.report_invoice_with_payments"
+            if params["is_a4_invoice"]
+            else "pos_conventional_receipt_custom.report_factura_simplificada_80mm"
+        )
+        params["url"] = f"/report/html/{report_xmlid}/{move_id}?download=false"
+        params["report_autoprints"] = (
+            report_xmlid == "pos_conventional_receipt_custom.report_factura_simplificada_80mm"
+        )
+
+        return {
+            "type": "ir.actions.client",
+            "tag": "pos_conventional_print_receipt_window",
+            "params": params,
+        }
+
     is_pay_later_payment = fields.Boolean(
         string="Pago a cuenta cliente",
         compute="_compute_credit_policy_display",
@@ -122,5 +156,8 @@ class PosMakePaymentConventional(models.TransientModel):
                 amount=self.amount,
             )
 
-        return super().check(payment_method_id=payment_method_id)
+        action = super().check(payment_method_id=payment_method_id)
+        if order:
+            return self._convert_receipt_client_action_to_window(action, order)
+        return action
 

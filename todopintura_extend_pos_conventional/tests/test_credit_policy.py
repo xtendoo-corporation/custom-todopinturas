@@ -66,6 +66,23 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         self.assertTrue(policy["location_allowed"])
         self.assertIn(current_location.display_name, policy["allowed_location_names"])
 
+    def test_order_exposes_cashier_credit_warning_when_credit_is_available(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        current_location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [(6, 0, [current_location.id])],
+            }
+        )
+
+        order._compute_partner_credit_policy()
+
+        self.assertTrue(order.partner_credit_available)
+        self.assertIn("Pago Cuenta de cliente", order.partner_credit_cashier_warning)
+
     def test_credit_policy_blocks_disallowed_location(self):
         session = self._open_session()
         order = self._make_draft_order(session, partner=self.partner)
@@ -147,6 +164,7 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         action = order.action_pos_convention_pay_with_method(self.pay_later_pm.id)
 
         self.assertTrue(action)
+        self.assertNotEqual(action.get("tag"), "pos_conventional_print_iframe")
         self.assertEqual(order.state, "linked")
         self.assertTrue(order.is_linked_to_sale)
         self.assertTrue(order.linked_sale_order_id)
@@ -172,6 +190,7 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         action = wizard.check()
 
         self.assertTrue(action)
+        self.assertNotEqual(action.get("tag"), "pos_conventional_print_iframe")
         self.assertEqual(order.state, "linked")
         self.assertTrue(order.is_linked_to_sale)
         self.assertTrue(order.linked_sale_order_id)
@@ -197,10 +216,185 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         action = wizard.action_add_payment()
 
         self.assertTrue(action)
+        self.assertNotEqual(action.get("tag"), "pos_conventional_print_iframe")
         self.assertEqual(order.state, "linked")
         self.assertTrue(order.is_linked_to_sale)
         self.assertTrue(order.linked_sale_order_id)
         self.assertFalse(order.account_move)
+
+    def test_partner_selection_warning_action_opens_confirmation_wizard(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        current_location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [(6, 0, [current_location.id])],
+            }
+        )
+
+        action = order.action_open_partner_credit_cashier_warning()
+
+        self.assertEqual(
+            action["res_model"],
+            "pos.conventional.credit.cashier.warning.wizard",
+        )
+        warning_wizard = self.env[
+            "pos.conventional.credit.cashier.warning.wizard"
+        ].with_context(action["context"]).create({})
+        continue_action = warning_wizard.action_continue()
+
+        self.assertEqual(continue_action["type"], "ir.actions.act_window_close")
+
+    def test_partner_selection_warning_cancel_restores_previous_partner(self):
+        session = self._open_session()
+        previous_partner = self.env["res.partner"].create(
+            {"name": "Cliente previo POS", "customer_rank": 1}
+        )
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        current_location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [(6, 0, [current_location.id])],
+            }
+        )
+
+        action = order.action_open_partner_credit_cashier_warning(
+            previous_partner_id=previous_partner.id,
+        )
+
+        warning_wizard = self.env[
+            "pos.conventional.credit.cashier.warning.wizard"
+        ].with_context(action["context"]).create({})
+        cancel_action = warning_wizard.action_cancel()
+        order.invalidate_recordset(["partner_id"])
+
+        self.assertEqual(cancel_action["tag"], "reload")
+        self.assertEqual(order.partner_id, previous_partner)
+
+    def test_card_payment_keeps_receipt_printing_when_customer_has_credit(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        self.pos_config.write({"iface_print_auto": True})
+        current_location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [(6, 0, [current_location.id])],
+            }
+        )
+
+        action = order.action_pos_convention_pay_with_method(self.card_pm.id)
+
+        self.assertEqual(action["tag"], "pos_conventional_print_receipt_window")
+        self.assertTrue(action["params"]["move_id"])
+        self.assertIn("/report/html/pos_conventional_receipt_custom.report_factura_simplificada_80mm/", action["params"]["url"])
+        self.assertEqual(action["params"]["order_id"], order.id)
+
+    def test_card_payment_uses_a4_invoice_report_when_flag_is_enabled(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        order.write({"is_a4_invoice": True})
+        self.pos_config.write({"iface_print_auto": True})
+        current_location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [(6, 0, [current_location.id])],
+            }
+        )
+
+        action = order.action_pos_convention_pay_with_method(self.card_pm.id)
+
+        self.assertEqual(action["tag"], "pos_conventional_print_receipt_window")
+        self.assertTrue(action["params"]["is_a4_invoice"])
+        self.assertFalse(action["params"]["report_autoprints"])
+        self.assertIn(
+            "/report/html/account.report_invoice_with_payments/",
+            action["params"]["url"],
+        )
+
+    def test_cash_payment_validation_keeps_receipt_printing_when_customer_has_credit(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        self.pos_config.write({"iface_print_auto": True})
+        current_location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [(6, 0, [current_location.id])],
+            }
+        )
+
+        cash_action = order.action_pay_cash()
+
+        self.assertEqual(cash_action["res_model"], "pos.make.payment.wizard")
+        wizard = self.env["pos.make.payment.wizard"].with_context(
+            active_id=order.id,
+            cash_only=True,
+            cash_quick_mode=True,
+            default_payment_method_id=self.cash_pm.id,
+            default_amount_tendered=order.amount_total,
+        ).create(
+            {
+                "order_id": order.id,
+                "payment_method_id": self.cash_pm.id,
+                "amount_tendered": order.amount_total,
+            }
+        )
+
+        action = wizard.action_validate()
+
+        self.assertEqual(action["tag"], "pos_conventional_print_receipt_window")
+        self.assertTrue(action["params"]["move_id"])
+        self.assertIn("/report/html/pos_conventional_receipt_custom.report_factura_simplificada_80mm/", action["params"]["url"])
+        order.invalidate_recordset(["payment_ids", "amount_paid", "state"])
+        self.assertGreaterEqual(order.amount_paid, order.amount_total)
+        self.assertIn(order.state, ("paid", "done"))
+
+    def test_cash_payment_validation_uses_a4_invoice_report_when_flag_is_enabled(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        order.write({"is_a4_invoice": True})
+        self.pos_config.write({"iface_print_auto": True})
+        current_location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [(6, 0, [current_location.id])],
+            }
+        )
+
+        wizard = self.env["pos.make.payment.wizard"].with_context(
+            active_id=order.id,
+            cash_only=True,
+            cash_quick_mode=True,
+            default_payment_method_id=self.cash_pm.id,
+            default_amount_tendered=order.amount_total,
+        ).create(
+            {
+                "order_id": order.id,
+                "payment_method_id": self.cash_pm.id,
+                "amount_tendered": order.amount_total,
+            }
+        )
+
+        action = wizard.action_validate()
+
+        self.assertEqual(action["tag"], "pos_conventional_print_receipt_window")
+        self.assertTrue(action["params"]["is_a4_invoice"])
+        self.assertFalse(action["params"]["report_autoprints"])
+        self.assertIn(
+            "/report/html/account.report_invoice_with_payments/",
+            action["params"]["url"],
+        )
 
     def test_conventional_config_exposes_source_location(self):
         self.assertTrue(self.pos_config.pos_non_touch)

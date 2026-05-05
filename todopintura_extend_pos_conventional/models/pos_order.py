@@ -3,8 +3,9 @@
 import logging
 import json
 
-from odoo import _, api, fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.translate import _
 from odoo.tools import float_compare
 
 _logger = logging.getLogger(__name__)
@@ -12,6 +13,95 @@ _logger = logging.getLogger(__name__)
 
 class PosOrder(models.Model):
     _inherit = "pos.order"
+
+    def _normalize_conventional_payment_method(self, payment_method=None):
+        self.ensure_one()
+        if not payment_method:
+            return self.env["pos.payment.method"]
+        if hasattr(payment_method, "exists"):
+            return payment_method.exists()
+        try:
+            return self.env["pos.payment.method"].browse(int(payment_method)).exists()
+        except (TypeError, ValueError):
+            return self.env["pos.payment.method"]
+
+    def _get_default_conventional_cash_payment_method(self):
+        self.ensure_one()
+        cash_method = self.config_id.payment_method_ids.filtered("is_cash_count")[:1]
+        if not cash_method:
+            cash_method = self.config_id.payment_method_ids.filtered(
+                lambda payment_method: payment_method.journal_id.type == "cash"
+            )[:1]
+        return cash_method
+
+    def _get_credit_cashier_warning_message(
+        self, payment_method=None, for_partner_selection=False
+    ):
+        self.ensure_one()
+        if self.env.context.get("skip_credit_cashier_warning"):
+            return False
+        if self.state != "draft" or not self.partner_id:
+            return False
+        if not for_partner_selection and self._get_credit_amount_to_check() <= 0:
+            return False
+
+        payment_method = self._normalize_conventional_payment_method(payment_method)
+        if payment_method and payment_method.type == "pay_later":
+            return False
+
+        policy = self._get_conventional_credit_policy_data()
+        if not (policy["credit_sale_allowed"] and policy["location_allowed"]):
+            return False
+
+        return self.partner_credit_cashier_warning or _(
+            "ATENCIÓN: este cliente tiene crédito habilitado en esta caja. "
+            "Si la venta debe ir a cuenta, utilice el método 'Pago Cuenta de cliente' "
+            "para evitar cobrarla por efectivo o tarjeta por error."
+        )
+
+    def _should_show_credit_cashier_warning(self, payment_method=None):
+        self.ensure_one()
+        return bool(self._get_credit_cashier_warning_message(payment_method=payment_method))
+
+    def _open_credit_cashier_warning_wizard(
+        self,
+        payment_method=None,
+        resume_action=None,
+        payment_wizard=None,
+        revert_partner_id=None,
+        warning_message=None,
+    ):
+        self.ensure_one()
+        action = self.env.ref(
+            "todopintura_extend_pos_conventional.action_pos_conventional_credit_cashier_warning_wizard"
+        ).read()[0]
+        payment_method = self._normalize_conventional_payment_method(payment_method)
+        warning_message = warning_message or self._get_credit_cashier_warning_message(
+            payment_method=payment_method,
+            for_partner_selection=resume_action == "partner_selected",
+        )
+        action["context"] = {
+            "default_order_id": self.id,
+            "default_payment_method_id": payment_method.id if payment_method else False,
+            "default_payment_wizard_id": payment_wizard.id if payment_wizard else False,
+            "default_resume_action": resume_action,
+            "default_revert_partner_id": revert_partner_id,
+            "default_warning_message": warning_message,
+        }
+        return action
+
+    def action_open_partner_credit_cashier_warning(self, previous_partner_id=False):
+        self.ensure_one()
+        warning_message = self._get_credit_cashier_warning_message(
+            for_partner_selection=True,
+        )
+        if not warning_message:
+            return False
+        return self._open_credit_cashier_warning_wizard(
+            resume_action="partner_selected",
+            revert_partner_id=previous_partner_id or False,
+            warning_message=warning_message,
+        )
 
     def _process_conventional_pay_later(self, payment_method=None, amount=None):
         self.ensure_one()
@@ -22,7 +112,21 @@ class PosOrder(models.Model):
             reset_vals["is_l10n_es_simplified_invoice"] = False
         if reset_vals:
             self.with_context(skip_completeness_check=True).write(reset_vals)
-        return self.action_pay_account()
+        return self.with_context(skip_conventional_picking_print=True).action_pay_account()
+
+    def _get_conventional_post_validation_action_without_print(self):
+        self.ensure_one()
+        action = self._get_post_validation_action()
+        if isinstance(action, dict) and action.get("tag") in {
+            "pos_conventional_print_receipt_client",
+            "pos_conventional_print_iframe",
+            "pos_conventional_print_receipt_window",
+        }:
+            params = action.get("params") or {}
+            next_action = params.get("next_action")
+            if next_action:
+                return next_action
+        return action
 
     def action_pos_convention_pay_with_method(self, payment_method_id):
         self.ensure_one()
@@ -46,6 +150,10 @@ class PosOrder(models.Model):
             return wizard.check()
 
         return super().action_pos_convention_pay_with_method(payment_method_id)
+
+    def action_pay_cash(self):
+        self.ensure_one()
+        return super().action_pay_cash()
 
     origin_warehouse_id = fields.Many2one(
         comodel_name="stock.warehouse",
@@ -108,6 +216,14 @@ class PosOrder(models.Model):
         string="Aviso de crédito",
         compute="_compute_partner_credit_policy",
     )
+    partner_credit_available = fields.Boolean(
+        string="Cliente con crédito disponible",
+        compute="_compute_partner_credit_policy",
+    )
+    partner_credit_cashier_warning = fields.Text(
+        string="Aviso visible para caja",
+        compute="_compute_partner_credit_policy",
+    )
     credit_limit_override_approved = fields.Boolean(
         string="Override de límite aprobado",
         readonly=True,
@@ -160,6 +276,8 @@ class PosOrder(models.Model):
             order.partner_credit_limit_amount = 0.0
             order.partner_total_due_after_order = 0.0
             order.partner_credit_warning_message = False
+            order.partner_credit_available = False
+            order.partner_credit_cashier_warning = False
             if not order.partner_id:
                 continue
 
@@ -174,6 +292,15 @@ class PosOrder(models.Model):
             order.partner_credit_limit_amount = policy["credit_limit"]
             order.partner_total_due_after_order = policy["total_after"]
             order.partner_credit_warning_message = policy["warning_message"]
+            order.partner_credit_available = bool(
+                policy["credit_sale_allowed"] and policy["location_allowed"]
+            )
+            if order.partner_credit_available:
+                order.partner_credit_cashier_warning = _(
+                    "ATENCIÓN: este cliente tiene crédito habilitado en esta caja. "
+                    "Si la venta debe ir a cuenta, utilice el método 'Pago Cuenta de cliente' "
+                    "para evitar cobrarla por efectivo o tarjeta por error."
+                )
 
     def _format_pickup_people_inline(self, pickup_people):
         self.ensure_one()
@@ -532,7 +659,7 @@ class PosOrder(models.Model):
             _logger.exception("Error al crear sale.order desde POS: %s", str(e))
             raise UserError(_("Error al crear el albarán: %s") % str(e))
 
-        if created_pickings:
+        if created_pickings and not self.env.context.get("skip_conventional_picking_print"):
             report_url = (
                 "/report/html/pos_conventional_picking_integration.report_albaran_80mm/%s"
                 % ",".join(str(picking_id) for picking_id in created_pickings.ids)
@@ -554,7 +681,11 @@ class PosOrder(models.Model):
                 },
             }
 
-        next_action = self._get_post_validation_action()
+        next_action = (
+            self._get_conventional_post_validation_action_without_print()
+            if self.env.context.get("skip_conventional_picking_print")
+            else self._get_post_validation_action()
+        )
         if next_action:
             return next_action
 

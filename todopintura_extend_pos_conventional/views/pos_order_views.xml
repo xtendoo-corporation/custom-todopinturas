@@ -66,6 +66,8 @@
                 <field name="partner_current_total_due" invisible="1" />
                 <field name="partner_credit_limit_amount" invisible="1" />
                 <field name="partner_total_due_after_order" invisible="1" />
+                <field name="partner_credit_available" invisible="1" />
+                <field name="partner_credit_cashier_warning" invisible="1" />
                 <field name="partner_requires_voucher" invisible="1" />
                 <field name="partner_voucher_reference" invisible="1" />
                 <field name="partner_pickup_persons_display" invisible="1" />
@@ -114,16 +116,16 @@
                                 options="{'currency_field': 'currency_id'}" string="Límite de riesgo" />
                             <field name="partner_total_due_after_order" readonly="1" widget="monetary"
                                 options="{'currency_field': 'currency_id'}" string="Deuda tras el pedido" />
-                            <field name="partner_credit_location_names" readonly="1" 
+                            <field name="partner_credit_location_names" readonly="1"
                                 invisible="not partner_credit_location_names" string="Venta a crédito permitida en" />
-                            <field name="partner_credit_warning_message" readonly="1" widget="text" 
+                            <field name="partner_credit_warning_message" readonly="1" widget="text"
                                 invisible="not partner_credit_warning_message" string="Observación de crédito" />
                         </group>
                         <group string="Vale y recogida" name="pickup_info">
                             <field name="partner_requires_voucher" readonly="1" string="Necesita vale" />
-                            <field name="partner_voucher_reference" readonly="1" 
+                            <field name="partner_voucher_reference" readonly="1"
                                 invisible="not partner_requires_voucher" string="Código / documento" />
-                            <field name="partner_pickup_persons_display" readonly="1" widget="text" 
+                            <field name="partner_pickup_persons_display" readonly="1" widget="text"
                                 invisible="not partner_pickup_persons_display" string="Autorizados de recogida" />
                         </group>
                     </group>
