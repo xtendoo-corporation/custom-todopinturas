@@ -34,11 +34,6 @@
                     </tr>
                 </tfoot>
             </table>
-            <div class="border-top mt-2 pt-2">
-                <button class="btn btn-link btn-sm p-0 w-100 text-start" type="button" t-on-click="openForecast">
-                    <i class="oi oi-arrow-right me-1"/> Ver pronóstico completo
-                </button>
-            </div>
         </div>
     </t>
 </template>

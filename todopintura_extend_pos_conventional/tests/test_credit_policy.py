@@ -1,3 +1,5 @@
+import json
+
 from odoo import fields
 from odoo.addons.pos_conventional_core.tests.common import PosConventionalTestCommon
 from odoo.tests.common import tagged
@@ -415,4 +417,29 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
             settings.pos_conventional_source_location_id,
             self.pos_config.conventional_source_location_id,
         )
+
+    def test_stock_widget_refreshes_data_on_product_selection(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        stock_product = self.env["product.product"].create({
+            "name": "Producto widget stock",
+            "type": "consu",
+            "list_price": 10.0,
+            "available_in_pos": True,
+            "taxes_id": [(6, 0, [self.tax_21.id])],
+            "property_account_income_id": self.income_account.id if self.income_account else False,
+        })
+
+        line = self.env["pos.order.line"].new({
+            "order_id": order.id,
+            "qty": 1.0,
+        })
+        line.product_id = stock_product
+        line._onchange_refresh_stock_widget_data()
+
+        self.assertEqual(line.pickup_warehouse_id, order.config_id.warehouse_id)
+        self.assertTrue(line.display_qty_widget)
+        self.assertEqual(line.warehouse_id, order.config_id.warehouse_id)
+        self.assertGreaterEqual(line.free_qty_today, 0.0)
+        self.assertIsInstance(json.loads(line.stock_at_locations_json), list)
 

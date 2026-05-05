@@ -793,6 +793,14 @@ class PosOrderLine(models.Model):
             line.is_mto = False
             line.move_ids = self.env['stock.move']
 
+    @api.onchange('product_id', 'qty', 'pickup_warehouse_id')
+    def _onchange_refresh_stock_widget_data(self):
+        for line in self:
+            if line.order_id and not line.pickup_warehouse_id:
+                line.pickup_warehouse_id = line.order_id.config_id.warehouse_id
+        self._compute_qty_at_date_data()
+        self._compute_stock_at_locations_json()
+
     @api.depends('product_id', 'qty', 'pickup_warehouse_id', 'order_id.config_id.warehouse_id')
     def _compute_stock_status(self):
         for line in self:
