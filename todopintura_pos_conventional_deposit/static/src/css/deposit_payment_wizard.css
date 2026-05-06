@@ -1,0 +1,11 @@
+/* Make the deposit payment wizard beautifully balanced in backend modals */
+div.modal-dialog:has(.custom_deposit_wizard_form),
+.modal-dialog:has(.custom_deposit_wizard_form) {
+    min-width: min(90%, 1100px) !important;
+    max-width: min(90%, 1100px) !important;
+    width: min(90%, 1100px) !important;
+}
+
+.custom_deposit_wizard_form {
+    width: 100% !important;
+}

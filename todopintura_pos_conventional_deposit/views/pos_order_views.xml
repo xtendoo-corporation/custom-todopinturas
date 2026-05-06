@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_pos_form_payment_wizard_deposit_button" model="ir.ui.view">
+        <field name="name">pos.order.form.payment.wizard.deposit.button</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="pos_conventional_payment_wizard.view_pos_pos_form_payment_wizard"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_open_payment_popup']" position="after">
+                <field name="show_deposit_button" invisible="1"/>
+                <button name="action_pay_deposit"
+                        string="Depósito"
+                        type="object"
+                        class="btn-info me-1"
+                        invisible="not show_deposit_button"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_pos_pos_form_deposit_ribbon" model="ir.ui.view">
+        <field name="name">pos.order.form.deposit.ribbon</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="pos_conventional_core.view_pos_pos_form_inherit_pos_conventional_core"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='payment_method_ribbon'][last()]" position="after">
+                <widget name="web_ribbon"
+                        title="EN DEPÓSITO"
+                        bg_color="text-bg-info"
+                        invisible="state not in ('deposit', 'deposit_partial')"/>
+            </xpath>
+            <xpath expr="//field[@name='state']" position="attributes">
+                <attribute name="invisible">state in ('cancel', 'deposit', 'deposit_partial')</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_pos_order_form_deposit_info_panel" model="ir.ui.view">
+        <field name="name">pos.order.form.deposit.info.panel</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="todopintura_extend_pos_conventional.view_pos_order_form_inherit_credit_policy_panel"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_credit_location_names']" position="after">
+                <field name="partner_deposit_enabled" invisible="1"/>
+                <field name="partner_deposit_available" invisible="1"/>
+                <field name="partner_deposit_location_names" invisible="1"/>
+                <field name="partner_deposit_warning_message" invisible="1"/>
+            </xpath>
+            <xpath expr="//div[hasclass('alert', 'alert-info') and @role='status']" position="attributes">
+                <attribute name="invisible">not partner_id or is_linked_to_sale</attribute>
+            </xpath>
+            <xpath expr="//div[hasclass('d-flex', 'align-items-center', 'gap-3', 'small', 'flex-nowrap', 'overflow-auto')]" position="inside">
+                <div class="text-nowrap">
+                    <span class="fw-semibold">Depósito:</span>
+                    <span invisible="partner_deposit_enabled">No</span>
+                    <span invisible="not partner_deposit_enabled or not partner_deposit_available">Sí</span>
+                    <span invisible="not partner_deposit_enabled or partner_deposit_available">No en esta tienda</span>
+                    <span invisible="not partner_deposit_location_names"> · Tiendas <field name="partner_deposit_location_names" readonly="1" nolabel="1"/></span>
+                    <span invisible="not partner_deposit_warning_message"> · Aviso <field name="partner_deposit_warning_message" readonly="1" nolabel="1"/></span>
+                </div>
+            </xpath>
+            <xpath expr="//group[@name='credit_info']" position="before">
+                <group string="Depósito" name="deposit_info">
+                    <field name="partner_deposit_enabled" readonly="1" string="Cliente admite depósito"/>
+                    <field name="partner_deposit_available" readonly="1" string="Disponible en esta tienda"/>
+                    <field name="partner_deposit_location_names"
+                           readonly="1"
+                           invisible="not partner_deposit_location_names"
+                           string="Depósito permitido en"/>
+                    <field name="partner_deposit_warning_message"
+                           readonly="1"
+                           widget="text"
+                           invisible="not partner_deposit_warning_message"
+                           string="Observación de depósito"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+
+
+

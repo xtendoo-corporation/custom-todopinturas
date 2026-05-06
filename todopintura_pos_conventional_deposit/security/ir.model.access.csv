@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_pos_deposit_payment_wizard_user,pos.deposit.payment.wizard user,model_pos_deposit_payment_wizard,base.group_user,1,1,1,1
+access_pos_deposit_payment_wizard_order_line_user,pos.deposit.payment.wizard.order.line user,model_pos_deposit_payment_wizard_order_line,base.group_user,1,1,1,1
+access_pos_deposit_payment_wizard_payment_line_user,pos.deposit.payment.wizard.payment.line user,model_pos_deposit_payment_wizard_payment_line,base.group_user,1,1,1,1
+access_pos_deposit_payment_wizard_line_user,pos.deposit.payment.wizard.line user,model_pos_deposit_payment_wizard_line,base.group_user,1,1,1,1
+

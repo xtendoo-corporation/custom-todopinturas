@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_pos_conventional_credit_deposit" model="ir.ui.view">
+        <field name="name">res.partner.form.pos.conventional.credit.deposit</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="todopintura_extend_pos_conventional.view_partner_form_pos_conventional_credit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_credit_sale_enabled']" position="replace">
+                <field name="pos_conventional_sale_mode"/>
+            </xpath>
+            <xpath expr="//field[@name='use_partner_credit_limit']" position="attributes">
+                <attribute name="invisible">pos_conventional_sale_mode != 'credit'</attribute>
+            </xpath>
+            <xpath expr="//field[@name='credit_limit']" position="attributes">
+                <attribute name="invisible">pos_conventional_sale_mode != 'credit' or not use_partner_credit_limit</attribute>
+                <attribute name="required">pos_conventional_sale_mode == 'credit' and use_partner_credit_limit</attribute>
+            </xpath>
+            <xpath expr="//field[@name='pos_credit_location_ids']" position="attributes">
+                <attribute name="string">Tiendas permitidas para depósito</attribute>
+                <attribute name="invisible">pos_conventional_sale_mode != 'deposit'</attribute>
+                <attribute name="help">Si el modo es 'Depósito', solo se permitirán ventas en depósito desde cajas cuya ubicación origen pertenezca a esta lista. Si se deja vacío, no se restringe por tienda.</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+
