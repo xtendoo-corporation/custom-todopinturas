@@ -34,6 +34,20 @@ class ImportClientTariffsWizard(models.TransientModel):
         text = str(value).strip()
         return text if text else default
 
+    @staticmethod
+    def _normalize_optional_provider_ref(value):
+        provider_ref = str(value).strip() if value not in (None, False, '') else ''
+        if not provider_ref:
+            return ''
+
+        if provider_ref.endswith('.0'):
+            provider_ref = provider_ref[:-2]
+
+        if not provider_ref or set(provider_ref) == {'0'}:
+            return ''
+
+        return provider_ref if provider_ref.startswith('0') else f"0{provider_ref}"
+
     def _safe_int(self, value, field_name, row_number, default=0):
         if value in (None, False, ''):
             return default
@@ -166,7 +180,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                     continue
 
                 client_ref = self._cell_to_text(row[1])
-                provider_ref = f"0{self._cell_to_text(row[2])}" if row[2] else '0'
+                provider_ref = self._normalize_optional_provider_ref(row[2])
                 product_code = self._cell_to_text(row[3], default='0')
                 raw_category = row[4]
                 category = self._safe_int(raw_category, 'category', excel_row, default=0)
@@ -182,8 +196,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                 fixed_price = str(float(row[8])) if row[8] and isinstance(row[8], (int, float)) else '0'
                 percentage_about_cost = str(-float(row[9])) if row[9] and isinstance(row[9], (int, float)) else '0'
                 client = self.env['res.partner'].search([('ref', '=', client_ref)], limit=1)
-                provider = self.env['res.partner'].search([('ref', '=', provider_ref)],
-                                                          limit=1) if provider_ref != '0777' else None
+                provider = self.env['res.partner'].search([('ref', '=', provider_ref)], limit=1) if provider_ref and provider_ref != '0777' else None
                 self._trace_row(
                     excel_row,
                     "datos principales leídos",
@@ -274,9 +287,14 @@ class ImportClientTariffsWizard(models.TransientModel):
                     provider_ref=provider_ref,
                     provider=provider,
                 )
-                if product.id is False and provider_ref != '0777' and not provider:
-                    self._register_row_error(errors, excel_row, "proveedor no encontrado", row_data=row, provider_ref=provider_ref)
-                    continue
+                if provider_ref and provider_ref != '0777' and not provider:
+                    self._trace_row(
+                        excel_row,
+                        "proveedor no encontrado. Se continúa sin proveedor",
+                        row_data=row,
+                        level='info',
+                        provider_ref=provider_ref,
+                    )
                 if percentage_about_cost != '0':
                     if product.id != 0:
                         pricelist_item_vals = {
