@@ -96,16 +96,22 @@ class ImportContactsWizard(models.TransientModel):
 
         try:
             if contact:
-                contact.write(record)
+                write_record = record.copy()
+                if contact.company_id and write_record.get('company_id') and contact.company_id.id != write_record['company_id']:
+                    write_record.pop('company_id')
+                contact.write(write_record)
                 print(f"Contacto actualizado: {contact.name}")
             else:
                 contact = self.env['res.partner'].create(record)
                 print(f"Contacto creado: {name}")
         except Exception as e:
             print(f"Error al actualizar o crear el contacto: {e}")
-            fallback_record = dict(record, vat='')
+            fallback_record = record.copy()
+            fallback_record['vat'] = ''
             contact = contact or self._find_existing_contact(num_client, name, record.get('vat'), iban=iban)
             if contact:
+                if contact.company_id and fallback_record.get('company_id') and contact.company_id.id != fallback_record['company_id']:
+                    fallback_record.pop('company_id')
                 contact.write(fallback_record)
             else:
                 contact = self.env['res.partner'].create(fallback_record)
@@ -153,6 +159,7 @@ class ImportContactsWizard(models.TransientModel):
             'email': email,
             'comment': notes,
             'is_company': True,
+            'company_id': self.env.company.id,
         }
 
     def action_import_contacts(self):
