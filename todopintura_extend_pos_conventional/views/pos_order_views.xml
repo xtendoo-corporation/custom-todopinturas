@@ -143,4 +143,37 @@
         </field>
     </record>
 
+    <record id="view_pos_order_form_inherit_paid_print_buttons" model="ir.ui.view">
+        <field name="name">pos.order.form.inherit.paid.print.buttons</field>
+        <field name="model">pos.order</field>
+        <field name="priority">120</field>
+        <field name="inherit_id" ref="pos_conventional_core.view_pos_pos_form_inherit_pos_conventional_core" />
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="can_print_paid_albaran" invisible="1"/>
+                <field name="can_print_paid_invoice" invisible="1"/>
+            </xpath>
+            <xpath expr="//header/button[@name='action_print_factura_simplificada']" position="replace">
+                <button name="action_print_paid_albaran"
+                        string="Imprimir albarán"
+                        type="object"
+                        icon="fa-print"
+                        class="btn-secondary"
+                        invisible="not can_print_paid_albaran"/>
+                <button name="action_print_paid_albaran_valued"
+                        string="Imprimir albarán valorado"
+                        type="object"
+                        icon="fa-print"
+                        class="btn-secondary"
+                        invisible="not can_print_paid_albaran"/>
+                <button name="action_print_paid_invoice"
+                        string="Imprimir factura"
+                        type="object"
+                        icon="fa-print"
+                        class="btn-secondary"
+                        invisible="not can_print_paid_invoice"/>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>

@@ -14,6 +14,8 @@ _logger = logging.getLogger(__name__)
 class PosOrder(models.Model):
     _inherit = "pos.order"
 
+    _CONVENTIONAL_PAID_PRINTABLE_STATES = ("paid", "done", "invoiced")
+
     def _normalize_conventional_payment_method(self, payment_method=None):
         self.ensure_one()
         if not payment_method:
@@ -240,6 +242,97 @@ class PosOrder(models.Model):
         readonly=True,
         copy=False,
     )
+    can_print_paid_albaran = fields.Boolean(
+        string="Puede imprimir albarán pagado",
+        compute="_compute_conventional_paid_print_buttons",
+    )
+    can_print_paid_invoice = fields.Boolean(
+        string="Puede imprimir factura pagada",
+        compute="_compute_conventional_paid_print_buttons",
+    )
+
+    @api.depends(
+        "state",
+        "show_albaran_button",
+        "picking_ids",
+        "picking_ids.state",
+        "linked_sale_order_id",
+        "linked_sale_order_id.picking_ids",
+        "linked_sale_order_id.picking_ids.state",
+        "account_move",
+    )
+    def _compute_conventional_paid_print_buttons(self):
+        for order in self:
+            can_print_albaran = bool(
+                order.state in self._CONVENTIONAL_PAID_PRINTABLE_STATES
+                and order._get_conventional_reprint_pickings()
+            )
+            order.can_print_paid_albaran = can_print_albaran
+            order.can_print_paid_invoice = bool(
+                order.state in self._CONVENTIONAL_PAID_PRINTABLE_STATES
+                and order.account_move
+            )
+
+    def _get_conventional_reprint_pickings(self):
+        self.ensure_one()
+        pickings = (self.picking_ids | self.linked_sale_order_id.picking_ids).filtered(
+            lambda picking: picking.state != "cancel"
+        )
+        return pickings.sorted(lambda picking: (picking.date_done or picking.scheduled_date or picking.create_date, picking.id), reverse=True)
+
+    def _ensure_conventional_paid_printable_order(self):
+        self.ensure_one()
+        if self.state not in self._CONVENTIONAL_PAID_PRINTABLE_STATES:
+            raise UserError(
+                _("Solo se pueden reimprimir documentos en pedidos POS ya pagados o cerrados.")
+            )
+
+    def action_print_paid_albaran(self):
+        self.ensure_one()
+        self._ensure_conventional_paid_printable_order()
+        pickings = self._get_conventional_reprint_pickings()
+        if not pickings:
+            raise UserError(_("Este pedido no tiene albaranes disponibles para imprimir."))
+        return self.env.ref(
+            "todopintura_administration.action_custom_delivery_report"
+        ).report_action(pickings)
+
+    def action_print_paid_albaran_valued(self):
+        self.ensure_one()
+        self._ensure_conventional_paid_printable_order()
+        pickings = self._get_conventional_reprint_pickings()
+        if not pickings:
+            raise UserError(_("Este pedido no tiene albaranes disponibles para imprimir."))
+        return self.env.ref(
+            "todopintura_extend_pos_conventional.action_custom_delivery_report_valued"
+        ).report_action(pickings)
+
+    def _get_conventional_paid_invoice_report(self):
+        self.ensure_one()
+        if self.is_a4_invoice:
+            return (
+                self.env.ref(
+                    "todopintura_administration.action_report_invoice_custom",
+                    raise_if_not_found=False,
+                )
+                or self.env.ref("account.account_invoices")
+            )
+        return (
+            self.env.ref(
+                "pos_conventional_receipt_custom.action_factura_simplificada_80mm_pdf",
+                raise_if_not_found=False,
+            )
+            or self.env.ref("pos_conventional_receipt_custom.action_factura_simplificada_80mm")
+        )
+
+    def action_print_paid_invoice(self):
+        self.ensure_one()
+        self._ensure_conventional_paid_printable_order()
+        if not self.account_move:
+            raise UserError(_("Este pedido no tiene factura asociada para imprimir."))
+        return self._get_conventional_paid_invoice_report().report_action(
+            self.account_move
+        )
 
     @api.depends("config_id.warehouse_id", "lines.pickup_warehouse_id")
     def _compute_pickup_warehouse_summary(self):

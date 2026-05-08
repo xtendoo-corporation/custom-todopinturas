@@ -398,6 +398,50 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
             action["params"]["url"],
         )
 
+    def test_paid_order_reprint_invoice_uses_custom_a4_report(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        order.write({"is_a4_invoice": True})
+        self._add_payment(order)
+        order.action_pos_order_paid()
+
+        self.assertTrue(order.account_move)
+
+        action = order.action_print_paid_invoice()
+
+        self.assertEqual(action["report_name"], "todopintura_administration.report_invoice_custom")
+        self.assertEqual(action["report_type"], "qweb-pdf")
+
+    def test_paid_order_reprint_albaran_available_with_existing_pickings(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        order.write({"state": "paid"})
+        picking_type = order.config_id.picking_type_id
+        self.env["stock.picking"].create(
+            {
+                "name": "PICK/TEST/0001",
+                "partner_id": order.partner_id.id,
+                "company_id": order.company_id.id,
+                "picking_type_id": picking_type.id,
+                "location_id": picking_type.default_location_src_id.id,
+                "location_dest_id": picking_type.default_location_dest_id.id,
+                "pos_order_id": order.id,
+                "scheduled_date": fields.Datetime.now(),
+            }
+        )
+        order.config_id.write({"pos_enable_albaran": False})
+        order.invalidate_recordset(["show_albaran_button", "can_print_paid_albaran", "picking_ids"])
+
+        self.assertFalse(order.show_albaran_button)
+        self.assertTrue(order.can_print_paid_albaran)
+
+        action = order.action_print_paid_albaran()
+
+        self.assertEqual(action["report_name"], "todopintura_administration.report_deliveryslip_custom")
+        self.assertEqual(action["report_type"], "qweb-pdf")
+
     def test_conventional_config_exposes_source_location(self):
         self.assertTrue(self.pos_config.pos_non_touch)
         self.assertEqual(
