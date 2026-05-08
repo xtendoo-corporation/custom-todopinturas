@@ -55,6 +55,9 @@ function printReceiptInBackground(url, env, { reportAutoprints = false } = {}) {
 async function posPrintReceiptWindowAction(env, action) {
     const params = action.params || {};
     const url = params.url;
+    const clearBreadcrumbs = params.clear_breadcrumbs !== undefined
+        ? !!params.clear_breadcrumbs
+        : true;
     if (!url) {
         env.services.notification.add("No se ha proporcionado URL para imprimir.", {
             type: "warning",
@@ -70,7 +73,7 @@ async function posPrintReceiptWindowAction(env, action) {
     });
 
     if (params.next_action) {
-        return env.services.action.doAction(params.next_action, { clearBreadcrumbs: true });
+        return env.services.action.doAction(params.next_action, { clearBreadcrumbs });
     }
     return { type: "ir.actions.act_window_close" };
 }

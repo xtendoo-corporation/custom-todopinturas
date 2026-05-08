@@ -565,6 +565,7 @@ class PosDepositPaymentWizard(models.TransientModel):
                     f"{invoice.id}?download=false"
                 ),
                 "report_autoprints": True,
+                "clear_breadcrumbs": False,
                 "next_action": self._build_invoice_action(invoice),
             },
         }

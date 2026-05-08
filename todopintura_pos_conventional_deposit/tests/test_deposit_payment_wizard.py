@@ -173,6 +173,7 @@ class TestDepositPaymentWizard(PosConventionalTestCommon):
             "/report/html/pos_conventional_receipt_custom.report_factura_simplificada_80mm/",
             action.get("params", {}).get("url", ""),
         )
+        self.assertFalse(action.get("params", {}).get("clear_breadcrumbs", True))
         self.assertEqual(action.get("params", {}).get("next_action", {}).get("res_model"), "account.move")
         self.assertEqual(action.get("params", {}).get("next_action", {}).get("res_id"), order_1.account_move.id)
         self.assertEqual(action.get("params", {}).get("next_action", {}).get("target"), "current")
@@ -295,6 +296,8 @@ class TestDepositPaymentWizard(PosConventionalTestCommon):
             "/report/html/pos_conventional_receipt_custom.report_factura_simplificada_80mm/",
             action.get("params", {}).get("url", ""),
         )
+        self.assertFalse(action.get("params", {}).get("clear_breadcrumbs", True))
+        self.assertEqual(action.get("params", {}).get("next_action", {}).get("target"), "current")
 
     def test_action_confirm_rejects_non_cash_overpayment(self):
         order = self._create_deposit_order()
