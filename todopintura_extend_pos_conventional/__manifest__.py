@@ -16,6 +16,7 @@
         'pos_conventional_picking_integration',
         'pos_settle_due',
         'sale_stock',
+        'todopintura_administration',
     ],
     'data': [
         'security/ir.model.access.csv',
