@@ -25,10 +25,10 @@
                 <widget name="web_ribbon"
                         title="EN DEPÓSITO"
                         bg_color="text-bg-info"
-                        invisible="state not in ('deposit', 'deposit_partial')"/>
+                        invisible="state != 'deposit'"/>
             </xpath>
             <xpath expr="//field[@name='state']" position="attributes">
-                <attribute name="invisible">state in ('cancel', 'deposit', 'deposit_partial')</attribute>
+                <attribute name="invisible">state in ('cancel', 'deposit')</attribute>
             </xpath>
         </field>
     </record>

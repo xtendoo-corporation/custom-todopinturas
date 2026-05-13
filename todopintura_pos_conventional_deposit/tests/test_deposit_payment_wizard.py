@@ -40,9 +40,11 @@ class TestDepositPaymentWizard(PosConventionalTestCommon):
         self.assertEqual(action["target"], "new")
         self.assertTrue(action["res_id"])
         self.assertEqual(action["context"]["default_session_id"], session.id)
-        self.assertEqual(action["context"]["dialog_size"], "extra-large")
+        self.assertEqual(action["context"]["dialog_size"], "xl")
         wizard = self.env["pos.deposit.payment.wizard"].browse(action["res_id"])
         self.assertEqual(wizard.session_id, session)
+        self.assertNotIn("lines", dict(wizard._fields["step"].selection))
+        self.assertNotIn("deposit_line_ids", wizard._fields)
 
     def test_partner_onchange_loads_only_deposit_orders_without_invoice(self):
         order = self._create_deposit_order()
@@ -88,7 +90,7 @@ class TestDepositPaymentWizard(PosConventionalTestCommon):
         self.assertIn(commercial_partner, wizard.eligible_partner_ids)
         self.assertIn(order, wizard.deposit_order_line_ids.mapped("order_id"))
 
-    def test_selected_amounts_are_computed_from_selected_lines(self):
+    def test_selected_amounts_are_computed_from_selected_orders(self):
         session = self._open_session()
         order_1 = self._create_deposit_order(session=session)
         order_2 = self._create_deposit_order(session=session)
@@ -127,7 +129,7 @@ class TestDepositPaymentWizard(PosConventionalTestCommon):
 
         action_payment = wizard.action_go_to_payment_step()
         self.assertEqual(wizard.step, "payment")
-        self.assertEqual(action_payment["context"]["dialog_size"], "extra-large")
+        self.assertEqual(action_payment["context"]["dialog_size"], "xl")
         self.assertEqual(wizard.selected_order_count, 2)
 
         wizard.action_back_to_order_step()

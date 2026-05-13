@@ -58,11 +58,6 @@ class PosDepositPaymentWizard(models.TransientModel):
         "wizard_id",
         string="Pedidos en depósito",
     )
-    deposit_line_ids = fields.One2many(
-        "pos.deposit.payment.wizard.line",
-        "wizard_id",
-        string="Líneas de pedido",
-    )
     payment_line_ids = fields.One2many(
         "pos.deposit.payment.wizard.payment.line",
         "wizard_id",
@@ -71,7 +66,6 @@ class PosDepositPaymentWizard(models.TransientModel):
     step = fields.Selection(
         selection=[
             ("orders", "Pedidos"),
-            ("lines", "Líneas de pedido"),
             ("payment", "Cobro"),
         ],
         string="Paso",
@@ -136,7 +130,7 @@ class PosDepositPaymentWizard(models.TransientModel):
             orders = self.env["pos.order"].search(
                 [
                     ("config_id", "=", wizard.config_id.id),
-                    ("state", "in", ("deposit", "deposit_partial")),
+                    ("state", "=", "deposit"),
                     ("partner_id", "!=", False),
                 ]
             )
@@ -150,26 +144,16 @@ class PosDepositPaymentWizard(models.TransientModel):
             )
 
     @api.depends(
-        "step",
         "deposit_order_line_ids",
         "deposit_order_line_ids.selected",
-        "deposit_order_line_ids.order_id.lines",
-        "deposit_order_line_ids.order_id.lines.is_deposit_paid",
-        "deposit_line_ids",
-        "deposit_line_ids.selected",
+        "deposit_order_line_ids.order_id.amount_total",
     )
     def _compute_selected_amounts(self):
         for wizard in self:
             wizard.deposit_order_count = len(wizard.deposit_order_line_ids)
-            if wizard.step == "orders":
-                selected_orders = wizard.deposit_order_line_ids.filtered("selected")
-                wizard.selected_order_count = len(selected_orders)
-                lines = selected_orders.mapped("order_id.lines").filtered(lambda l: not l.is_deposit_paid)
-                wizard.amount_total = sum(lines.mapped("price_subtotal_incl"))
-            else:
-                selected_lines = wizard.deposit_line_ids.filtered("selected")
-                wizard.selected_order_count = len(selected_lines.mapped("order_line_id.order_id"))
-                wizard.amount_total = sum(selected_lines.mapped("price_subtotal_incl"))
+            selected_orders = wizard.deposit_order_line_ids.filtered("selected")
+            wizard.selected_order_count = len(selected_orders)
+            wizard.amount_total = sum(selected_orders.mapped("order_id.amount_total"))
 
     def _get_payment_breakdown(self):
         self.ensure_one()
@@ -256,7 +240,7 @@ class PosDepositPaymentWizard(models.TransientModel):
                     self.partner_id.commercial_partner_id.id,
                 ),
                 ("config_id", "=", self.config_id.id),
-                ("state", "in", ("deposit", "deposit_partial")),
+                ("state", "=", "deposit"),
             ],
             order="date_order desc, id desc",
         )
@@ -275,7 +259,7 @@ class PosDepositPaymentWizard(models.TransientModel):
                     partner.commercial_partner_id.id,
                 ),
                 ("config_id", "=", config.id),
-                ("state", "in", ("deposit", "deposit_partial")),
+                ("state", "=", "deposit"),
             ],
             order="date_order desc, id desc",
         )
@@ -570,58 +554,13 @@ class PosDepositPaymentWizard(models.TransientModel):
             },
         }
 
-    def action_go_to_lines_step(self):
-        self.ensure_one()
-        if not self.partner_id:
-            raise UserError(_("Debe seleccionar un cliente antes de continuar."))
-        selected_orders = self._validate_selected_orders()
-
-        # Populate deposit_line_ids with all lines from selected orders that are not paid yet
-        lines_to_pay = selected_orders.mapped("lines").filtered(lambda l: not l.is_deposit_paid)
-        self.deposit_line_ids = [Command.clear()]
-        vals = []
-        for line in lines_to_pay:
-            vals.append((0, 0, {
-                "order_line_id": line.id,
-                "selected": True,
-            }))
-        self.write({
-            "deposit_line_ids": vals,
-            "step": "lines",
-        })
-        return self._get_reopen_action()
-
-    def action_back_to_lines_step(self):
-        self.ensure_one()
-        self.step = "lines"
-        return self._get_reopen_action()
-
-    def action_select_all_lines(self):
-        self.ensure_one()
-        for line in self.deposit_line_ids:
-            line.selected = True
-        self._sync_single_payment_line_amount()
-        return self._get_reopen_action()
-
-    def action_clear_selected_lines(self):
-        self.ensure_one()
-        for line in self.deposit_line_ids:
-            line.selected = False
-        self._sync_single_payment_line_amount()
-        return self._get_reopen_action()
-
     def action_confirm(self):
         self.ensure_one()
-        selected_wizard_lines = self.deposit_line_ids.filtered("selected")
-        if not selected_wizard_lines:
-            raise UserError(_("Debe seleccionar al menos una línea de pedido para pagar."))
-        selected_pos_lines = selected_wizard_lines.mapped("order_line_id")
-        selected_orders = selected_pos_lines.mapped("order_id")
+        selected_orders = self._validate_selected_orders()
         self._validate_payment_breakdown()
 
         invoice = selected_orders._create_conventional_deposit_invoice(
             invoice_partner=self.partner_id,
-            lines_to_invoice=selected_pos_lines.ids
         )
         self._register_invoice_payments(invoice)
         invoice.invalidate_recordset(["payment_state", "amount_residual"])
@@ -721,55 +660,5 @@ class PosDepositPaymentWizardPaymentLine(models.TransientModel):
             line.is_cash_payment = line.wizard_id._is_cash_payment_method(line.payment_method_id)
 
 
-class PosDepositPaymentWizardLine(models.TransientModel):
-    _name = "pos.deposit.payment.wizard.line"
-    _description = "Línea de depósito a liquidar individualmente"
-
-    wizard_id = fields.Many2one(
-        "pos.deposit.payment.wizard",
-        required=True,
-        ondelete="cascade",
-    )
-    selected = fields.Boolean(string="Seleccionar", default=True)
-    order_line_id = fields.Many2one(
-        "pos.order.line",
-        string="Línea de pedido",
-        required=True,
-        ondelete="cascade",
-    )
-    order_id = fields.Many2one(
-        "pos.order",
-        related="order_line_id.order_id",
-        string="Pedido",
-        readonly=True,
-    )
-    product_id = fields.Many2one(
-        "product.product",
-        related="order_line_id.product_id",
-        string="Producto",
-        readonly=True,
-    )
-    qty = fields.Float(
-        related="order_line_id.qty",
-        string="Cantidad",
-        readonly=True,
-    )
-    price_unit = fields.Float(
-        related="order_line_id.price_unit",
-        string="P.U.",
-        readonly=True,
-    )
-    price_subtotal_incl = fields.Monetary(
-        related="order_line_id.price_subtotal_incl",
-        string="Subtotal",
-        readonly=True,
-        currency_field="currency_id",
-    )
-    currency_id = fields.Many2one(
-        "res.currency",
-        related="order_line_id.currency_id",
-        store=False,
-        readonly=True,
-    )
 
 

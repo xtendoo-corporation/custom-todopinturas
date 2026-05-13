@@ -6,6 +6,12 @@ from odoo.tests.common import tagged
 @tagged("post_install", "-at_install")
 class TestDepositOrder(PosConventionalTestCommon):
 
+    def test_module_keeps_only_full_deposit_flow(self):
+        state_values = dict(self.env["pos.order"]._fields["state"].selection)
+        self.assertIn("deposit", state_values)
+        self.assertNotIn("deposit_partial", state_values)
+        self.assertNotIn("is_deposit_paid", self.env["pos.order.line"]._fields)
+
     def _prepare_deposit_order(self):
         session = self._open_session()
         order = self._make_draft_order(session, partner=self.partner)

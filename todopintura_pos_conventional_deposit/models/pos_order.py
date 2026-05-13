@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import logging
-_logger = logging.getLogger(__name__)
-
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.translate import _
@@ -14,51 +11,9 @@ class PosOrder(models.Model):
     state = fields.Selection(
         selection_add=[
             ("deposit", "En depósito"),
-            ("deposit_partial", "Depósito parcial"),
         ],
-        ondelete={"deposit": "set default", "deposit_partial": "set default"},
+        ondelete={"deposit": "set default"},
     )
-
-    def _prepare_tax_base_line_values(self):
-        lines_to_invoice = self.env.context.get("lines_to_invoice")
-        if lines_to_invoice:
-            result = []
-            for order in self:
-                filtered_lines = order.lines.filtered(lambda l: l.id in lines_to_invoice)
-                result.extend(filtered_lines._prepare_tax_base_line_values() or [])
-            return result
-        return super()._prepare_tax_base_line_values()
-
-    def _prepare_invoice_lines(self, move_type):
-        lines_to_invoice = self.env.context.get("lines_to_invoice")
-        if lines_to_invoice:
-            invoice_lines = []
-            for order in self:
-                filtered_lines = order.lines.filtered(lambda l: l.id in lines_to_invoice)
-                line_values_list = filtered_lines._prepare_tax_base_line_values()
-                for line_values in line_values_list:
-                    line = line_values['record']
-                    invoice_lines_values = order._get_invoice_lines_values(line_values, line, move_type)
-                    invoice_lines.append((0, None, invoice_lines_values))
-                    
-                    is_percentage = order.pricelist_id and any(
-                        order.pricelist_id.item_ids.filtered(
-                            lambda rule: rule.compute_price == "percentage")
-                    )
-                    if is_percentage and line.price_unit < line.product_id.lst_price:
-                        invoice_lines.append((0, None, {
-                            'name': _('Price discount from %(original_price)s to %(discounted_price)s',
-                                    original_price=line.product_id.lst_price,
-                                    discounted_price=line.price_unit),
-                            'display_type': 'line_note',
-                        }))
-                    if line.customer_note:
-                        invoice_lines.append((0, None, {
-                            'name': line.customer_note,
-                            'display_type': 'line_note',
-                        }))
-            return invoice_lines
-        return super()._prepare_invoice_lines(move_type)
 
 
 
@@ -359,7 +314,7 @@ class PosOrder(models.Model):
             },
         }
 
-    def _create_conventional_deposit_invoice(self, invoice_partner=None, lines_to_invoice=None):
+    def _create_conventional_deposit_invoice(self, invoice_partner=None):
         orders = self.exists()
         if not orders:
             raise UserError(_("No hay pedidos en depósito para facturar."))
@@ -389,18 +344,15 @@ class PosOrder(models.Model):
                     "Los pedidos seleccionados deben pertenecer al mismo cliente comercial."
                 )
             )
-        if any(order.state not in ("deposit", "deposit_partial") for order in orders):
+        if any(order.state != "deposit" for order in orders):
             raise UserError(
-                _("Solo se pueden facturar pedidos que estén actualmente en depósito o en depósito parcial.")
+                _("Solo se pueden facturar pedidos que estén actualmente en depósito.")
             )
-        for order in orders:
-            if order.account_move and order.state not in ("deposit", "deposit_partial"):
-                raise UserError(
-                    _("Alguno de los pedidos seleccionados ya tiene una factura asociada.")
-                )
+        if any(order.account_move for order in orders):
+            raise UserError(
+                _("Alguno de los pedidos seleccionados ya tiene una factura asociada.")
+            )
 
-        lines_to_invoice = lines_to_invoice or self.env.context.get("lines_to_invoice")
-        orders = orders.with_context(lines_to_invoice=lines_to_invoice)
         reference_order = orders[:1]
         company = companies[:1]
         config = configs[:1]
@@ -410,8 +362,7 @@ class PosOrder(models.Model):
         if len(orders) > 1:
             invoice_line_ids = list(invoice_vals.get("invoice_line_ids", []))
             for order in (orders - reference_order):
-                order_with_ctx = order.with_context(lines_to_invoice=lines_to_invoice)
-                invoice_line_ids.extend(order_with_ctx._prepare_invoice_lines(invoice_vals["move_type"]))
+                invoice_line_ids.extend(order._prepare_invoice_lines(invoice_vals["move_type"]))
             invoice_vals.update({
                 "invoice_line_ids": invoice_line_ids,
                 "invoice_origin": ", ".join(ref or "" for ref in orders.mapped("pos_reference")),
@@ -437,22 +388,12 @@ class PosOrder(models.Model):
             **reference_order._get_invoice_post_context()
         )._post()
 
-        _logger.warning(f"DEBUG: lines_to_invoice={lines_to_invoice} | lines={orders.lines.ids} | lines_paid_now={orders.lines.filtered(lambda l: l.id in lines_to_invoice).ids}")
         for order in orders:
-            if lines_to_invoice:
-                lines_paid_now = order.lines.filtered(lambda l: l.id in lines_to_invoice)
-                lines_paid_now.write({"is_deposit_paid": True})
-                remaining_unpaid = order.lines.filtered(lambda l: not l.is_deposit_paid)
-            else:
-                order.lines.write({"is_deposit_paid": True})
-                remaining_unpaid = self.env["pos.order.line"]
-
             write_vals = {
                 "account_move": invoice.id,
-                "state": "done" if not remaining_unpaid else "deposit_partial",
-                "to_invoice": False if not remaining_unpaid else True,
+                "state": "done",
+                "to_invoice": False,
             }
-            _logger.warning(f"ORDER WRITE_VALS: order={order.name} vals={write_vals} remaining={remaining_unpaid.ids}")
             if "is_l10n_es_simplified_invoice" in order._fields:
                 write_vals["is_l10n_es_simplified_invoice"] = True
             order.with_context(skip_completeness_check=True).write(write_vals)
@@ -480,12 +421,4 @@ class PosOrder(models.Model):
             % {"config": config.display_name}
         )
 
-
-class PosOrderLine(models.Model):
-    _inherit = "pos.order.line"
-
-    is_deposit_paid = fields.Boolean(
-        string="Pagada (Depósito)",
-        default=False,
-    )
 
