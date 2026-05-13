@@ -375,7 +375,7 @@ class PosDepositPaymentWizard(models.TransientModel):
             "target": "new",
             "context": {
                 **self.env.context,
-                "dialog_size": "xl",
+                "dialog_size": "medium",
             },
         }
 

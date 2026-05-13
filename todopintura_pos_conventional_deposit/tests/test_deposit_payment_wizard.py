@@ -40,7 +40,7 @@ class TestDepositPaymentWizard(PosConventionalTestCommon):
         self.assertEqual(action["target"], "new")
         self.assertTrue(action["res_id"])
         self.assertEqual(action["context"]["default_session_id"], session.id)
-        self.assertEqual(action["context"]["dialog_size"], "xl")
+        self.assertEqual(action["context"]["dialog_size"], "medium")
         wizard = self.env["pos.deposit.payment.wizard"].browse(action["res_id"])
         self.assertEqual(wizard.session_id, session)
         self.assertNotIn("lines", dict(wizard._fields["step"].selection))
@@ -129,7 +129,7 @@ class TestDepositPaymentWizard(PosConventionalTestCommon):
 
         action_payment = wizard.action_go_to_payment_step()
         self.assertEqual(wizard.step, "payment")
-        self.assertEqual(action_payment["context"]["dialog_size"], "xl")
+        self.assertEqual(action_payment["context"]["dialog_size"], "medium")
         self.assertEqual(wizard.selected_order_count, 2)
 
         wizard.action_back_to_order_step()

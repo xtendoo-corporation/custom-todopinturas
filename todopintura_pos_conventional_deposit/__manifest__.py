@@ -19,7 +19,6 @@
     "assets": {
         "web.assets_backend": [
             "todopintura_pos_conventional_deposit/static/src/js/**/*",
-            "todopintura_pos_conventional_deposit/static/src/css/deposit_payment_wizard.css",
         ],
     },
     "post_init_hook": "post_init_hook",

@@ -310,7 +310,7 @@ class PosOrder(models.Model):
             "context": {
                 **self.env.context,
                 "default_session_id": session.id,
-                "dialog_size": "xl",
+                "dialog_size": "medium",
             },
         }
 

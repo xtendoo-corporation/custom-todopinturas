@@ -4,140 +4,78 @@
         <field name="name">pos.deposit.payment.wizard.form</field>
         <field name="model">pos.deposit.payment.wizard</field>
         <field name="arch" type="xml">
-            <form string="Cobro de depósitos pendientes" size="xl" class="custom_deposit_wizard_form">
-                <sheet>
-                    <field name="session_id" invisible="1"/>
-                    <field name="config_id" invisible="1"/>
-                    <field name="currency_id" invisible="1"/>
-                    <field name="available_payment_method_ids" invisible="1"/>
-                    <field name="eligible_partner_ids" invisible="1"/>
-                    <field name="selected_order_ids" invisible="1"/>
-                    <field name="has_cash_payment" invisible="1"/>
-                    <field name="is_payment_ready" invisible="1"/>
-                    <field name="step" invisible="1"/>
+            <form string="Cobro de depósitos pendientes">
+                <field name="session_id" invisible="1"/>
+                <field name="config_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="available_payment_method_ids" invisible="1"/>
+                <field name="eligible_partner_ids" invisible="1"/>
+                <field name="selected_order_ids" invisible="1"/>
+                <field name="has_cash_payment" invisible="1"/>
+                <field name="is_payment_ready" invisible="1"/>
 
-                    <div class="d-flex gap-2 mb-3">
-                        <div class="alert alert-primary mb-0 flex-fill" role="status" invisible="step != 'orders'">
-                            <strong>Paso 1.</strong> Cliente y pedidos
-                        </div>
-                        <div class="alert alert-light border mb-0 flex-fill" role="status" invisible="step == 'orders'">
-                            <strong>Paso 1.</strong> Cliente y pedidos
-                        </div>
-                        <div class="alert alert-primary mb-0 flex-fill" role="status" invisible="step != 'payment'">
-                            <strong>Paso 2.</strong> Cobro
-                        </div>
-                        <div class="alert alert-light border mb-0 flex-fill" role="status" invisible="step == 'payment'">
-                            <strong>Paso 2.</strong> Cobro
-                        </div>
-                    </div>
+                <field name="step" widget="statusbar" statusbar_visible="orders,payment" readonly="1"/>
 
-                    <div invisible="step != 'orders'">
-                        <div class="alert alert-info mb-3" role="status">
-                            <span class="fa fa-circle-info me-2" title="Información"/>
-                            Seleccione el cliente y marque los pedidos que va a liquidar en esta operación. Después pulse <strong>Continuar al cobro</strong>.
-                        </div>
+                <group string="Datos de la operación" invisible="step != 'orders'" col="4">
+                    <field name="partner_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="config_id" readonly="1" force_save="1"/>
+                    <field name="amount_total"
+                           readonly="1"
+                           widget="monetary"
+                           options="{'currency_field': 'currency_id'}"/>
+                </group>
 
-                        <group col="2">
-                            <group string="Cliente y caja">
-                                <field name="partner_id" options="{'no_create': True, 'no_open': True}"/>
-                                <field name="config_id" readonly="1" force_save="1"/>
-                            </group>
-                            <group string="Resumen de selección">
-                                <field name="deposit_order_count" readonly="1"/>
-                                <field name="selected_order_count" readonly="1"/>
-                                <field name="amount_total" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                            </group>
-                        </group>
+                <separator string="Pedidos en depósito" invisible="step != 'orders'"/>
+                <field name="deposit_order_line_ids" nolabel="1" invisible="step != 'orders'">
+                    <list editable="bottom" create="0" delete="0">
+                        <field name="selected" widget="boolean_toggle"/>
+                        <field name="display_reference"/>
+                        <field name="date_order"/>
+                        <field name="amount_total" sum="Total"/>
+                        <field name="picking_count"/>
+                    </list>
+                </field>
 
-                        <div class="alert alert-warning mt-3" role="status" invisible="partner_id or deposit_order_count">
-                            Seleccione un cliente para cargar sus depósitos pendientes.
-                        </div>
-                        <div class="alert alert-warning mt-3" role="status" invisible="not partner_id or deposit_order_count">
-                            Este cliente no tiene pedidos en depósito pendientes en la caja actual.
-                        </div>
-                        <div class="alert alert-warning mt-3" role="status" invisible="not partner_id or not deposit_order_count or selected_order_count">
-                            Marque uno o varios pedidos de la lista para continuar.
-                        </div>
+                <group string="Datos del cobro" invisible="step != 'payment'" col="4">
+                    <field name="partner_id" readonly="1" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="config_id" readonly="1" force_save="1"/>
+                    <field name="amount_total"
+                           readonly="1"
+                           widget="monetary"
+                           options="{'currency_field': 'currency_id'}"/>
+                    <field name="amount_paid_total"
+                           readonly="1"
+                           widget="monetary"
+                           options="{'currency_field': 'currency_id'}"/>
+                    <field name="amount_due"
+                           readonly="1"
+                           widget="monetary"
+                           options="{'currency_field': 'currency_id'}"/>
+                    <field name="amount_change"
+                           readonly="1"
+                           widget="monetary"
+                           options="{'currency_field': 'currency_id'}"
+                           invisible="amount_change &lt;= 0.0"/>
+                </group>
 
-                        <separator string="Pedidos en depósito del cliente"/>
-                        <div class="text-muted mb-2">
-                            Los pedidos seleccionados se cobrarán completos en esta operación.
-                        </div>
-                        <div class="d-flex gap-2 mb-2">
-                            <button name="action_select_all_orders" type="object" string="Seleccionar todos" class="btn-secondary"/>
-                            <button name="action_clear_selected_orders" type="object" string="Limpiar selección" class="btn-secondary"/>
-                        </div>
-                        <field name="deposit_order_line_ids" nolabel="1">
-                            <list editable="bottom" create="0" delete="0">
-                                <field name="selected" widget="boolean_toggle"/>
-                                <field name="display_reference"/>
-                                <field name="date_order"/>
-                                <field name="amount_total" sum="Total"/>
-                                <field name="picking_count"/>
-                            </list>
-                        </field>
-                    </div>
-
-                    <div invisible="step != 'payment'">
-                        <div class="alert alert-info mb-3" role="status">
-                            <span class="fa fa-circle-info me-2" title="Información"/>
-                            Revise el resumen, indique cómo paga el cliente y finalice. Al confirmar se abrirá la factura generada.
-                        </div>
-
-                        <group col="2">
-                            <group string="Cliente y caja">
-                                <field name="partner_id" readonly="1" options="{'no_create': True, 'no_open': True}"/>
-                                <field name="config_id" readonly="1" force_save="1"/>
-                                <field name="selected_order_count" readonly="1"/>
-                            </group>
-                            <group string="Resumen del cobro">
-                                <div class="p-3 bg-light rounded">
-                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                                        <span class="fs-2 fw-bold">Total a cobrar</span>
-                                        <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" nolabel="1" class="fs-2 fw-bold text-end"/>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                                        <span class="fs-4 fw-bold">Importe indicado</span>
-                                        <field name="amount_paid_total" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" nolabel="1" class="fs-4 fw-bold text-primary text-end"/>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                                        <span class="fs-4 fw-bold">Pendiente</span>
-                                        <field name="amount_due" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" nolabel="1" class="fs-4 fw-bold text-danger text-end"/>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center" invisible="amount_change &lt;= 0.0">
-                                        <span class="fs-4 fw-bold">Cambio</span>
-                                        <field name="amount_change" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" nolabel="1" class="fs-4 fw-bold text-success text-end"/>
-                                    </div>
-                                </div>
-                            </group>
-                        </group>
-
-                        <div class="alert alert-danger mt-3" role="alert" invisible="non_cash_overpayment_amount &lt;= 0.0">
-                            Los importes indicados con métodos distintos de efectivo superan el total a cobrar. Reduzca tarjeta/transferencia o deje el exceso en efectivo para calcular cambio.
-                        </div>
-                        <div class="alert alert-warning mt-3" role="status" invisible="amount_due &lt;= 0.0 or non_cash_overpayment_amount &gt; 0.0">
-                            Aún falta importe por registrar para completar el cobro.
-                        </div>
-                        <div class="alert alert-success mt-3" role="status" invisible="amount_change &lt;= 0.0">
-                            El cliente entrega más efectivo del necesario. Se devolverá un cambio de <field name="amount_change" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" nolabel="1" class="fw-bold"/>.
-                        </div>
-                        <div class="alert alert-success mt-3" role="status" invisible="not is_payment_ready or amount_change &gt; 0.0">
-                            Cobro completo. Ya puede generar la factura.
-                        </div>
-
-                        <separator string="Cobro / formas de pago"/>
-                        <div class="text-muted mb-2">
-                            Puede usar varias líneas. Si una línea es de efectivo, puede indicar el importe entregado por el cliente y el sistema le mostrará el cambio.
-                        </div>
-                        <field name="payment_line_ids" nolabel="1">
-                            <list editable="bottom">
-                                <field name="payment_method_id" options="{'no_create': True, 'no_open': True}"/>
-                                <field name="amount" sum="Total"/>
-                            </list>
-                        </field>
-                    </div>
-                </sheet>
+                <separator string="Formas de pago" invisible="step != 'payment'"/>
+                <field name="payment_line_ids" nolabel="1" invisible="step != 'payment'">
+                    <list editable="bottom">
+                        <field name="payment_method_id" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="amount" sum="Total"/>
+                    </list>
+                </field>
                 <footer>
+                    <button name="action_select_all_orders"
+                            type="object"
+                            string="Seleccionar todos"
+                            class="btn-secondary"
+                            invisible="step != 'orders' or not deposit_order_line_ids"/>
+                    <button name="action_clear_selected_orders"
+                            type="object"
+                            string="Limpiar selección"
+                            class="btn-secondary"
+                            invisible="step != 'orders' or not deposit_order_line_ids"/>
                     <button name="action_go_to_payment_step"
                             type="object"
                             string="Continuar al cobro"

@@ -1,11 +1,291 @@
-/* Make the deposit payment wizard beautifully balanced in backend modals */
 div.modal-dialog:has(.custom_deposit_wizard_form),
 .modal-dialog:has(.custom_deposit_wizard_form) {
-    min-width: min(90%, 1100px) !important;
-    max-width: min(90%, 1100px) !important;
-    width: min(90%, 1100px) !important;
+    min-width: min(82vw, 980px) !important;
+    max-width: min(82vw, 980px) !important;
+    width: min(82vw, 980px) !important;
 }
 
 .custom_deposit_wizard_form {
     width: 100% !important;
 }
+
+.custom_deposit_wizard_form .o_form_sheet_bg {
+    background: transparent;
+}
+
+.custom_deposit_wizard_form .o_form_sheet {
+    max-width: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.custom_deposit_wizard_screen {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.custom_deposit_wizard_steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.custom_deposit_wizard_step {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    border: 1px solid #d8dadd;
+    border-radius: 0.875rem;
+    background: #fff;
+    padding: 0.9rem 1rem;
+    min-height: 74px;
+}
+
+.custom_deposit_wizard_step[data-step-state="active"] {
+    border-color: #714b67;
+    background: #f5eff3;
+}
+
+.custom_deposit_wizard_step[data-step-state="done"] {
+    border-color: #cbbbc5;
+    background: #faf7f9;
+}
+
+.custom_deposit_wizard_step_number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    font-weight: 600;
+    background: #f6f7f9;
+    color: #212529;
+    flex: 0 0 auto;
+}
+
+.custom_deposit_wizard_step[data-step-state="active"] .custom_deposit_wizard_step_number {
+    background: #714b67;
+    color: #fff;
+}
+
+.custom_deposit_wizard_step_content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.custom_deposit_wizard_step_label {
+    font-size: 0.75rem;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+}
+
+.custom_deposit_wizard_card {
+    border: 1px solid #d8dadd;
+    border-radius: 0.875rem;
+    background: #fff;
+    overflow: hidden;
+}
+
+.custom_deposit_wizard_card_header {
+    padding: 0.95rem 1.1rem;
+    border-bottom: 1px solid #eceef1;
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.custom_deposit_wizard_card_header_split {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.custom_deposit_wizard_card_title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.custom_deposit_wizard_card_body {
+    padding: 0.9rem 1rem;
+}
+
+.custom_deposit_wizard_card .o_group {
+    margin-bottom: 0;
+}
+
+.custom_deposit_wizard_card .o_td_label {
+    width: 42%;
+    color: #6c757d;
+}
+
+.custom_deposit_wizard_metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.custom_deposit_wizard_metric {
+    border: 1px solid #eceef1;
+    border-radius: 0.75rem;
+    background: #fafbfc;
+    padding: 0.9rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.custom_deposit_wizard_metric_label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.custom_deposit_wizard_metric .o_field_widget {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.custom_deposit_wizard_metric_total {
+    background: #f5eff3;
+    border-color: #d7c8d1;
+}
+
+.custom_deposit_wizard_metric_total .o_field_widget {
+    color: #714b67;
+}
+
+.custom_deposit_wizard_metric_single {
+    min-height: 100%;
+    justify-content: center;
+}
+
+.custom_deposit_wizard_metric_single .o_field_widget {
+    font-size: 1.75rem;
+}
+
+.custom_deposit_wizard_summary_card .custom_deposit_wizard_card_body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.custom_deposit_wizard_summary_total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    border-bottom: 1px solid #eceef1;
+    padding-bottom: 0.9rem;
+}
+
+.custom_deposit_wizard_summary_total_label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.custom_deposit_wizard_summary_total .o_field_widget {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #714b67;
+    white-space: nowrap;
+}
+
+.custom_deposit_wizard_summary_rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.custom_deposit_wizard_summary_row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid #eceef1;
+    border-radius: 0.75rem;
+    padding: 0.8rem 0.95rem;
+    background: #fafbfc;
+}
+
+.custom_deposit_wizard_summary_row > span {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.custom_deposit_wizard_summary_row .o_field_widget {
+    font-size: 1.1rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.custom_deposit_wizard_summary_row:has([name="amount_due"]) .o_field_widget {
+    color: #dc3545;
+}
+
+.custom_deposit_wizard_summary_row:has([name="amount_change"]) .o_field_widget {
+    color: #198754;
+}
+
+.custom_deposit_wizard_list_card .custom_deposit_wizard_card_body {
+    padding-top: 0.75rem;
+}
+
+.custom_deposit_wizard_list_body .o_field_x2many {
+    margin-bottom: 0;
+}
+
+.custom_deposit_wizard_list_body .o_list_renderer .table {
+    margin-bottom: 0;
+}
+
+.custom_deposit_wizard_list_body .o_list_renderer .table thead th {
+    background: transparent;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6c757d;
+}
+
+.custom_deposit_wizard_form footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding-top: 0.75rem;
+}
+
+.custom_deposit_wizard_form footer .btn-primary {
+    min-width: 190px;
+}
+
+@media (max-width: 991.98px) {
+    .custom_deposit_wizard_metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .custom_deposit_wizard_card_header_split,
+    .custom_deposit_wizard_summary_total,
+    .custom_deposit_wizard_summary_row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .custom_deposit_wizard_summary_total .o_field_widget,
+    .custom_deposit_wizard_summary_row .o_field_widget {
+        white-space: normal;
+    }
+}
+
