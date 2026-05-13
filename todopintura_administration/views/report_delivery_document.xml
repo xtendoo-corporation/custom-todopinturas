@@ -12,13 +12,19 @@
             </t>
         </xpath>
 
-        <!-- Añadir columnas en la tabla para albaranes no completados -->
+        <!-- Ocultar la columna Entregado sin eliminar los nodos ancla que usan otras herencias -->
+        <xpath expr="//table[@name='stock_move_table']/thead/tr/th[@name='th_sm_quantity']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
         <xpath expr="//table[@name='stock_move_table']/thead/tr/th[@name='th_sm_quantity']" position="after">
             <th t-if="'valued_picking' in o.partner_id._fields and o.partner_id.valued_picking" name="th_sm_price" class="text-end">Precio</th>
             <th t-if="'valued_picking' in o.partner_id._fields and o.partner_id.valued_picking" name="th_sm_subtotal" class="text-end">Neto</th>
             <th t-if="'valued_picking' in o.partner_id._fields and o.partner_id.valued_picking" name="th_sm_total" class="text-end">Importe</th>
         </xpath>
 
+        <xpath expr="//table[@name='stock_move_table']/tbody/tr/td[3]" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
         <xpath expr="//table[@name='stock_move_table']/tbody/tr/td[3]" position="after">
             <td t-if="'valued_picking' in o.partner_id._fields and o.partner_id.valued_picking" class="text-end">
                 <span t-esc="move.sale_line_id.price_unit * (1 - (move.sale_line_id.discount or 0.0) / 100)"
@@ -35,7 +41,10 @@
             </td>
         </xpath>
 
-        <!-- Añadir columnas en la tabla para albaranes completados -->
+        <!-- Ocultar Entregado también en albaranes completados, manteniendo anclas para otras vistas -->
+        <xpath expr="//table[@name='stock_move_line_table']/thead/tr/th[@name='th_sml_quantity']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
         <xpath expr="//table[@name='stock_move_line_table']/thead/tr/th[@name='th_sml_quantity']" position="after">
             <th t-if="'valued_picking' in o.partner_id._fields and o.partner_id.valued_picking" name="th_sml_price" class="text-center">Precio</th>
             <th t-if="'valued_picking' in o.partner_id._fields and o.partner_id.valued_picking" name="th_sml_subtotal" class="text-center">Neto</th>
@@ -46,6 +55,9 @@
     <!-- 2. Herencia del template para líneas con números de serie -->
     <template id="stock_report_delivery_has_serial_move_line_custom"
               inherit_id="stock.stock_report_delivery_has_serial_move_line">
+        <xpath expr="//td[@name='move_line_lot_quantity']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
         <xpath expr="//td[@name='move_line_lot_quantity']" position="after">
             <td t-if="'valued_picking' in o.partner_id._fields and o.partner_id.valued_picking" class="text-center">
                 <span
@@ -68,6 +80,9 @@
     <!-- 3. Herencia del template para líneas agregadas -->
     <template id="stock_report_delivery_aggregated_move_lines_custom"
               inherit_id="stock.stock_report_delivery_aggregated_move_lines">
+        <xpath expr="//td[@name='move_line_aggregated_quantity']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
         <xpath expr="//td[@name='move_line_aggregated_quantity']" position="after">
             <td t-if="'valued_picking' in o.partner_id._fields and o.partner_id.valued_picking" class="text-center">
                 <t t-set="move"

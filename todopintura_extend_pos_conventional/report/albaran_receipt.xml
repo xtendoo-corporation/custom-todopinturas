@@ -105,9 +105,6 @@
         <xpath expr="//table[@name='stock_move_table']/tbody/tr/td[2]/span[@t-field='move.product_uom']" position="replace">
             <span groups="uom.group_uom">Uds</span>
         </xpath>
-        <xpath expr="//table[@name='stock_move_table']/tbody/tr/td[3]/span[@t-field='move.product_uom']" position="replace">
-            <span groups="uom.group_uom">Uds</span>
-        </xpath>
         <xpath expr="//table[@name='stock_move_table']/thead/tr/th[@name='th_sm_quantity']" position="after">
             <th t-if="o.env.context.get('force_valued_picking') and not ('valued_picking' in o.partner_id._fields and o.partner_id.valued_picking)" class="text-end"><strong>Precio</strong></th>
             <th t-if="o.env.context.get('force_valued_picking') and not ('valued_picking' in o.partner_id._fields and o.partner_id.valued_picking)" class="text-end"><strong>Neto</strong></th>
