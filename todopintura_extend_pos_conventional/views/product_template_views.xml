@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_form_view_pricelist_metrics" model="ir.ui.view">
+        <field name="name">product.template.form.pricelist.metrics</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='sales_price']/field[@name='pricelist_rule_ids']/list/field[@name='price']" position="after">
+                <field name="currency_id" column_invisible="True"/>
+                <field
+                    name="display_final_price"
+                    string="Precio final"
+                    widget="monetary"
+                    options="{'currency_field': 'currency_id', 'field_digits': True}"
+                    optional="show"
+                />
+                <field
+                    name="display_total_price"
+                    string="Precio total"
+                    widget="monetary"
+                    options="{'currency_field': 'currency_id', 'field_digits': True}"
+                    optional="show"
+                />
+                <field
+                    name="display_cost_price"
+                    string="Coste"
+                    widget="monetary"
+                    options="{'currency_field': 'currency_id', 'field_digits': True}"
+                    optional="show"
+                    groups="base.group_user"
+                />
+                <field
+                    name="display_margin_amount"
+                    string="Margen"
+                    widget="monetary"
+                    options="{'currency_field': 'currency_id', 'field_digits': True}"
+                    optional="show"
+                    groups="base.group_user"
+                />
+                <field
+                    name="display_margin_percent"
+                    string="Margen %"
+                    optional="show"
+                    groups="base.group_user"
+                />
+            </xpath>
+        </field>
+    </record>
+</odoo>
+
