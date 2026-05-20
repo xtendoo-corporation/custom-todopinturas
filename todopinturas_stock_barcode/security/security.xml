@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="rule_stock_warehouse_read_all_for_assigned_users" model="ir.rule">
+            <field name="name">Almacenes visibles para solicitudes central</field>
+            <field name="model_id" ref="stock.model_stock_warehouse"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_stock_warehouse_write_assigned_only" model="ir.rule">
+            <field name="name">Almacenes editables solo asignado</field>
+            <field name="model_id" ref="stock.model_stock_warehouse"/>
+            <field name="domain_force">[('id', '=', user.property_warehouse_id.id)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_user'))]"/>
+            <field name="perm_read" eval="False"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_stock_warehouse_central_all" model="ir.rule">
+            <field name="name">Almacenes editables por central</field>
+            <field name="model_id" ref="stock.model_stock_warehouse"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_central_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_central_request_read_all" model="ir.rule">
+            <field name="name">Solicitudes central visibles</field>
+            <field name="model_id" ref="model_todopinturas_stock_central_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_central_request_write_own_warehouse" model="ir.rule">
+            <field name="name">Solicitudes central editar solo almacén asignado</field>
+            <field name="model_id" ref="model_todopinturas_stock_central_request"/>
+            <field name="domain_force">[('warehouse_id', '=', user.property_warehouse_id.id)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_user'))]"/>
+            <field name="perm_read" eval="False"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="rule_central_request_all_for_central" model="ir.rule">
+            <field name="name">Solicitudes central control total para central</field>
+            <field name="model_id" ref="model_todopinturas_stock_central_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_central_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="rule_central_request_line_read_all" model="ir.rule">
+            <field name="name">Líneas visibles de solicitudes central</field>
+            <field name="model_id" ref="model_todopinturas_stock_central_request_line"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_central_request_line_write_own_warehouse" model="ir.rule">
+            <field name="name">Líneas editar solo almacén asignado</field>
+            <field name="model_id" ref="model_todopinturas_stock_central_request_line"/>
+            <field name="domain_force">[('warehouse_id', '=', user.property_warehouse_id.id)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_user'))]"/>
+            <field name="perm_read" eval="False"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="rule_central_request_line_all_for_central" model="ir.rule">
+            <field name="name">Líneas control total para central</field>
+            <field name="model_id" ref="model_todopinturas_stock_central_request_line"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_central_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+    </data>
+</odoo>
+

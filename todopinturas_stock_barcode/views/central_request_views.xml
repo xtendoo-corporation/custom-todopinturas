@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_todopinturas_central_request_search" model="ir.ui.view">
+        <field name="name">stock.picking.search.todopinturas.central.request</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <search string="Solicitudes a central">
+                <field name="name"/>
+                <field name="origin"/>
+                <field name="tp_request_source_warehouse_id"/>
+                <field name="tp_request_destination_warehouse_id"/>
+                <field name="location_dest_id"/>
+                <field name="state"/>
+                <separator/>
+                <filter string="Pendientes" name="pending" domain="[('state', 'not in', ('done', 'cancel'))]"/>
+                <filter string="Borradores" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Preparadas" name="ready" domain="[('state', '=', 'assigned')]"/>
+                <separator/>
+                <filter string="Agrupar por tienda" name="group_by_destination_warehouse" context="{'group_by': 'tp_request_destination_warehouse_id'}"/>
+                <filter string="Agrupar por estado" name="group_by_state" context="{'group_by': 'state'}"/>
+                <filter string="Agrupar por fecha" name="group_by_scheduled_date" context="{'group_by': 'scheduled_date:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_todopinturas_central_request_list" model="ir.ui.view">
+        <field name="name">stock.picking.list.todopinturas.central.request</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <list string="Solicitudes a central" default_order="scheduled_date desc">
+                <field name="name"/>
+                <field name="scheduled_date"/>
+                <field name="tp_request_source_warehouse_id" optional="show"/>
+                <field name="tp_request_destination_warehouse_id"/>
+                <field name="location_dest_id" optional="show"/>
+                <field name="origin" optional="show"/>
+                <field name="priority" optional="show" widget="priority"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state in ['waiting', 'confirmed']"
+                       decoration-primary="state == 'assigned'"
+                       decoration-success="state == 'done'"
+                       decoration-danger="state == 'cancel'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_todopinturas_central_request" model="ir.actions.act_window">
+        <field name="name">Solicitudes a central</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_todopinturas_central_request_search"/>
+        <field name="domain">[("tp_is_central_request", "=", True)]</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No hay solicitudes a central para mostrar</p>
+            <p>Esta vista muestra todas las operaciones cuyo origen está en el almacén central y cuyo destino no es clientes.</p>
+        </field>
+    </record>
+
+    <record id="action_todopinturas_central_request_list_view" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_todopinturas_central_request_list"/>
+        <field name="act_window_id" ref="action_todopinturas_central_request"/>
+    </record>
+</odoo>
+
+
+

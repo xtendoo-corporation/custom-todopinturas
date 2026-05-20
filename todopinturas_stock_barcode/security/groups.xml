@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="group_todopinturas_stock_barcode_user" model="res.groups">
+            <field name="name">Solicitudes a almacén central / Usuario</field>
+            <field name="implied_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+        </record>
+
+        <record id="group_todopinturas_stock_barcode_central_manager" model="res.groups">
+            <field name="name">Solicitudes a almacén central / Central</field>
+            <field name="implied_ids" eval="[
+                (4, ref('todopinturas_stock_barcode.group_todopinturas_stock_barcode_user')),
+                (4, ref('stock.group_stock_multi_warehouses'))
+            ]"/>
+        </record>
+    </data>
+</odoo>
+

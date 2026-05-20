@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_warehouse_form_todopinturas_stock_barcode" model="ir.ui.view">
+        <field name="name">stock.warehouse.form.todopinturas.stock.barcode</field>
+        <field name="model">stock.warehouse</field>
+        <field name="inherit_id" ref="stock.view_warehouse"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_tp_central_requests"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-exchange">
+                    <field name="tp_central_request_count" string="Solicitudes" widget="statinfo"/>
+                </button>
+            </xpath>
+            <xpath expr="//group/group[field[@name='code']]" position="inside">
+                <field name="tp_is_central_request_hub"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_warehouse_tree_todopinturas_stock_barcode" model="ir.ui.view">
+        <field name="name">stock.warehouse.list.todopinturas.stock.barcode</field>
+        <field name="model">stock.warehouse</field>
+        <field name="inherit_id" ref="stock.view_warehouse_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="tp_is_central_request_hub" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

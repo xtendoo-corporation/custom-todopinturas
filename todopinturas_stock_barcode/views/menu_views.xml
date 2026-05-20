@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_todopinturas_stock_barcode_root"
+              name="Solicitudes Central"
+              parent="xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root"
+              sequence="35"
+              action="action_todopinturas_central_request"/>
+
+    <menuitem id="menu_todopinturas_stock_barcode_requests"
+              name="Solicitudes"
+              parent="menu_todopinturas_stock_barcode_root"
+              sequence="10"
+              action="action_todopinturas_central_request"/>
+
+    <menuitem id="menu_todopinturas_stock_barcode_warehouses"
+              name="Almacenes"
+              parent="menu_todopinturas_stock_barcode_root"
+              sequence="20"
+              action="stock.action_warehouse_form"/>
+</odoo>
+

@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_todopinturas_stock_central_request,todopinturas.stock.central.request,model_todopinturas_stock_central_request,,1,1,1,1
+access_todopinturas_stock_central_request_line,todopinturas.stock.central.request.line,model_todopinturas_stock_central_request_line,,1,1,1,1
+

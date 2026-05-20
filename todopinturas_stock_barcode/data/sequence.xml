@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_todopinturas_stock_central_request" model="ir.sequence">
+            <field name="name">Solicitud almacén central</field>
+            <field name="code">todopinturas.stock.central.request</field>
+            <field name="prefix">SC/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>
+
