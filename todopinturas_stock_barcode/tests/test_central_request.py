@@ -21,6 +21,9 @@ class TestTodopinturasCentralRequest(TransactionCase):
             "location_id": cls.central_warehouse.lot_stock_id.id,
             "usage": "internal",
         })
+        cls.pda_view = cls.env.ref(
+            "xtendoo_stock_barcode.view_picking_form_xtendoo_stock_barcode_pda_intuitive"
+        )
 
     def _set_warehouse_name(self, warehouse, name):
         self.env.cr.execute(
@@ -136,10 +139,17 @@ class TestTodopinturasCentralRequest(TransactionCase):
             self.central_warehouse.lot_stock_id.id,
         )
 
+    def test_central_request_can_open_xtendoo_pda(self):
+        picking = self._create_central_non_customer_picking(self.store_location_1)
+
+        action = picking.action_xt_barcode_open_pda()
+
+        self.assertEqual(action["res_model"], "stock.picking")
+        self.assertEqual(action["res_id"], picking.id)
+        self.assertEqual(action["views"][0][0], self.pda_view.id)
+
     def test_menu_is_inside_xtendoo_barcode(self):
         menu = self.env.ref("todopinturas_stock_barcode.menu_todopinturas_stock_barcode_root")
         xt_menu = self.env.ref("xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root")
 
         self.assertEqual(menu.parent_id, xt_menu)
-
-
