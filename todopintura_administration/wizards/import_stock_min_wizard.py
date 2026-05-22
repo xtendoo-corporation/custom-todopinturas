@@ -244,7 +244,13 @@ class ImportStockMinWizard(models.TransientModel):
 
             min_qty = self._to_int(row[layout['min_qty']] if len(row) > layout['min_qty'] else None, default=0)
             max_qty = self._to_int(row[layout['max_qty']] if len(row) > layout['max_qty'] else None, default=min_qty)
-            qty_multiple = self._to_int(row[layout['qty_multiple']] if len(row) > layout['qty_multiple'] else None, default=1) or 1
+            # La columna 5 del Excel (index en layout 'qty_multiple') también puede contener
+            # la cantidad mínima que exige el proveedor. Obtenemos el valor bruto para
+            # decidir si actualizar el supplier min_qty, y luego calculamos el qty_multiple
+            # como antes (por compatibilidad con el comportamiento previo).
+            raw_qty_multiple = row[layout['qty_multiple']] if len(row) > layout['qty_multiple'] else None
+            supplier_min_qty = self._to_int(raw_qty_multiple, default=0)
+            qty_multiple = self._to_int(raw_qty_multiple, default=1) or 1
 
             processed_rows += 1
             if processed_rows == 1 or processed_rows % 25 == 0:
@@ -263,6 +269,28 @@ class ImportStockMinWizard(models.TransientModel):
                 warning_count += 1
                 self._append_warning(error_log, row_idx, "Producto no encontrado", ref=ref, location_name=location_name)
                 continue
+            # Si la columna 5 contiene una cantidad distinta de 0, la usamos para
+            # actualizar el campo `min_qty` del proveedor (product.supplierinfo) del
+            # producto. Solo actualizamos si existe al menos una línea de proveedor
+            # en la ficha del producto; si no existe, registramos una incidencia.
+            try:
+                if supplier_min_qty:
+                    tmpl = product.product_tmpl_id
+                    sellers = getattr(tmpl, 'seller_ids', None)
+                    if sellers:
+                        # Actualizar todas las líneas de proveedor del template
+                        for seller in sellers:
+                            try:
+                                seller.write({'min_qty': supplier_min_qty})
+                            except Exception as e:
+                                warning_count += 1
+                                self._append_warning(error_log, row_idx, f"Error escribiendo min_qty en proveedor (id {getattr(seller, 'id', 'n/a')}): {e}", ref=ref, location_name=location_name)
+                    else:
+                        warning_count += 1
+                        self._append_warning(error_log, row_idx, "No hay proveedores en ficha de producto; no se pudo actualizar min_qty proveedor", ref=ref, location_name=location_name)
+            except Exception as e:
+                warning_count += 1
+                self._append_warning(error_log, row_idx, f"Error actualizando min_qty proveedor: {e}", ref=ref, location_name=location_name)
             if max_qty < min_qty:
                 warning_count += 1
                 self._append_warning(
