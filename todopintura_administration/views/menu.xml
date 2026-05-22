@@ -98,4 +98,10 @@
               parent="todopintura_administration.menu_imports"
               action="action_import_stock_in_hand_wizard"
               sequence="140"/>
+
+    <!-- Heredar la acción existente de 'Pedidos a facturar' para agrupar por forma de pago -->
+    <record id="sale.action_orders_to_invoice" model="ir.actions.act_window">
+        <field name="context" eval="{'group_by': ['payment_term_id'], 'search_default_group_by_payment_term_id': 1, 'default_group_by': ['payment_term_id']}"/>
+    </record>
 </odoo>
+
