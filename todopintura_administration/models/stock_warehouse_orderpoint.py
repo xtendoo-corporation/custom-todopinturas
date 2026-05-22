@@ -5,6 +5,19 @@ from datetime import date
 class StockWarehouseOrderpoint(models.Model):
     _inherit = 'stock.warehouse.orderpoint'
 
+    fixed_product_min_qty = fields.Float(
+        string='Cantidad mínima fija',
+        digits='Product Unit of Measure',
+        default=0.0,
+        help='Stock mínimo base cuando el producto no trabaja con mínimos por fechas.',
+    )
+    fixed_product_max_qty = fields.Float(
+        string='Cantidad máxima fija',
+        digits='Product Unit of Measure',
+        default=0.0,
+        help='Stock máximo base cuando el producto no trabaja con mínimos por fechas.',
+    )
+
     qty_multiple = fields.Integer(
         string='Cantidad múltiplo',
         default=1,
@@ -28,12 +41,19 @@ class StockWarehouseOrderpoint(models.Model):
         for record in self:
             record.is_below_min = record.product_id.qty_available < record.product_min_qty
 
-    @api.depends('stock_min_dates_ids')
+    @api.depends(
+        'stock_min_dates_ids.min_qty',
+        'stock_min_dates_ids.start_date',
+        'stock_min_dates_ids.end_date',
+        'fixed_product_min_qty',
+        'fixed_product_max_qty',
+        'qty_multiple',
+    )
     def _compute_product_min_qty(self):
         for orderpoint in self:
             today = date.today()
             min_date_record = orderpoint.stock_min_dates_ids.filtered(
-                lambda r: r.start_date <= today <= r.end_date
+                lambda r: r.start_date and r.end_date and r.start_date <= today < r.end_date
             )
             if min_date_record:
                 orderpoint.product_min_qty = min_date_record[0].min_qty
@@ -44,8 +64,8 @@ class StockWarehouseOrderpoint(models.Model):
                 else:
                     orderpoint.product_max_qty = min_qty
             else:
-                orderpoint.product_min_qty = 0.0
-                orderpoint.product_max_qty = 0.0
+                orderpoint.product_min_qty = orderpoint.fixed_product_min_qty
+                orderpoint.product_max_qty = orderpoint.fixed_product_max_qty
 
     def action_view_stock_min_dates(self):
         self.ensure_one()

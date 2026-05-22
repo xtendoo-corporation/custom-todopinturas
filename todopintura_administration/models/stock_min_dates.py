@@ -8,3 +8,10 @@ class StockMinDates(models.Model):
     start_date = fields.Date(string='Fecha Inicio', required=True)
     end_date = fields.Date(string='Fecha Fin', required=True)
     orderpoint_id = fields.Many2one('stock.warehouse.orderpoint', string='Orderpoint', ondelete='cascade')
+    product_id = fields.Many2one(
+        'product.product',
+        string='Producto',
+        related='orderpoint_id.product_id',
+        store=True,
+        readonly=True,
+    )

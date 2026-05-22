@@ -148,6 +148,43 @@ class ImportStockMinWizard(models.TransientModel):
         error_log.append(detail)
         _logger.warning(detail)
 
+    @classmethod
+    def _extract_month_quantities(cls, row, month_columns, default_min_qty):
+        month_quantities = {}
+        has_date_specific_stock = False
+        for month, month_idx in sorted(month_columns.items()):
+            raw_value = row[month_idx] if len(row) > month_idx else None
+            is_empty = cls._is_empty_value(raw_value)
+            month_qty = cls._to_int(raw_value, default=default_min_qty)
+            if not month_qty:
+                month_qty = default_min_qty
+            month_quantities[month] = month_qty
+            if not is_empty:
+                has_date_specific_stock = True
+        return month_quantities, has_date_specific_stock
+
+    @staticmethod
+    def _build_month_ranges(month_quantities, year):
+        ranges = []
+        current_range = None
+        ordered_months = sorted(month_quantities.items())
+        for month, month_qty in ordered_months:
+            start_date = date(year, month, 1)
+            end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+            if not current_range or current_range['min_qty'] != month_qty:
+                if current_range:
+                    ranges.append(current_range)
+                current_range = {
+                    'min_qty': month_qty,
+                    'start_date': start_date,
+                    'end_date': end_date,
+                }
+                continue
+            current_range['end_date'] = end_date
+        if current_range:
+            ranges.append(current_range)
+        return ranges
+
     def action_import_stock_min(self):
         if not self.file:
             raise UserError("Por favor, sube un archivo XLS o XLSX.")
@@ -239,6 +276,8 @@ class ImportStockMinWizard(models.TransientModel):
 
             orderpoint_vals = {
                 'product_id': product.id,
+                'fixed_product_min_qty': min_qty,
+                'fixed_product_max_qty': max_qty,
                 'product_min_qty': min_qty,
                 'product_max_qty': max_qty,
                 'qty_to_order': min_qty / 2,
@@ -256,32 +295,27 @@ class ImportStockMinWizard(models.TransientModel):
             else:
                 orderpoint = self.env['stock.warehouse.orderpoint'].create(orderpoint_vals)
 
-            for month, month_idx in sorted(layout['month_columns'].items()):
-                month_qty = self._to_int(row[month_idx] if len(row) > month_idx else None, default=min_qty)
-                if not month_qty:
-                    month_qty = min_qty
+            month_quantities, has_date_specific_stock = self._extract_month_quantities(
+                row,
+                layout['month_columns'],
+                min_qty,
+            )
 
-                year = date.today().year
-                start_date = date(year, month, 1)
-                end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+            if not has_date_specific_stock:
+                orderpoint.stock_min_dates_ids.unlink()
+                orderpoint.invalidate_recordset(['product_min_qty', 'product_max_qty'])
+                continue
 
-                existing_record = self.env['stock.min.dates'].search([
-                    ('start_date', '=', start_date),
-                    ('end_date', '=', end_date),
-                    ('orderpoint_id', '=', orderpoint.id),
-                ], limit=1)
-
-                stock_min_dates_vals = {
-                    'min_qty': month_qty,
-                    'start_date': start_date,
-                    'end_date': end_date,
+            year = date.today().year
+            month_ranges = self._build_month_ranges(month_quantities, year)
+            orderpoint.stock_min_dates_ids.unlink()
+            for range_vals in month_ranges:
+                self.env['stock.min.dates'].create({
+                    'min_qty': range_vals['min_qty'],
+                    'start_date': range_vals['start_date'],
+                    'end_date': range_vals['end_date'],
                     'orderpoint_id': orderpoint.id,
-                }
-
-                if existing_record:
-                    existing_record.write(stock_min_dates_vals)
-                else:
-                    self.env['stock.min.dates'].create(stock_min_dates_vals)
+                })
 
         summary_lines = [
             f"Archivo: {self.file_name}",
