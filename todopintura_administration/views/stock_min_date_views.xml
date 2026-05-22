@@ -6,6 +6,7 @@
             <list string="Stock Minimum Dates">
                 <field name="product_id"/>
                 <field name="min_qty"/>
+                <field name="max_qty"/>
                 <field name="start_date"/>
                 <field name="end_date"/>
                 <field name="orderpoint_id"/>
@@ -21,6 +22,7 @@
                 <group>
                     <field name="product_id"/>
                     <field name="min_qty"/>
+                    <field name="max_qty"/>
                     <field name="start_date"/>
                     <field name="end_date"/>
                     <field name="orderpoint_id"/>

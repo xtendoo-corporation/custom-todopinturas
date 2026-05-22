@@ -281,10 +281,12 @@ class ImportStockMinWizard(models.TransientModel):
                         # Actualizar todas las líneas de proveedor del template
                         for seller in sellers:
                             try:
-                                seller.write({'min_qty': supplier_min_qty})
+                                # Escribir min_qty y max_qty igual a la cantidad mínima indicada
+                                write_vals = {'min_qty': supplier_min_qty, 'max_qty': supplier_min_qty}
+                                seller.write(write_vals)
                             except Exception as e:
                                 warning_count += 1
-                                self._append_warning(error_log, row_idx, f"Error escribiendo min_qty en proveedor (id {getattr(seller, 'id', 'n/a')}): {e}", ref=ref, location_name=location_name)
+                                self._append_warning(error_log, row_idx, f"Error escribiendo min_qty/max_qty en proveedor (id {getattr(seller, 'id', 'n/a')}): {e}", ref=ref, location_name=location_name)
                     else:
                         warning_count += 1
                         self._append_warning(error_log, row_idx, "No hay proveedores en ficha de producto; no se pudo actualizar min_qty proveedor", ref=ref, location_name=location_name)
@@ -338,8 +340,10 @@ class ImportStockMinWizard(models.TransientModel):
             month_ranges = self._build_month_ranges(month_quantities, year)
             orderpoint.stock_min_dates_ids.unlink()
             for range_vals in month_ranges:
+                # Crear también el campo max_qty en stock.min.dates igual al min_qty
                 self.env['stock.min.dates'].create({
                     'min_qty': range_vals['min_qty'],
+                    'max_qty': range_vals['min_qty'],
                     'start_date': range_vals['start_date'],
                     'end_date': range_vals['end_date'],
                     'orderpoint_id': orderpoint.id,
