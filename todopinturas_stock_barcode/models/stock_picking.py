@@ -83,3 +83,20 @@ class StockPicking(models.Model):
             ("location_dest_id.usage", "=", "customer"),
         ]
 
+    @api.model
+    def get_tp_pending_central_requests_count(self):
+        user = self.env.user
+        warehouse = user.property_warehouse_id if "property_warehouse_id" in user._fields else False
+        if not warehouse:
+            return 0
+
+        domain = [
+            ("tp_is_central_request", "=", True),
+            ("state", "not in", ("done", "cancel")),
+            ("company_id", "=", self.env.company.id),
+        ]
+        if not warehouse.tp_is_central_request_hub:
+            domain.append(("tp_request_destination_warehouse_id", "=", warehouse.id))
+
+        return self.search_count(domain)
+

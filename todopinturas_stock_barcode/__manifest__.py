@@ -15,6 +15,12 @@
         "views/central_request_views.xml",
         "views/menu_views.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "todopinturas_stock_barcode/static/src/**/*.js",
+            "todopinturas_stock_barcode/static/src/**/*.xml",
+        ],
+    },
     "installable": True,
     "application": True,
 }
