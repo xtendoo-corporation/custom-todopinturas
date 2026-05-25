@@ -5,8 +5,13 @@
         <field name="model">import.stock.in.hand.wizard</field>
         <field name="arch" type="xml">
             <form string="Importar Existencias en Mano">
+                <field name="file_name" invisible="1"/>
                 <group>
+                    <field name="company_id" groups="base.group_multi_company"/>
                     <field name="file" filename="file_name"/>
+                </group>
+                <group string="Errores encontrados durante la importación" invisible="not error_log">
+                    <field name="error_log" nolabel="1" readonly="1" colspan="2"/>
                 </group>
                 <footer>
                     <button name="action_import_stock_in_hand" string="Importar" type="object" class="btn-primary"/>

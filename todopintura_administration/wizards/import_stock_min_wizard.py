@@ -44,6 +44,12 @@ class ImportStockMinWizard(models.TransientModel):
     file = fields.Binary('Subir archivo XLS', required=True)
     file_name = fields.Char('Nombre del archivo')
     error_log = fields.Text('Errores', readonly=True)
+    company_id = fields.Many2one(
+        'res.company',
+        string='Compañía',
+        required=True,
+        default=lambda self: self.env.company
+    )
 
     @staticmethod
     def _is_empty_value(value):
@@ -236,7 +242,17 @@ class ImportStockMinWizard(models.TransientModel):
             empty_row_streak = 0
 
             raw_location = row[layout['location']] if len(row) > layout['location'] else None
-            location_id = self._to_int(raw_location, default=1)
+            if raw_location is None or raw_location == '':
+                continue
+            try:
+                if isinstance(raw_location, float):
+                    ubicacion_num = str(int(raw_location))
+                elif isinstance(raw_location, int):
+                    ubicacion_num = str(raw_location)
+                else:
+                    ubicacion_num = str(int(float(str(raw_location).strip())))
+            except (ValueError, TypeError):
+                ubicacion_num = str(raw_location).strip()
 
             ref = self._normalize_ref(row[layout['ref']] if len(row) > layout['ref'] else None)
             if not ref:
@@ -256,18 +272,35 @@ class ImportStockMinWizard(models.TransientModel):
             if processed_rows == 1 or processed_rows % 25 == 0:
                 _logger.info("Procesadas %s filas útiles de %s (última fila Excel: %s)", processed_rows, self.file_name, row_idx)
 
-            location_name = "WH/Central" if location_id == 1 else f"T{location_id}/Stock"
-            location = self.env['stock.location'].search([('complete_name', '=', location_name)], limit=1)
+            # Buscar almacén por ID Todopinturas en la compañía seleccionada
+            warehouse = self.env['stock.warehouse'].search([
+                ('id_todopinturas', '=', ubicacion_num),
+                ('company_id', '=', self.company_id.id)
+            ], limit=1)
+
+            if not warehouse:
+                # Si el almacén existe en otra compañía, se ignora silenciosamente
+                warehouse_any = self.env['stock.warehouse'].search([
+                    ('id_todopinturas', '=', ubicacion_num)
+                ], limit=1)
+                if warehouse_any:
+                    continue
+
+                warning_count += 1
+                self._append_warning(error_log, row_idx, f"Almacén con ID Todopinturas '{ubicacion_num}' no encontrado.", ref=ref)
+                continue
+
+            location = warehouse.lot_stock_id
             if not location:
                 warning_count += 1
-                self._append_warning(error_log, row_idx, "Ubicación no encontrada", ref=ref, location_name=location_name)
+                self._append_warning(error_log, row_idx, f"El almacén '{warehouse.name}' no tiene ubicación de stock configurada.", ref=ref, location_name=warehouse.name)
                 continue
 
             product = self.env['product.product'].search([('default_code', '=', ref)], limit=1)
 
             if not product:
                 warning_count += 1
-                self._append_warning(error_log, row_idx, "Producto no encontrado", ref=ref, location_name=location_name)
+                self._append_warning(error_log, row_idx, "Producto no encontrado", ref=ref, location_name=warehouse.name)
                 continue
             # Si la columna 5 contiene una cantidad distinta de 0, la usamos para
             # actualizar el campo `min_qty` del proveedor (product.supplierinfo) del
@@ -281,18 +314,18 @@ class ImportStockMinWizard(models.TransientModel):
                         # Actualizar todas las líneas de proveedor del template
                         for seller in sellers:
                             try:
-                                # Escribir min_qty y max_qty igual a la cantidad mínima indicada
-                                write_vals = {'min_qty': supplier_min_qty, 'max_qty': supplier_min_qty}
+                                # Escribir min_qty igual a la cantidad mínima indicada (max_qty no existe en product.supplierinfo)
+                                write_vals = {'min_qty': supplier_min_qty}
                                 seller.write(write_vals)
                             except Exception as e:
                                 warning_count += 1
-                                self._append_warning(error_log, row_idx, f"Error escribiendo min_qty/max_qty en proveedor (id {getattr(seller, 'id', 'n/a')}): {e}", ref=ref, location_name=location_name)
+                                self._append_warning(error_log, row_idx, f"Error escribiendo min_qty en proveedor (id {getattr(seller, 'id', 'n/a')}): {e}", ref=ref, location_name=warehouse.name)
                     else:
                         warning_count += 1
-                        self._append_warning(error_log, row_idx, "No hay proveedores en ficha de producto; no se pudo actualizar min_qty proveedor", ref=ref, location_name=location_name)
+                        self._append_warning(error_log, row_idx, "No hay proveedores en ficha de producto; no se pudo actualizar min_qty proveedor", ref=ref, location_name=warehouse.name)
             except Exception as e:
                 warning_count += 1
-                self._append_warning(error_log, row_idx, f"Error actualizando min_qty proveedor: {e}", ref=ref, location_name=location_name)
+                self._append_warning(error_log, row_idx, f"Error actualizando min_qty proveedor: {e}", ref=ref, location_name=warehouse.name)
             if max_qty < min_qty:
                 warning_count += 1
                 self._append_warning(
@@ -300,7 +333,7 @@ class ImportStockMinWizard(models.TransientModel):
                     row_idx,
                     f"Máximo menor que mínimo. Se ajusta automáticamente a {min_qty * 2}",
                     ref=ref,
-                    location_name=location_name,
+                    location_name=warehouse.name,
                 )
                 max_qty = min_qty * 2
 
