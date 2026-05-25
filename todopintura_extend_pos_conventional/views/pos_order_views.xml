@@ -137,6 +137,13 @@
                     </div>
                 </page>
             </xpath>
+            <xpath expr="//page[@name='notes']" position="after">
+                <page string="Observaciones" name="pos_observations_page">
+                    <group>
+                        <field name="pos_observations" widget="text"/>
+                    </group>
+                </page>
+            </xpath>
             <xpath expr="//field[@name='pricelist_id']" position="after">
                 <field name="is_a4_invoice" widget="boolean_toggle" invisible="state != 'draft'"/>
             </xpath>

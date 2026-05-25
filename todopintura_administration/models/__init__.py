@@ -4,3 +4,5 @@ from . import product_category
 from . import stock_min_dates
 from . import stock_count
 from . import stock_warehouse_orderpoint
+from . import res_users
+from . import stock_warehouse

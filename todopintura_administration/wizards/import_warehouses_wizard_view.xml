@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_import_warehouses_wizard" model="ir.ui.view">
+        <field name="name">import.warehouses.wizard.form</field>
+        <field name="model">import.warehouses.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Importar Almacenes">
+                <group>
+                    <field name="file" filename="file_name"/>
+                </group>
+                <p>Formato esperado: primera columna <b>id_todopinturas</b>, segunda columna <b>name</b>. La primera fila se considera cabecera.</p>
+                <footer>
+                    <button name="action_import_warehouses" string="Importar" type="object" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>
+

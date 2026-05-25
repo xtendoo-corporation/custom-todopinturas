@@ -167,6 +167,7 @@ class PosOrder(models.Model):
         string="Factura A4",
         default=False,
     )
+    pos_observations = fields.Text(string='Observaciones')
     pickup_warehouse_summary = fields.Char(
         string="Resumen tiendas de recogida",
         compute="_compute_pickup_warehouse_summary",
@@ -971,6 +972,23 @@ class SaleOrderLine(models.Model):
         string="Tienda de recogida",
         help="Tienda desde la que se servirá esta línea de venta creada desde POS.",
     )
+
+
+class SaleOrder(models.Model):
+    _inherit = 'sale.order'
+
+    pos_order_ids = fields.One2many('pos.order', 'linked_sale_order_id', string='Pedidos POS')
+    pos_observations = fields.Text(string='Observaciones', compute='_compute_pos_observations')
+
+    @api.depends('pos_order_ids.pos_observations')
+    def _compute_pos_observations(self):
+        for order in self:
+            if order.pos_order_ids:
+                # Concatenar observaciones de pedidos POS vinculados
+                vals = [p.pos_observations for p in order.pos_order_ids.filtered(lambda p: p.pos_observations)]
+                order.pos_observations = '\n\n'.join(vals) if vals else False
+            else:
+                order.pos_observations = False
 
 
 class AccountMoveLine(models.Model):

@@ -24,6 +24,7 @@
         'views/res_config_settings_views.xml',
         'views/res_partner_views.xml',
         'views/pos_order_views.xml',
+        'views/sale_order_observations_views.xml',
         'views/pos_make_payment_wizard_views.xml',
         'views/credit_cashier_warning_wizard_views.xml',
         'views/stock_quant_pos_views.xml',

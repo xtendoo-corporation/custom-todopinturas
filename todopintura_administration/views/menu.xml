@@ -87,6 +87,18 @@
               action="action_import_stock_min_wizard"
               sequence="130"/>
 
+    <record id="action_import_warehouses_wizard" model="ir.actions.act_window">
+        <field name="name">Importar Almacenes</field>
+        <field name="res_model">import.warehouses.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+    <menuitem id="menu_import_warehouses"
+              name="Importar Almacenes"
+              parent="todopintura_administration.menu_imports"
+              action="action_import_warehouses_wizard"
+              sequence="135"/>
+
      <record id="action_import_stock_in_hand_wizard" model="ir.actions.act_window">
         <field name="name">Importar Existencias</field>
         <field name="res_model">import.stock.in.hand.wizard</field>
@@ -98,10 +110,4 @@
               parent="todopintura_administration.menu_imports"
               action="action_import_stock_in_hand_wizard"
               sequence="140"/>
-
-    <!-- Heredar la acción existente de 'Pedidos a facturar' para agrupar por forma de pago -->
-    <record id="sale.action_orders_to_invoice" model="ir.actions.act_window">
-        <field name="context" eval="{'group_by': ['payment_term_id'], 'search_default_group_by_payment_term_id': 1, 'default_group_by': ['payment_term_id']}"/>
-    </record>
 </odoo>
-
