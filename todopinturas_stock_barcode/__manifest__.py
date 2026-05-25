@@ -9,6 +9,7 @@
     "depends": [
         "stock",
         "xtendoo_stock_barcode",
+        "web_enterprise",
     ],
     "data": [
         "views/stock_warehouse_views.xml",

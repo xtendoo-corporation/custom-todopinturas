@@ -185,17 +185,17 @@ class ImportWarehousesWizard(models.TransientModel):
         if warehouse:
             # Update existing
             warehouse.write(vals)
+            if warehouse.view_location_id:
+                warehouse.view_location_id.write({'name': name})
             is_new = False
         else:
             # Create new
-            view_loc_id, stock_loc_id = self._ensure_warehouse_locations(name, company_id)
-            vals['view_location_id'] = view_loc_id
-            vals['lot_stock_id'] = stock_loc_id
-            
             code = self._generate_warehouse_code(name, id_tp, company_id)
             vals['code'] = code
             
             warehouse = wh_model.create(vals)
+            if warehouse.view_location_id:
+                warehouse.view_location_id.write({'name': name})
             is_new = True
             
         return warehouse, is_new
