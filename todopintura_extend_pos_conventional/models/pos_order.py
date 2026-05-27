@@ -163,6 +163,28 @@ class PosOrder(models.Model):
         related="config_id.warehouse_id",
         readonly=True,
     )
+    settled_orders_count = fields.Integer(
+        string="Settled Orders Count",
+        default=0,
+    )
+
+    def action_view_settled_orders(self):
+        return True
+
+    def init(self):
+        super().init()
+        self.env.cr.execute("""
+            UPDATE ir_ui_view 
+            SET active = false 
+            WHERE id IN (
+                SELECT md.res_id 
+                FROM ir_model_data md 
+                JOIN ir_module_module m ON m.name = md.module 
+                WHERE md.model = 'ir.ui.view' 
+                  AND m.state != 'installed'
+            )
+        """)
+
     is_a4_invoice = fields.Boolean(
         string="Factura A4",
         default=False,
