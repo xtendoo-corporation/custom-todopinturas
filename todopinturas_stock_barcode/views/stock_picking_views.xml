@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_inherit_todopinturas_stock_barcode" model="ir.ui.view">
+        <field name="name">stock.picking.form.inherit.todopinturas.stock.barcode</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_xt_barcode_open_pda']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='_barcode_scanned']" position="attributes">
+                <attribute name="widget">xtendoo_stock_barcode_scanner</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

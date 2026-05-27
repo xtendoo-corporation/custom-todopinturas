@@ -9,11 +9,13 @@
     "depends": [
         "stock",
         "xtendoo_stock_barcode",
-        "web_enterprise",
+        "todopintura_administration",
+        "web_responsive",
     ],
     "data": [
         "views/stock_warehouse_views.xml",
         "views/central_request_views.xml",
+        "views/stock_picking_views.xml",
         "views/menu_views.xml",
     ],
     "assets": {

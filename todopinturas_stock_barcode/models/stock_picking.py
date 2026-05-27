@@ -100,3 +100,20 @@ class StockPicking(models.Model):
 
         return self.search_count(domain)
 
+    def on_barcode_scanned(self, barcode):
+        res = super().on_barcode_scanned(barcode)
+        target = self._xt_barcode_get_onchange_target()
+        if target and target != self:
+            target.invalidate_recordset(["move_ids", "move_line_ids"])
+            target.move_ids.invalidate_recordset(["quantity"])
+            target.move_line_ids.invalidate_recordset(["quantity"])
+            self.update({
+                "move_ids": [(6, 0, target.move_ids.ids)],
+                "move_line_ids": [(6, 0, target.move_line_ids.ids)],
+            })
+        return res
+
+    def _sync_move_demand_with_lines(self, move):
+        pass
+
+

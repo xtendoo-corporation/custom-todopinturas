@@ -28,7 +28,6 @@
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
             <list string="Solicitudes a central" default_order="scheduled_date desc">
-                <button name="action_xt_barcode_open_pda" type="object" string="PDA"/>
                 <field name="name"/>
                 <field name="scheduled_date"/>
                 <field name="tp_request_source_warehouse_id" optional="show"/>

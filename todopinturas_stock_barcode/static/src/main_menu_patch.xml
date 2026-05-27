@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <!-- Inherit App Switcher / HomeMenu to display the badge on the Xtendoo Barcode app icon -->
-    <t t-inherit="web_enterprise.HomeMenu" t-inherit-mode="extension" owl="1">
-        <xpath expr="//a[@t-att-data-menu-xmlid='app.xmlid']" position="attributes">
-            <attribute name="class" add="position-relative" separator=" "/>
-        </xpath>
-        <xpath expr="//a[@t-att-data-menu-xmlid='app.xmlid']" position="inside">
-            <t t-if="app.xmlid === 'xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root' and state.tpPendingCount &gt; 0">
-                <span class="position-absolute badge rounded-pill bg-danger" style="top: 2px; left: calc(50% + 15px); font-size: 0.75rem; min-width: 1.25rem; z-index: 10;">
+    <!-- Inherit web_responsive.AppMenuItem to display the badge on the Xtendoo Barcode app icon -->
+    <t t-inherit="web_responsive.AppMenuItem" t-inherit-mode="extension" owl="1">
+        <xpath expr="//div[hasclass('o_app')]" position="inside">
+            <t t-if="props.app.xmlid === 'xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root' and state.tpPendingCount &gt; 0">
+                <span class="position-absolute badge rounded-pill bg-danger" style="top: -5px; right: -5px; font-size: 0.75rem; min-width: 1.25rem; z-index: 10;">
                     <t t-esc="state.tpPendingCount"/>
                 </span>
             </t>
