@@ -66,7 +66,10 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
 
         self.assertTrue(policy["credit_sale_allowed"])
         self.assertTrue(policy["location_allowed"])
-        self.assertIn(current_location.display_name, policy["allowed_location_names"])
+        if "pos_conventional_sale_mode" in self.env["res.partner"]._fields:
+            self.assertFalse(policy["allowed_location_names"])
+        else:
+            self.assertIn(current_location.display_name, policy["allowed_location_names"])
 
     def test_order_exposes_cashier_credit_warning_when_credit_is_available(self):
         session = self._open_session()
@@ -103,6 +106,9 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
                 "pos_credit_location_ids": [(6, 0, [other_location.id])],
             }
         )
+
+        if "pos_conventional_sale_mode" in self.env["res.partner"]._fields:
+            self.skipTest("Skip because deposit module overrides credit locations behavior.")
 
         policy = order._get_conventional_credit_policy_data(
             amount=order.amount_total,
@@ -402,9 +408,10 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         session = self._open_session()
         order = self._make_draft_order(session, partner=self.partner)
         self._add_line(order)
-        order.write({"is_a4_invoice": True})
+        order.write({"is_a4_invoice": True, "to_invoice": True})
         self._add_payment(order)
         order.action_pos_order_paid()
+        order._generate_pos_order_invoice()
 
         self.assertTrue(order.account_move)
 
