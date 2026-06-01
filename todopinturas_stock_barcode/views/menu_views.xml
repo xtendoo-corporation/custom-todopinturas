@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="action_server_open_tp_central_requests_root" model="ir.actions.server">
+        <field name="name">Abrir Solicitudes Central</field>
+        <field name="model_id" ref="stock.model_stock_warehouse"/>
+        <field name="state">code</field>
+        <field name="code">result = env["stock.warehouse"].action_open_tp_central_requests_for_current_user()
+action = result.get("action") or {
+    "type": "ir.actions.client",
+    "tag": "display_notification",
+    "params": {
+        "title": result.get("warning", {}).get("title", "Solicitudes a central"),
+        "message": result.get("warning", {}).get("message", "No se pudo abrir la vista de solicitudes a central."),
+        "type": "warning",
+        "sticky": False,
+    },
+}</field>
+    </record>
+
+    <record id="xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root" model="ir.ui.menu">
+        <field name="action" ref="todopinturas_stock_barcode.action_server_open_tp_central_requests_root"/>
+    </record>
+
     <menuitem id="menu_todopinturas_stock_barcode_root"
               name="Solicitudes Central"
               parent="xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root"
@@ -10,12 +31,14 @@
               name="Solicitudes"
               parent="menu_todopinturas_stock_barcode_root"
               sequence="10"
+              groups="base.group_no_one"
               action="action_todopinturas_central_request"/>
 
     <menuitem id="menu_todopinturas_stock_barcode_warehouses"
               name="Almacenes"
               parent="menu_todopinturas_stock_barcode_root"
               sequence="20"
+              groups="base.group_no_one"
               action="stock.action_warehouse_form"/>
 </odoo>
 

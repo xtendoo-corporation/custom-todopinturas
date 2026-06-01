@@ -1,3 +1,4 @@
+from odoo.tests import new_test_user
 from odoo.tests.common import TransactionCase
 
 
@@ -10,7 +11,13 @@ class TestTodopinturasCentralRequest(TransactionCase):
         cls.central_warehouse = cls.env["stock.warehouse"].search([
             ("company_id", "=", cls.company.id),
         ], limit=1)
+        cls.central_warehouse.name = "ALMACEN CENTRAL"
         cls.central_warehouse.tp_is_central_request_hub = True
+        cls.secondary_warehouse = cls.env["stock.warehouse"].create({
+            "name": "TIENDA SUR",
+            "code": "TSR",
+            "company_id": cls.company.id,
+        })
         cls.store_location_1 = cls.env["stock.location"].create({
             "name": "Tienda Norte",
             "location_id": cls.central_warehouse.lot_stock_id.id,
@@ -53,6 +60,16 @@ class TestTodopinturasCentralRequest(TransactionCase):
             "location_id": self.central_warehouse.lot_stock_id.id,
             "location_dest_id": destination_location.id,
         })
+
+    def _create_barcode_user(self, login, warehouse):
+        user = new_test_user(
+            self.env,
+            login=login,
+            groups="base.group_user,stock.group_stock_user",
+            company_id=self.company.id,
+        ).with_company(self.company)
+        user.property_warehouse_id = warehouse
+        return user
 
     def test_picking_from_central_to_non_customer_location_is_marked_as_request(self):
         picking = self._create_central_non_customer_picking(self.store_location_1)
@@ -153,3 +170,42 @@ class TestTodopinturasCentralRequest(TransactionCase):
         xt_menu = self.env.ref("xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root")
 
         self.assertEqual(menu.parent_id, xt_menu)
+
+    def test_xtendoo_root_menu_opens_central_requests_directly(self):
+        xt_menu = self.env.ref("xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root")
+        server_action = self.env.ref(
+            "todopinturas_stock_barcode.action_server_open_tp_central_requests_root"
+        )
+
+        self.assertEqual(xt_menu.action, server_action)
+
+    def test_user_with_central_main_warehouse_sees_xtendoo_barcode_menu(self):
+        user = self._create_barcode_user("central_barcode_user", self.central_warehouse)
+        menu = self.env.ref("xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root")
+
+        visible_menu_ids = self.env["ir.ui.menu"].with_user(user)._visible_menu_ids()
+
+        self.assertIn(menu.id, visible_menu_ids)
+        self.assertTrue(user._tp_has_xtendoo_stock_barcode_access())
+
+    def test_user_without_central_main_warehouse_does_not_see_xtendoo_barcode_menu(self):
+        user = self._create_barcode_user("store_barcode_user", self.secondary_warehouse)
+        menu = self.env.ref("xtendoo_stock_barcode.menu_xtendoo_stock_barcode_root")
+
+        visible_menu_ids = self.env["ir.ui.menu"].with_user(user)._visible_menu_ids()
+
+        self.assertNotIn(menu.id, visible_menu_ids)
+        self.assertFalse(user._tp_has_xtendoo_stock_barcode_access())
+
+    def test_only_central_requests_option_remains_visible_inside_module(self):
+        user = self._create_barcode_user("central_only_option_user", self.central_warehouse)
+        central_requests_menu = self.env.ref("todopinturas_stock_barcode.menu_todopinturas_stock_barcode_root")
+        hidden_requests_menu = self.env.ref("todopinturas_stock_barcode.menu_todopinturas_stock_barcode_requests")
+        hidden_warehouses_menu = self.env.ref("todopinturas_stock_barcode.menu_todopinturas_stock_barcode_warehouses")
+
+        visible_menu_ids = self.env["ir.ui.menu"].with_user(user)._visible_menu_ids()
+
+        self.assertIn(central_requests_menu.id, visible_menu_ids)
+        self.assertNotIn(hidden_requests_menu.id, visible_menu_ids)
+        self.assertNotIn(hidden_warehouses_menu.id, visible_menu_ids)
+
