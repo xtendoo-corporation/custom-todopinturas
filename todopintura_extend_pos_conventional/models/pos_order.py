@@ -130,7 +130,7 @@ class PosOrder(models.Model):
                 return next_action
         return action
 
-    def action_pos_convention_pay_with_method(self, payment_method_id):
+    def action_pos_convention_pay_with_method(self, payment_method_id, force_print=False):
         self.ensure_one()
 
         payment_method = payment_method_id
@@ -138,7 +138,10 @@ class PosOrder(models.Model):
             try:
                 payment_method = self.env["pos.payment.method"].browse(int(payment_method_id))
             except (TypeError, ValueError):
-                return super().action_pos_convention_pay_with_method(payment_method_id)
+                return super().action_pos_convention_pay_with_method(
+                    payment_method_id,
+                    force_print=force_print,
+                )
 
         if payment_method and payment_method.exists() and payment_method.type == "pay_later":
             amount_due = self.amount_total - self.amount_paid
@@ -149,9 +152,12 @@ class PosOrder(models.Model):
                 "amount": amount_due,
                 "payment_method_id": payment_method.id,
             })
-            return wizard.check()
+            return wizard.check(force_print=force_print)
 
-        return super().action_pos_convention_pay_with_method(payment_method_id)
+        return super().action_pos_convention_pay_with_method(
+            payment_method_id,
+            force_print=force_print,
+        )
 
     def action_pay_cash(self):
         self.ensure_one()
@@ -174,13 +180,13 @@ class PosOrder(models.Model):
     def init(self):
         super().init()
         self.env.cr.execute("""
-            UPDATE ir_ui_view 
-            SET active = false 
+            UPDATE ir_ui_view
+            SET active = false
             WHERE id IN (
-                SELECT md.res_id 
-                FROM ir_model_data md 
-                JOIN ir_module_module m ON m.name = md.module 
-                WHERE md.model = 'ir.ui.view' 
+                SELECT md.res_id
+                FROM ir_model_data md
+                JOIN ir_module_module m ON m.name = md.module
+                WHERE md.model = 'ir.ui.view'
                   AND m.state != 'installed'
             )
         """)

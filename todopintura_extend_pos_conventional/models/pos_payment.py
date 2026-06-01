@@ -130,7 +130,7 @@ class PosMakePaymentConventional(models.TransientModel):
             wizard.order_credit_warning_message = policy["warning_message"]
             wizard.order_credit_sale_enabled = policy["credit_sale_allowed"]
 
-    def check(self, payment_method_id=None):
+    def check(self, payment_method_id=None, force_print=False):
         self.ensure_one()
         if payment_method_id:
             self.payment_method_id = payment_method_id
@@ -156,7 +156,10 @@ class PosMakePaymentConventional(models.TransientModel):
                 amount=self.amount,
             )
 
-        action = super().check(payment_method_id=payment_method_id)
+        action = super().check(
+            payment_method_id=payment_method_id,
+            force_print=force_print,
+        )
         if order:
             return self._convert_receipt_client_action_to_window(action, order)
         return action

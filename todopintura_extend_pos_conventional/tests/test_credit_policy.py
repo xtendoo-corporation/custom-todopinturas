@@ -303,6 +303,28 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         self.assertIn("/report/html/pos_conventional_receipt_custom.report_factura_simplificada_80mm/", action["params"]["url"])
         self.assertEqual(action["params"]["order_id"], order.id)
 
+    def test_card_payment_force_print_kw_keeps_receipt_printing_when_customer_has_credit(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        self.pos_config.write({"iface_print_auto": False})
+        current_location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write(
+            {
+                "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [(6, 0, [current_location.id])],
+            }
+        )
+
+        action = order.action_pos_convention_pay_with_method(
+            self.card_pm.id,
+            force_print=True,
+        )
+
+        self.assertEqual(action["tag"], "pos_conventional_print_receipt_window")
+        self.assertTrue(action["params"]["move_id"])
+        self.assertEqual(action["params"]["order_id"], order.id)
+
     def test_card_payment_uses_a4_invoice_report_when_flag_is_enabled(self):
         session = self._open_session()
         order = self._make_draft_order(session, partner=self.partner)
