@@ -28,7 +28,10 @@ class StockWarehouseOrderpoint(models.Model):
         'Min Quantity', digits='Product Unit of Measure', required=True, default=0.0,
         help="When the virtual stock goes below the Min Quantity specified for this field, Odoo generates "
              "a procurement to bring the forecasted quantity to the Max Quantity.",
-        compute='_compute_product_min_qty', store=True)
+        compute='_compute_product_min_qty', store=True, readonly=False)
+    product_max_qty = fields.Float(
+        'Max Quantity', digits='Product Unit of Measure', required=True, default=0.0,
+        compute='_compute_product_min_qty', store=True, readonly=False)
     is_below_min = fields.Boolean(
         string="Bajo mínimos",
         compute="_compute_is_below_min",
@@ -77,3 +80,8 @@ class StockWarehouseOrderpoint(models.Model):
             'domain': [('orderpoint_id', '=', self.id)],
             'context': {'default_orderpoint_id': self.id},
         }
+
+    @api.onchange('product_min_qty')
+    def _onchange_product_min_qty(self):
+        if self.product_min_qty > self.product_max_qty:
+            self.product_max_qty = self.product_min_qty
