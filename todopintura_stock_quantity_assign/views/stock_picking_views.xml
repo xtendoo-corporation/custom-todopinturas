@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- El servicio global de barcode maneja los escaneos automáticamente -->
+    <!-- No necesitamos modificar la vista -->
+</odoo>
