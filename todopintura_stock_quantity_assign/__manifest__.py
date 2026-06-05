@@ -18,6 +18,8 @@
     'assets': {
         'web.assets_backend': [
             'todopintura_stock_quantity_assign/static/src/js/barcode_debug.js',
+            'todopintura_stock_quantity_assign/static/src/js/stock_picking_barcode_refresh_field.js',
+            'todopintura_stock_quantity_assign/static/src/js/patch_moves_renderer.js',
         ],
     },
     'installable': True,

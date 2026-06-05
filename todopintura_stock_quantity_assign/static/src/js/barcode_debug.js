@@ -1,5 +1,7 @@
 /** @odoo-module **/
 
+import './stock_picking_barcode_refresh_field.js';
+
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
@@ -59,11 +61,7 @@ export const todopinturaBarcodeService = {
                         console.log("TODOPINTURA: RPC call successful!");
                         console.log("TODOPINTURA: Result:", result);
 
-                        // Recargar la acción actual para mostrar los cambios
-                        await action.doAction("reload");
-                        console.log("TODOPINTURA: Action reloaded");
-
-                        // Mostrar mensaje de éxito si hay un warning en el resultado
+                        // Mostrar mensaje de éxito/warning
                         if (result && result.warning) {
                             notification.add(
                                 result.warning.message,
@@ -75,11 +73,88 @@ export const todopinturaBarcodeService = {
                         } else {
                             // Mostrar notificación de éxito
                             notification.add(
-                                `Código ${scannedBarcode} escaneado correctamente`,
+                                `✓ Cantidad actualizada`,
                                 {
                                     type: "success",
                                 }
                             );
+                        }
+
+                        // Recargar solo el registro actual sin recargar toda la página.
+                        // Usamos una función que intenta varias rutas de recarga no disruptivas
+                        console.log("TODOPINTURA: Attempting non-disruptive record reload...");
+                        const reloadCurrentRecord = async () => {
+                            try {
+                                console.log("TODOPINTURA: currentController keys:", Object.keys(currentController || {}));
+                                console.log("TODOPINTURA: currentController.props keys:", currentController?.props ? Object.keys(currentController.props) : null);
+                                console.log("TODOPINTURA: currentController.view keys:", currentController?.view ? Object.keys(currentController.view) : null);
+                                console.log("TODOPINTURA: currentController.renderer:", currentController?.renderer);
+                                // debug: try to find any candidate object that looks like a record root
+                                // 1) Si el controlador expone props.record (componentes que pasan record)
+                                if (currentController.props && currentController.props.record) {
+                                    console.log("TODOPINTURA: Reload via currentController.props.record.model.root.load()");
+                                    await currentController.props.record.model.root.load();
+                                    return true;
+                                }
+                                // 2) Si el controlador tiene model.root (form controllers)
+                                if (currentController.model && currentController.model.root) {
+                                    console.log("TODOPINTURA: Reload via currentController.model.root.load()");
+                                    await currentController.model.root.load();
+                                    return true;
+                                }
+                                // 2b) Try view.model.root
+                                if (currentController.view && currentController.view.model && currentController.view.model.root) {
+                                    console.log("TODOPINTURA: Reload via currentController.view.model.root.load()");
+                                    await currentController.view.model.root.load();
+                                    return true;
+                                }
+                                // 3) Si el renderer tiene props.record
+                                if (currentController.renderer && currentController.renderer.props && currentController.renderer.props.record) {
+                                    console.log("TODOPINTURA: Reload via currentController.renderer.props.record.model.root.load()");
+                                    await currentController.renderer.props.record.model.root.load();
+                                    return true;
+                                }
+                                // 4) Try to find any nested record-like object by scanning properties
+                                for (const key of Object.keys(currentController || {})) {
+                                    const cand = currentController[key];
+                                    if (cand && cand.model && cand.model.root && typeof cand.model.root.load === 'function') {
+                                        console.log(`TODOPINTURA: Reload via currentController.${key}.model.root.load()`);
+                                        await cand.model.root.load();
+                                        return true;
+                                    }
+                                }
+                                console.log("TODOPINTURA: No known record object to reload");
+                                return false;
+                            } catch (err) {
+                                console.error("TODOPINTURA: Error reloading record:", err);
+                                return false;
+                            }
+                        };
+
+                        try {
+                            const reloaded = await reloadCurrentRecord();
+                            // If we couldn't reload the record via OWL model, try a DOM-level optimistic update
+                            if (!reloaded && result && result.updated && result.move_id) {
+                                try {
+                                    console.log("TODOPINTURA: Attempting DOM optimistic update for move", result.move_id);
+                                    const moveRow = document.querySelector(`tr.o_data_row[data-id='${result.move_id}']`);
+                                    if (moveRow) {
+                                        const qtyCell = moveRow.querySelector("td[name='quantity']") || moveRow.querySelector("td[name=quantity]");
+                                        if (qtyCell) {
+                                            qtyCell.innerText = (typeof result.quantity === 'number') ? result.quantity.toFixed(2) : result.quantity;
+                                            console.log("TODOPINTURA: DOM updated for move", result.move_id, "qty:", result.quantity);
+                                        } else {
+                                            console.log("TODOPINTURA: Could not find quantity cell in move row");
+                                        }
+                                    } else {
+                                        console.log("TODOPINTURA: Could not find move row in DOM for move_id", result.move_id);
+                                    }
+                                } catch (domErr) {
+                                    console.error("TODOPINTURA: Error performing DOM optimistic update:", domErr);
+                                }
+                            }
+                        } catch (err) {
+                            console.error("TODOPINTURA: Unexpected error during record reload:", err);
                         }
 
                     } catch (error) {
@@ -126,9 +201,43 @@ export const todopinturaBarcodeService = {
                     console.log("TODOPINTURA: RPC call successful!");
                     console.log("TODOPINTURA: Result:", result);
 
-                    // Recargar el registro para mostrar los cambios
-                    await record.load();
-                    console.log("TODOPINTURA: Record reloaded");
+                    // Recargar el registro para mostrar los cambios (intentar varias formas no disruptivas)
+                    // Recargar el registro para mostrar los cambios (intentar varias formas no disruptivas)
+                    try {
+                        let reloaded = false;
+                        if (record && record.load) {
+                            console.log("TODOPINTURA: Reload via record.load()");
+                            await record.load();
+                            reloaded = true;
+                        } else if (currentController && currentController.model && currentController.model.root) {
+                            console.log("TODOPINTURA: Fallback reload via currentController.model.root.load()");
+                            await currentController.model.root.load();
+                            reloaded = true;
+                        }
+                        console.log("TODOPINTURA: Record reload attempted, reloaded=", reloaded);
+                        if (!reloaded && result && result.updated && result.move_id) {
+                            // DOM optimistic update as fallback
+                            try {
+                                console.log("TODOPINTURA: Attempting DOM optimistic update for move", result.move_id);
+                                const moveRow = document.querySelector(`tr.o_data_row[data-id='${result.move_id}']`);
+                                if (moveRow) {
+                                    const qtyCell = moveRow.querySelector("td[name='quantity']") || moveRow.querySelector("td[name=quantity]");
+                                    if (qtyCell) {
+                                        qtyCell.innerText = (typeof result.quantity === 'number') ? result.quantity.toFixed(2) : result.quantity;
+                                        console.log("TODOPINTURA: DOM updated for move", result.move_id, "qty:", result.quantity);
+                                    } else {
+                                        console.log("TODOPINTURA: Could not find quantity cell in move row");
+                                    }
+                                } else {
+                                    console.log("TODOPINTURA: Could not find move row in DOM for move_id", result.move_id);
+                                }
+                            } catch (domErr) {
+                                console.error("TODOPINTURA: Error performing DOM optimistic update:", domErr);
+                            }
+                        }
+                    } catch (err) {
+                        console.error("TODOPINTURA: Error reloading record:", err);
+                    }
 
                     // Mostrar mensaje de éxito si hay un warning en el resultado
                     if (result && result.warning) {

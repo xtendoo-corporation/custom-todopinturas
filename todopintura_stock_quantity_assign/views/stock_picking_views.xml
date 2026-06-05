@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- El servicio global de barcode maneja los escaneos automáticamente -->
-    <!-- No necesitamos modificar la vista -->
+    <!-- Añadimos un campo invisible que vive dentro del form y recarga el record del formulario
+         cuando se detecta un escaneo. Esto garantiza que la UI del picking se actualice sin
+         recargar la página ni navegar fuera. Usamos el campo existente `origin` (char) y le
+         aplicamos nuestro widget invisible. -->
+    <record id="view_picking_form_todopintura_barcode_refresh" model="ir.ui.view">
+        <field name="name">stock.picking.form.todopintura.barcode.refresh</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <!-- Añadimos los atributos widget/invisible al campo origin existente para
+                 garantizar que el widget se instancie en cualquier vista que contenga
+                 ese campo sin duplicarlo. -->
+            <xpath expr="//field[@name='origin']" position="attributes">
+                <attribute name="widget">todopintura_stock_barcode_refresh</attribute>
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>

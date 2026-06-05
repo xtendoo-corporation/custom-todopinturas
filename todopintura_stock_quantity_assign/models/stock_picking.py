@@ -124,8 +124,13 @@ class StockPicking(models.Model):
         print(f"TODOPINTURA: SUCCESS! Move final quantity: {move.quantity}")
         print("="*80 + "\n")
 
-        # Devolver False para indicar éxito sin warning
-        return False
+        # Devolver información para que el cliente pueda actualizar la UI de forma optimista
+        return {
+            'updated': True,
+            'move_id': move.id,
+            'move_line_id': line.id,
+            'quantity': float(move.quantity),
+        }
 
     def _get_onchange_target(self):
         """
