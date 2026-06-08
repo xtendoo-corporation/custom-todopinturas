@@ -10,33 +10,26 @@ class StockMove(models.Model):
     def create(self, vals_list):
         """
         Sobrescribe el método create para evitar el llenado automático
-        de cantidades en movimientos de stock relacionados con compras.
+        de cantidades en movimientos de stock.
         """
         for vals in vals_list:
-            # Si el movimiento está relacionado con una compra (purchase_line_id)
-            # establecemos la cantidad a 0 para que no se rellene automáticamente
-            if vals.get('purchase_line_id'):
-                # Guardamos la cantidad original si existe
-                original_quantity = vals.get('product_uom_qty', 0)
-                
-                # Establecemos quantity a 0 para que el usuario lo rellene manualmente
-                if 'quantity' not in vals:
-                    vals['quantity'] = 0.0
-        
+            # Establecemos quantity a 0 para que el usuario lo rellene manualmente
+            if 'quantity' not in vals:
+                vals['quantity'] = 0.0
+
         return super().create(vals_list)
 
-    def _action_confirm(self, merge=True, merge_into=False):
+    def _action_confirm(self, merge=True, merge_into=False, **kwargs):
         """
         Sobrescribe _action_confirm para evitar que se rellenen
         automáticamente las cantidades al confirmar el movimiento.
         """
-        res = super()._action_confirm(merge=merge, merge_into=merge_into)
-        
-        # Para movimientos relacionados con compras, establecemos quantity a 0
-        purchase_moves = self.filtered(lambda m: m.purchase_line_id)
-        if purchase_moves:
-            purchase_moves.write({'quantity': 0.0})
-        
+        res = super()._action_confirm(merge=merge, merge_into=merge_into, **kwargs)
+
+        # 🔥 SOLUCIÓN: Filtramos self con .exists() para eliminar los registros
+        # que el super() haya podido borrar/fusionar en la base de datos.
+        self.exists().write({'quantity': 0.0})
+
         return res
 
     def _action_assign(self):
@@ -45,10 +38,9 @@ class StockMove(models.Model):
         automáticamente las cantidades al asignar el movimiento.
         """
         res = super()._action_assign()
-        
-        # Para movimientos relacionados con compras, mantenemos quantity a 0
-        purchase_moves = self.filtered(lambda m: m.purchase_line_id)
-        if purchase_moves:
-            purchase_moves.write({'quantity': 0.0})
-        
+
+        # 🔥 SOLUCIÓN: Al asignar, Odoo puede desvincular o alterar
+        # líneas en caliente, por lo que purgamos los IDs muertos de la caché.
+        self.with_context(prefetch_fields=False).exists().write({'quantity': 0.0})
+
         return res
