@@ -62,6 +62,35 @@ class ResPartner(models.Model):
         compute="_compute_pos_credit_metadata",
     )
 
+    @api.model
+    def _todopintura_company_partner_domain(self, domain=None):
+        domain = list(domain or [])
+        if (
+            self.env.context.get("todopintura_company_partner_only")
+            or self.env.context.get("res_partner_search_mode") == "customer"
+        ):
+            domain.extend([
+                ("is_company", "=", True),
+                ("parent_id", "=", False),
+            ])
+        return domain
+
+    @api.model
+    def name_search(self, name="", domain=None, operator="ilike", limit=100):
+        domain = self._todopintura_company_partner_domain(domain)
+        return super().name_search(name=name, domain=domain, operator=operator, limit=limit)
+
+    @api.model
+    def web_name_search(self, name, specification, domain=None, operator="ilike", limit=100):
+        domain = self._todopintura_company_partner_domain(domain)
+        return super().web_name_search(
+            name,
+            specification,
+            domain=domain,
+            operator=operator,
+            limit=limit,
+        )
+
     @api.depends(
         "pos_credit_location_ids",
         "pos_credit_location_ids.display_name",
@@ -145,4 +174,3 @@ class ResPartner(models.Model):
                 fields.Date.today(),
             )
         return credit_limit
-

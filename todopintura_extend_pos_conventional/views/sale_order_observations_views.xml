@@ -12,7 +12,12 @@
                     </group>
                 </page>
             </xpath>
+            <xpath expr="//field[@name='partner_id']" position="attributes">
+                <attribute name="domain">[('is_company', '=', True), ('parent_id', '=', False)]</attribute>
+                <attribute name="context">{'res_partner_search_mode': 'customer', 'show_address': 1, 'show_vat': True, 'todopintura_company_partner_only': True}</attribute>
+                <attribute name="options">{'no_create': True, 'no_create_edit': True}</attribute>
+                <attribute name="widget">many2one</attribute>
+            </xpath>
         </field>
     </record>
 </odoo>
-
