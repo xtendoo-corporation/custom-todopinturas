@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_pos_form_payment_selection" model="ir.ui.view">
+        <field name="name">pos.order.form.payment.selection</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="pos_conventional_payment_wizard.view_pos_pos_form_payment_wizard"/>
+        <field name="priority">9999</field>
+        <field name="active" eval="True"/>
+        <field name="arch" type="xml">
+            <!-- 1. Botón de Pago que abre nuestro wizard -->
+            <xpath expr="//header" position="inside">
+                <button name="action_open_payment_selection_wizard"
+                        string="Pago"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state != 'draft'"/>
+            </xpath>
+
+            <!-- 2. Ocultar el botón de pago del wizard convencional si existe -->
+            <xpath expr="//button[@name='action_open_payment_popup']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- 3. Ocultar el widget de botones rápidos si existe -->
+            <xpath expr="//widget[@name='pos_actionpad_fast_payment_buttons']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
