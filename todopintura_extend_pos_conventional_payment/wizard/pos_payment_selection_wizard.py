@@ -21,6 +21,9 @@ class PosPaymentSelectionWizard(models.TransientModel):
     config_id = fields.Many2one("pos.config", related="order_id.config_id")
     payment_method_ids = fields.Many2many("pos.payment.method", related="config_id.payment_method_ids")
     show_deposit_button = fields.Boolean(related="order_id.show_deposit_button")
+    partner_deposit_enabled = fields.Boolean(related="order_id.partner_deposit_enabled")
+    partner_deposit_available = fields.Boolean(related="order_id.partner_deposit_available")
+    partner_deposit_warning_message = fields.Text(related="order_id.partner_deposit_warning_message")
     partner_credit_available = fields.Boolean(related="order_id.partner_credit_available")
 
     # Campos técnicos para botones estáticos de métodos de pago comunes
@@ -153,10 +156,12 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
     def action_albaran(self):
         self.ensure_one()
+        # El albarán también es directo, no pasa por pagos
         return self.order_id.action_pay_account()
 
     def action_deposito(self):
         self.ensure_one()
+        # El depósito es directo, usa la lógica del módulo original
         return self.order_id.action_pay_deposit()
 
     def action_credito(self):

@@ -22,5 +22,19 @@
             </xpath>
         </field>
     </record>
+    <record id="view_partner_form_pos_conventional_credit_deposit_main" model="ir.ui.view">
+        <field name="name">res.partner.form.pos.conventional.credit.deposit.main</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='point_of_sale']" position="inside">
+                <field name="pos_conventional_sale_mode"/>
+                <field name="pos_credit_location_ids"
+                       string="Tiendas permitidas para depósito"
+                       widget="many2many_tags"
+                       invisible="pos_conventional_sale_mode != 'deposit'"
+                       options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>
-

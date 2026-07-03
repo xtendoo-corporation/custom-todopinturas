@@ -13,6 +13,9 @@
                 <field name="has_cash_method" invisible="1"/>
                 <field name="has_card_method" invisible="1"/>
                 <field name="show_deposit_button" invisible="1"/>
+                <field name="partner_deposit_enabled" invisible="1"/>
+                <field name="partner_deposit_available" invisible="1"/>
+                <field name="partner_deposit_warning_message" invisible="1"/>
                 <field name="partner_credit_available" invisible="1"/>
 
                 <!-- PASO 1: Selección de Documento -->
@@ -21,6 +24,9 @@
                         <h3>¿Qué desea hacer?</h3>
                         <div invisible="partner_id" class="alert alert-warning py-1" role="alert">
                             <strong>Aviso:</strong> Para Albarán, Depósito o Crédito es necesario seleccionar un cliente.
+                        </div>
+                        <div invisible="not partner_id or not partner_deposit_enabled or partner_deposit_available" class="alert alert-danger py-1" role="alert">
+                            <field name="partner_deposit_warning_message"/>
                         </div>
                     </div>
 
