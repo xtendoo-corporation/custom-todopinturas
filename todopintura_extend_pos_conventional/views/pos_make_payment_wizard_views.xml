@@ -17,12 +17,10 @@
         <field name="model">pos.make.payment.wizard</field>
         <field name="inherit_id" ref="pos_conventional_payment_wizard.view_pos_make_payment_wizard_cash_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('p-3') and hasclass('mb-3')]" position="after">
+            <xpath expr="//form//div[1]" position="after">
                 <field name="show_credit_cashier_warning" invisible="1"/>
                 <field name="credit_cashier_warning_message" invisible="1"/>
             </xpath>
         </field>
     </record>
 </odoo>
-
-

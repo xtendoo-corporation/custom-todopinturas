@@ -1,28 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_pos_pos_form_payment_selection" model="ir.ui.view">
-        <field name="name">pos.order.form.payment.selection</field>
+    <!-- 1. Vista principal: Heredamos de la base. Nombre ajustado para tu búsqueda -->
+    <record id="view_pos_pos_form_payment_selection_main" model="ir.ui.view">
+        <field name="name">view_pos_pos_form_payment_selection</field>
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="pos_conventional_payment_wizard.view_pos_pos_form_payment_wizard"/>
         <field name="priority">9999</field>
-        <field name="active" eval="True"/>
         <field name="arch" type="xml">
-            <!-- 1. Botón de Pago que abre nuestro wizard -->
-            <xpath expr="//header" position="inside">
+            <!-- Ocultar botón de pago original -->
+            <xpath expr="//button[@name='action_open_payment_popup']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Ocultar widget de botones rápidos (Tarjeta/Efectivo) -->
+            <xpath expr="//widget[@name='pos_actionpad_fast_payment_buttons']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Añadir nuestro botón de Pago personalizado -->
+            <xpath expr="//button[@name='action_open_payment_popup']" position="after">
                 <button name="action_open_payment_selection_wizard"
                         string="Pago"
                         type="object"
                         class="btn-primary"
                         invisible="state != 'draft'"/>
             </xpath>
+        </field>
+    </record>
 
-            <!-- 2. Ocultar el botón de pago del wizard convencional si existe -->
-            <xpath expr="//button[@name='action_open_payment_popup']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
-
-            <!-- 3. Ocultar el widget de botones rápidos si existe -->
-            <xpath expr="//widget[@name='pos_actionpad_fast_payment_buttons']" position="attributes">
+    <!-- 2. Vista secundaria: Ocultar el botón de depósito -->
+    <record id="view_pos_pos_form_payment_selection_deposit" model="ir.ui.view">
+        <field name="name">view_pos_pos_form_payment_selection_deposit</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="todopintura_pos_conventional_deposit.view_pos_pos_form_payment_wizard_deposit_button"/>
+        <field name="priority">10000</field>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_pay_deposit']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
         </field>
