@@ -41,7 +41,7 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
     def action_ticket(self):
         self.ensure_one()
-        self.document_type = 'ticket'
+        self.document_type = 'factura_simplified'
         self.state = 'payment_selection'
         return {
             'type': 'ir.actions.act_window',
@@ -104,7 +104,7 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
     def action_factura(self):
         self.ensure_one()
-        self.document_type = 'factura_simplified'
+        self.document_type = 'factura_a4'
         self.state = 'payment_selection'
         return {
             'type': 'ir.actions.act_window',
