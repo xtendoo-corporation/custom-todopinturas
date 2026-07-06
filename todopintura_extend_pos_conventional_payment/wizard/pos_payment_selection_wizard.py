@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
 from odoo import api, fields, models, _
 from odoo.tools import float_compare, float_is_zero
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 class PosPaymentSelectionWizard(models.TransientModel):
     _name = "pos.payment.selection.wizard"
@@ -41,6 +44,16 @@ class PosPaymentSelectionWizard(models.TransientModel):
     partner_deposit_available = fields.Boolean(related="order_id.partner_deposit_available")
     partner_deposit_warning_message = fields.Text(related="order_id.partner_deposit_warning_message")
     partner_credit_available = fields.Boolean(related="order_id.partner_credit_available")
+    partner_credit_limit_exceeded = fields.Boolean(compute="_compute_credit_status")
+
+    @api.depends('order_id', 'operation_type')
+    def _compute_credit_status(self):
+        for wizard in self:
+            if wizard.operation_type == 'credit':
+                policy = wizard.order_id._get_conventional_credit_policy_data()
+                wizard.partner_credit_limit_exceeded = policy.get('limit_exceeded', False)
+            else:
+                wizard.partner_credit_limit_exceeded = False
 
     # Campos de importes para la vista unificada
     amount_total = fields.Monetary(related="order_id.amount_total", readonly=True)
@@ -214,19 +227,56 @@ class PosPaymentSelectionWizard(models.TransientModel):
     def action_albaran(self):
         self.ensure_one()
         # El albarán también es directo, no pasa por pagos
-        return self.order_id.action_pay_account()
+        # Forzamos que salte a un nuevo pedido sin mostrar advertencia de falta de pago
+        return self.order_id.with_context(skip_payment_warning=True).action_pay_account()
 
     def action_deposito(self):
         self.ensure_one()
         # El depósito es directo, usa la lógica del módulo original
-        return self.order_id.action_pay_deposit()
+        # Forzamos que salte a un nuevo pedido sin mostrar advertencia de falta de pago
+        return self.order_id.with_context(skip_payment_warning=True).action_pay_deposit()
 
     def action_credito(self):
         self.ensure_one()
-        return self.order_id.action_pay_account()
+        # Forzamos que salte a un nuevo pedido sin mostrar advertencia de falta de pago
+        # Odoo 19 usa el contexto 'skip_payment_warning' en la vista para ocultar el aviso
+        return self.order_id.with_context(skip_payment_warning=True).action_pay_account()
+
+    def confirm_payment_wizard_credit(self):
+        """Metodo llamado tras aprobar un override de credito"""
+        return self.action_credito()
 
     def action_confirm(self):
         self.ensure_one()
+        _logger.info("Confirmando pago en wizard. Tipo operacion: %s", self.operation_type)
+
+        if self.operation_type == 'credit':
+            policy = self.order_id._get_conventional_credit_policy_data(allow_limit_override=self.env.context.get("allow_limit_override"))
+            _logger.info("Política de crédito: %s", policy)
+            if policy["needs_limit_override"]:
+                _logger.info("Necesita override de crédito. Abriendo wizard de aviso.")
+                # Mostramos un aviso que permite continuar o no
+                message = _(
+                    "El crdito de este cliente es %(limit).2f y ya se ha pasado.\nDeuda actual: %(current).2f\nEste pedido: %(sale).2f\nTotal tras pedido: %(total).2f\n\nQuiere continuar con la venta?"
+                ) % {
+                    "limit": policy["credit_limit"],
+                    "current": policy["current_due"],
+                    "sale": policy["order_amount"],
+                    "total": policy["total_after"],
+                }
+                action = self.env.ref("todopintura_extend_pos_conventional.action_pos_conventional_credit_override_wizard").read()[0]
+                action["context"] = {
+                    **self.env.context,
+                    "default_order_id": self.order_id.id,
+                    "default_payment_wizard_id": "%s,%s" % (self._name, self.id),
+                    "default_warning_message": message,
+                    "default_resume_action": "confirm_payment_wizard_credit",
+                    "default_current_due": policy["current_due"],
+                    "default_credit_limit": policy["credit_limit"],
+                    "default_payment_amount": policy["order_amount"],
+                    "default_total_after": policy["total_after"],
+                }
+                return action
 
         # Aplicamos la configuración del pedido según el tipo de operación
         if self.operation_type == 'ticket':

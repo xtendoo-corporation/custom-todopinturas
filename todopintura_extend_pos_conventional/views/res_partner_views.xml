@@ -5,6 +5,14 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" type="object" name="action_view_pos_credit_orders" icon="fa-credit-card">
+                    <field string="POS Crédito" name="pos_credit_count" widget="statinfo"/>
+                </button>
+                <button class="oe_stat_button" type="object" name="action_view_pos_deposit_orders" icon="fa-money">
+                    <field string="POS Depósito" name="pos_deposit_count" widget="statinfo"/>
+                </button>
+            </xpath>
             <xpath expr="//notebook/page[@name='sales_purchases']" position="after">
                 <page string="POS convencional" name="pos_conventional_credit">
                     <group string="Crédito, cobro y recogida">
@@ -62,4 +70,3 @@
         </field>
     </record>
 </odoo>
-

@@ -18,3 +18,19 @@ class PosOrder(models.Model):
                 "default_order_id": self.id,
             },
         }
+
+    def action_pay_account(self):
+        """Sobrescribimos para asegurar que retorne la acción de nuevo pedido"""
+        res = super(PosOrder, self).action_pay_account()
+        # Si el resultado es abrir el formulario del pedido actual (lo que hace el original),
+        # lo cambiamos por la acción de nuevo pedido.
+        if isinstance(res, dict) and res.get('res_model') == 'pos.order' and res.get('res_id') == self.id:
+            return self._get_post_validation_action()
+        return res
+
+    def action_pay_deposit(self):
+        """Sobrescribimos para asegurar que retorne la acción de nuevo pedido tras enviar a depósito"""
+        res = super(PosOrder, self).action_pay_deposit()
+        if isinstance(res, dict) and res.get('res_model') == 'pos.order' and res.get('res_id') == self.id:
+            return self._get_post_validation_action()
+        return res

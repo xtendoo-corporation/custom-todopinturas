@@ -17,6 +17,7 @@
                 <field name="partner_deposit_available" invisible="1"/>
                 <field name="partner_deposit_warning_message" invisible="1"/>
                 <field name="partner_credit_available" invisible="1"/>
+                <field name="partner_credit_limit_exceeded" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
 
                 <div class="container-fluid">
@@ -41,7 +42,10 @@
                                 <field name="partner_deposit_warning_message"/>
                             </div>
                             <div invisible="not partner_id or partner_credit_available or operation_type != 'credit'" class="alert alert-warning py-1" role="alert">
-                                <strong>Aviso:</strong> El cliente no tiene crédito habilitado o ha excedido su límite.
+                                <strong>Aviso:</strong> El cliente no tiene crédito habilitado en esta caja.
+                            </div>
+                            <div invisible="not partner_id or not partner_credit_limit_exceeded or operation_type != 'credit'" class="alert alert-danger py-1" role="alert">
+                                <strong>Atención:</strong> El cliente ha excedido su límite de riesgo. Al confirmar se solicitará autorización.
                             </div>
                         </div>
 

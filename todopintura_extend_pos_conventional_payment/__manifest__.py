@@ -17,6 +17,11 @@
         'wizard/pos_payment_selection_wizard_views.xml',
         'views/pos_order_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'todopintura_extend_pos_conventional_payment/static/src/js/pos_payment_selection_bypass.js',
+        ],
+    },
     'installable': True,
     'application': False,
     'auto_install': False,

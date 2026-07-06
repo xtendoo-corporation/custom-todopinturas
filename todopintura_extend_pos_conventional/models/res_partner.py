@@ -62,6 +62,42 @@ class ResPartner(models.Model):
         compute="_compute_pos_credit_metadata",
     )
 
+    pos_credit_count = fields.Integer(compute='_compute_pos_counts', string="Pedidos Crédito")
+    pos_deposit_count = fields.Integer(compute='_compute_pos_counts', string="Pedidos Depósito")
+
+    def _compute_pos_counts(self):
+        for partner in self:
+            partner.pos_credit_count = self.env['pos.order'].search_count([
+                ('partner_id', 'child_of', partner.id),
+                ('state', '=', 'linked')
+            ])
+            partner.pos_deposit_count = self.env['pos.order'].search_count([
+                ('partner_id', 'child_of', partner.id),
+                ('state', '=', 'deposit')
+            ])
+
+    def action_view_pos_credit_orders(self):
+        self.ensure_one()
+        return {
+            'name': 'Pedidos POS Crédito',
+            'type': 'ir.actions.act_window',
+            'res_model': 'pos.order',
+            'view_mode': 'list,form',
+            'domain': [('partner_id', 'child_of', self.id), ('state', '=', 'linked')],
+            'context': {'default_partner_id': self.id},
+        }
+
+    def action_view_pos_deposit_orders(self):
+        self.ensure_one()
+        return {
+            'name': 'Pedidos POS Depósito',
+            'type': 'ir.actions.act_window',
+            'res_model': 'pos.order',
+            'view_mode': 'list,form',
+            'domain': [('partner_id', 'child_of', self.id), ('state', '=', 'deposit')],
+            'context': {'default_partner_id': self.id},
+        }
+
     @api.model
     def _todopintura_company_partner_domain(self, domain=None):
         domain = list(domain or [])

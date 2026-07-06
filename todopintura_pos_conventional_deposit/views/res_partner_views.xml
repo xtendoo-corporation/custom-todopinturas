@@ -5,23 +5,12 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="todopintura_extend_pos_conventional.view_partner_form_pos_conventional_credit"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='pos_credit_sale_enabled']" position="replace">
-                <field name="pos_conventional_sale_mode"/>
-            </xpath>
-            <xpath expr="//field[@name='use_partner_credit_limit']" position="attributes">
-                <attribute name="invisible">pos_conventional_sale_mode != 'credit'</attribute>
-            </xpath>
-            <xpath expr="//field[@name='credit_limit']" position="attributes">
-                <attribute name="invisible">pos_conventional_sale_mode != 'credit' or not use_partner_credit_limit</attribute>
-                <attribute name="required">pos_conventional_sale_mode == 'credit' and use_partner_credit_limit</attribute>
-            </xpath>
-            <xpath expr="//field[@name='pos_credit_location_ids']" position="attributes">
-                <attribute name="string">Tiendas permitidas para depósito</attribute>
-                <attribute name="invisible">pos_conventional_sale_mode != 'deposit'</attribute>
-                <attribute name="help">Si el modo es 'Depósito', solo se permitirán ventas en depósito desde cajas cuya ubicación origen pertenezca a esta lista. Si se deja vacío, no se restringe por tienda.</attribute>
+            <xpath expr="//page[@name='pos_conventional_credit']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
         </field>
     </record>
+
     <record id="view_partner_form_pos_conventional_credit_deposit_main" model="ir.ui.view">
         <field name="name">res.partner.form.pos.conventional.credit.deposit.main</field>
         <field name="model">res.partner</field>
@@ -29,11 +18,34 @@
         <field name="arch" type="xml">
             <xpath expr="//group[@name='point_of_sale']" position="inside">
                 <field name="pos_conventional_sale_mode"/>
+                <field name="use_partner_credit_limit"
+                       invisible="pos_conventional_sale_mode != 'credit'"/>
+                <field name="credit_limit"
+                       invisible="pos_conventional_sale_mode != 'credit' or not use_partner_credit_limit"
+                       required="pos_conventional_sale_mode == 'credit' and use_partner_credit_limit"/>
                 <field name="pos_credit_location_ids"
                        string="Tiendas permitidas para depósito"
                        widget="many2many_tags"
                        invisible="pos_conventional_sale_mode != 'deposit'"
                        options="{'no_create': True}"/>
+                <field name="pos_requires_voucher"
+                       invisible="pos_conventional_sale_mode == 'deposit'"/>
+                <field name="pos_voucher_reference"
+                       invisible="not pos_requires_voucher or pos_conventional_sale_mode == 'deposit'"/>
+            </xpath>
+            <xpath expr="//group[@name='point_of_sale']" position="after">
+                <group string="Autorizados de recogida" name="pos_pickup_persons">
+                    <field name="pos_pickup_person_ids" nolabel="1" context="{'default_partner_id': id}">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="name"/>
+                            <field name="vat"/>
+                            <field name="phone"/>
+                            <field name="notes"/>
+                            <field name="active" optional="hide"/>
+                        </list>
+                    </field>
+                </group>
             </xpath>
         </field>
     </record>

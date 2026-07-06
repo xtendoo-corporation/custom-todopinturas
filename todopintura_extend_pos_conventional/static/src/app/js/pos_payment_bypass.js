@@ -6,7 +6,7 @@
  * controlador del formulario del pedido bloquee la salida.
  */
 document.addEventListener("click", (ev) => {
-    const btn = ev.target.closest('button[name="action_validate"], button[name="action_validate_print"]');
+    const btn = ev.target.closest('button[name="action_validate"], button[name="action_validate_print"], button[name="action_open_payment_selection_wizard"], button[name="action_confirm"]');
     if (btn) {
         // Activamos el bypass temporalmente para permitir la transición tras el pago
         window.bypassPosLeave = true;

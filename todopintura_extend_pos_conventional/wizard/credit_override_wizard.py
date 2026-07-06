@@ -55,3 +55,5 @@ class PosConventionalCreditOverrideWizard(models.TransientModel):
             allow_conventional_credit_limit_override=True,
         ).check()
 
+
+
