@@ -42,7 +42,7 @@ patch(PosOrderListController.prototype, {
         if (!items.action.find((item) => item.key === "deposit_payments")) {
             items.action.push({
                 key: "deposit_payments",
-                description: "Pagar depósitos",
+                description: "Cobrar depósitos",
                 icon: "fa fa-archive",
                 callback: () => this.onOpenDepositPaymentWizard(),
                 sequence: 105,

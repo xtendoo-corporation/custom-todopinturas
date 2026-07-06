@@ -367,6 +367,7 @@ class PosDepositPaymentWizard(models.TransientModel):
         )
         return {
             "type": "ir.actions.act_window",
+            "name": _("Cobrar depósitos"),
             "res_model": self._name,
             "res_id": self.id,
             "view_mode": "form",
@@ -658,7 +659,3 @@ class PosDepositPaymentWizardPaymentLine(models.TransientModel):
     def _compute_is_cash_payment(self):
         for line in self:
             line.is_cash_payment = line.wizard_id._is_cash_payment_method(line.payment_method_id)
-
-
-
-

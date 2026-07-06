@@ -300,7 +300,7 @@ class PosOrder(models.Model):
         )
         return {
             "type": "ir.actions.act_window",
-            "name": _("Pagar depósitos"),
+            "name": _("Cobrar depósitos"),
             "res_model": "pos.deposit.payment.wizard",
             "res_id": wizard.id,
             "view_mode": "form",
@@ -420,5 +420,4 @@ class PosOrder(models.Model):
             )
             % {"config": config.display_name}
         )
-
 
