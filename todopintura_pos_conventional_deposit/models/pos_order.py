@@ -259,7 +259,7 @@ class PosOrder(models.Model):
         action.update({
             "views": [[False, "form"]],
             "view_mode": "form",
-            "res_id": False,
+            "res_id": self.id,
             "target": "current",
             "context": {
                 **self.env.context,

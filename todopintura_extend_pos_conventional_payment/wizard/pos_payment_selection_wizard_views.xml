@@ -17,59 +17,114 @@
                 <field name="partner_deposit_available" invisible="1"/>
                 <field name="partner_deposit_warning_message" invisible="1"/>
                 <field name="partner_credit_available" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
 
-                <!-- PASO 1: Selección de Documento -->
-                <div invisible="state != 'doc_selection'">
-                    <div class="text-center mb-4">
-                        <h3>¿Qué desea hacer?</h3>
-                        <div invisible="partner_id" class="alert alert-warning py-1" role="alert">
-                            <strong>Aviso:</strong> Para Albarán, Depósito o Crédito es necesario seleccionar un cliente.
-                        </div>
-                        <div invisible="not partner_id or not partner_deposit_enabled or partner_deposit_available" class="alert alert-danger py-1" role="alert">
-                            <field name="partner_deposit_warning_message"/>
-                        </div>
-                    </div>
+                <div class="container-fluid">
+                    <div class="row">
+                        <!-- Izquierda: Selecciones -->
+                        <div class="col-md-6 border-end">
+                            <group string="¿Qué desea hacer?">
+                                <field name="operation_type" widget="radio" nolabel="1"/>
+                            </group>
 
-                    <div class="d-flex flex-column align-items-center gap-2">
-                        <div class="d-flex flex-row gap-2 w-75">
-                             <button name="action_ticket" string="Ticket (Simp.)" type="object" class="btn-primary btn-lg flex-grow-1"/>
-                             <button name="action_factura" string="Factura" type="object" class="btn-primary btn-lg flex-grow-1"/>
-                        </div>
+                            <group string="Método de Pago" invisible="operation_type not in ['ticket', 'invoice']">
+                                <field name="payment_type" widget="radio" nolabel="1"/>
+                            </group>
 
-                        <button name="action_albaran" string="Confirmar Albarán" type="object" class="btn-primary btn-lg w-75"
-                                invisible="not partner_id"/>
-
-                        <button name="action_deposito" string="Hacer Depósito" type="object" class="btn-primary btn-lg w-75"
-                                invisible="not partner_id or not show_deposit_button"/>
-                    </div>
-                </div>
-
-                <!-- PASO 2: Selección de Pago (Después de elegir Ticket o Factura) -->
-                <div invisible="state != 'payment_selection'">
-                    <div class="text-center mb-4">
-                        <h3>Seleccione Método de Pago</h3>
-                        <p class="text-muted">Documento:
-                            <span invisible="document_type != 'ticket'">Ticket (Simplificada)</span>
-                            <span invisible="document_type != 'factura_simplified'">Factura Simplificada</span>
-                            <span invisible="document_type != 'factura_a4'">Factura A4</span>
-                        </p>
-                    </div>
-
-                    <div class="d-flex flex-column align-items-center gap-2">
-                        <div class="d-flex flex-row gap-2 w-75">
-                             <button name="action_pago_efectivo" string="Efectivo" type="object" class="btn-primary btn-lg flex-grow-1"
-                                     invisible="not has_cash_method"/>
-                             <button name="action_pago_tarjeta" string="Tarjeta" type="object" class="btn-primary btn-lg flex-grow-1"
-                                     invisible="not has_card_method"/>
+                            <div invisible="partner_id" class="alert alert-warning py-1 mt-3" role="alert">
+                                <strong>Aviso:</strong> Para Albarán, Depósito o Crédito es necesario seleccionar un cliente.
+                            </div>
+                            <div invisible="not partner_id or partner_deposit_enabled or operation_type != 'deposit'" class="alert alert-warning py-1" role="alert">
+                                <strong>Aviso:</strong> El cliente no tiene depósitos habilitados.
+                            </div>
+                            <div invisible="not partner_id or not partner_deposit_enabled or partner_deposit_available or operation_type != 'deposit'" class="alert alert-warning py-1" role="alert">
+                                <field name="partner_deposit_warning_message"/>
+                            </div>
+                            <div invisible="not partner_id or partner_credit_available or operation_type != 'credit'" class="alert alert-warning py-1" role="alert">
+                                <strong>Aviso:</strong> El cliente no tiene crédito habilitado o ha excedido su límite.
+                            </div>
                         </div>
 
-                        <button name="action_pago_combinado" string="Pago combinado" type="object" class="btn-primary btn-lg w-75"/>
+                        <!-- Derecha: Detalles del Pago -->
+                        <div class="col-md-6 px-4">
+                            <div invisible="operation_type not in ['ticket', 'invoice']" class="text-center">
+                                <h3 class="mt-0">Resumen de Pago</h3>
+                                <hr/>
+                                <div class="mb-4">
+                                    <div class="row mb-2">
+                                        <div class="col-7 text-start">Total Pedido:</div>
+                                        <div class="col-5 text-end font-weight-bold">
+                                            <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2" invisible="amount_paid == 0">
+                                        <div class="col-7 text-start">Pagado:</div>
+                                        <div class="col-5 text-end text-success">
+                                            <field name="amount_paid" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3 h4">
+                                        <div class="col-7 text-start text-primary">Total a Pagar:</div>
+                                        <div class="col-5 text-end text-primary font-weight-bold">
+                                            <field name="amount_due" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                        </div>
+                                    </div>
 
-                        <button name="action_cancel_payment_step" string="Volver atrás" type="object" class="btn-link mt-2"/>
+                                    <div invisible="payment_type != 'cash'">
+                                        <div class="mt-4 p-3 bg-light rounded shadow-sm">
+                                            <div class="form-group row mb-2">
+                                                <label for="amount_tendered" class="col-7 o_form_label py-0">Entregado:</label>
+                                                <div class="col-5">
+                                                    <field name="amount_tendered" id="amount_tendered" class="text-end h4 mb-0 w-100" style="font-weight: bold; border-bottom: 2px solid #dee2e6;"/>
+                                                </div>
+                                            </div>
+                                            <div class="row h3 mb-0" invisible="amount_change == 0">
+                                                <div class="col-7 text-start">
+                                                    <span invisible="amount_change &gt; 0">Cambio:</span>
+                                                    <span invisible="amount_change &lt;= 0" class="text-danger">Restante:</span>
+                                                </div>
+                                                <div class="col-5 text-end font-weight-bold"
+                                                     invisible="amount_change &gt; 0">
+                                                    <field name="amount_change_abs" style="color: green;"/>
+                                                </div>
+                                                <div class="col-5 text-end font-weight-bold"
+                                                     invisible="amount_change &lt;= 0">
+                                                    <field name="amount_change" style="color: red;"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div invisible="payment_type != 'combined'" class="alert alert-info mt-3 py-2">
+                                        Se abrirá la ventana de pagos avanzada al pulsar Confirmar.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div invisible="operation_type != 'delivery'" class="text-center py-5">
+                                <i class="fa fa-truck fa-5x text-muted mb-3"/>
+                                <h4>Confirma el pedido como albarán entregado.</h4>
+                                <p class="text-muted">Se generará la salida de stock y se cerrará el asistente.</p>
+                            </div>
+
+                            <div invisible="operation_type != 'deposit'" class="text-center py-5">
+                                <i class="fa fa-university fa-5x text-muted mb-3"/>
+                                <h4>Registra un depósito a cuenta del cliente.</h4>
+                                <p class="text-muted">El importe se descontará de su saldo disponible.</p>
+                            </div>
+
+                            <div invisible="operation_type != 'credit'" class="text-center py-5">
+                                <i class="fa fa-credit-card fa-5x text-muted mb-3"/>
+                                <h4>Registra el pago a crédito del cliente.</h4>
+                                <p class="text-muted">El importe se añadirá a la deuda del cliente.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <footer>
+                    <button name="action_confirm" string="Confirmar" type="object" class="btn-primary"
+                            invisible="(operation_type == 'delivery' and not partner_id) or (operation_type == 'deposit' and (not partner_id or not partner_deposit_enabled or not partner_deposit_available)) or (operation_type == 'credit' and (not partner_id or not partner_credit_available))"/>
                     <button string="Cancelar" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>

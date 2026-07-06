@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
+from odoo.tools import float_compare, float_is_zero
+from odoo.exceptions import UserError
 
 class PosPaymentSelectionWizard(models.TransientModel):
     _name = "pos.payment.selection.wizard"
@@ -10,6 +12,20 @@ class PosPaymentSelectionWizard(models.TransientModel):
         ('doc_selection', 'Document Selection'),
         ('payment_selection', 'Payment Selection')
     ], default='doc_selection')
+
+    operation_type = fields.Selection([
+        ('ticket', 'Factura simplificada'),
+        ('invoice', 'Factura A4'),
+        ('delivery', 'Albarán'),
+        ('deposit', 'Depósito'),
+        ('credit', 'Crédito'),
+    ], string="¿Qué desea hacer?", default='ticket')
+
+    payment_type = fields.Selection([
+        ('cash', 'Efectivo'),
+        ('card', 'Tarjeta'),
+        ('combined', 'Pago combinado'),
+    ], string="Método de Pago", default='cash')
 
     document_type = fields.Selection([
         ('ticket', 'Ticket'),
@@ -25,6 +41,39 @@ class PosPaymentSelectionWizard(models.TransientModel):
     partner_deposit_available = fields.Boolean(related="order_id.partner_deposit_available")
     partner_deposit_warning_message = fields.Text(related="order_id.partner_deposit_warning_message")
     partner_credit_available = fields.Boolean(related="order_id.partner_credit_available")
+
+    # Campos de importes para la vista unificada
+    amount_total = fields.Monetary(related="order_id.amount_total", readonly=True)
+    currency_id = fields.Many2one(related="order_id.currency_id", readonly=True)
+    amount_paid = fields.Monetary(related="order_id.amount_paid", readonly=True)
+    amount_due = fields.Monetary(compute="_compute_payment_amounts")
+    amount_tendered = fields.Monetary(string="Importe Entregado")
+    amount_change = fields.Monetary(string="Diferencia", compute="_compute_payment_amounts")
+    amount_change_abs = fields.Monetary(string="Cambio", compute="_compute_payment_amounts")
+
+    @api.depends('amount_total', 'amount_paid', 'amount_tendered', 'payment_type')
+    def _compute_payment_amounts(self):
+        for wizard in self:
+            due = wizard.amount_total - wizard.amount_paid
+            wizard.amount_due = due
+            if wizard.payment_type == 'cash':
+                # Si diff < 0 significa que se entregó de más (cambio)
+                diff = due - wizard.amount_tendered
+                wizard.amount_change = diff
+                wizard.amount_change_abs = abs(diff) if diff < 0 else 0.0
+            else:
+                wizard.amount_change = 0.0
+                wizard.amount_change_abs = 0.0
+
+    @api.onchange('operation_type', 'payment_type', 'amount_due')
+    def _onchange_selections(self):
+        if self.payment_type == 'cash' and not self.amount_tendered:
+            self.amount_tendered = self.amount_due
+
+        if self.operation_type == 'ticket':
+            self.document_type = 'factura_simplified'
+        elif self.operation_type == 'invoice':
+            self.document_type = 'factura_a4'
 
     # Campos técnicos para botones estáticos de métodos de pago comunes
     has_cash_method = fields.Boolean(compute="_compute_payment_methods")
@@ -167,6 +216,55 @@ class PosPaymentSelectionWizard(models.TransientModel):
     def action_credito(self):
         self.ensure_one()
         return self.order_id.action_pay_account()
+
+    def action_confirm(self):
+        self.ensure_one()
+
+        # Aplicamos la configuración del pedido según el tipo de operación
+        if self.operation_type == 'ticket':
+            self.order_id.write({
+                'to_invoice': True,
+                'is_a4_invoice': False,
+                'is_l10n_es_simplified_invoice': True,
+            })
+        elif self.operation_type == 'invoice':
+             self.order_id.write({
+                'to_invoice': True,
+                'is_a4_invoice': True,
+                'is_l10n_es_simplified_invoice': False,
+            })
+
+        # Despachamos según la operación
+        if self.operation_type in ['ticket', 'invoice']:
+            if self.payment_type == 'cash':
+                if not self.cash_method_id:
+                    raise UserError(_("No se encontró método de pago en efectivo."))
+
+                wizard = self.env['pos.make.payment.wizard'].with_context(
+                    active_id=self.order_id.id,
+                    cash_only=True,
+                    cash_quick_mode=True
+                ).create({
+                    'order_id': self.order_id.id,
+                    'payment_method_id': self.cash_method_id.id,
+                    'amount_tendered': self.amount_tendered,
+                })
+                return wizard.action_validate()
+
+            elif self.payment_type == 'card':
+                return self.action_pago_tarjeta()
+
+            elif self.payment_type == 'combined':
+                return self.action_pago_combinado()
+
+        elif self.operation_type == 'delivery':
+            return self.action_albaran()
+
+        elif self.operation_type == 'deposit':
+            return self.action_deposito()
+
+        elif self.operation_type == 'credit':
+            return self.action_credito()
 
     def get_payment_methods(self):
         self.ensure_one()

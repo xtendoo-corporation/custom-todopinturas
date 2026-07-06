@@ -28,7 +28,8 @@
                         invisible="state != 'deposit'"/>
             </xpath>
             <xpath expr="//field[@name='state']" position="attributes">
-                <attribute name="invisible">state in ('cancel', 'deposit')</attribute>
+                <attribute name="statusbar_visible">draft,deposit,paid,done</attribute>
+                <attribute name="invisible">False</attribute>
             </xpath>
         </field>
     </record>
@@ -75,6 +76,3 @@
         </field>
     </record>
 </odoo>
-
-
-
