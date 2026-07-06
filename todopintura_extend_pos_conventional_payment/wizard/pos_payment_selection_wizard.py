@@ -51,6 +51,11 @@ class PosPaymentSelectionWizard(models.TransientModel):
     amount_change = fields.Monetary(string="Diferencia", compute="_compute_payment_amounts")
     amount_change_abs = fields.Monetary(string="Cambio", compute="_compute_payment_amounts")
 
+    # Campos para Gestión de Pagos Combinados en la misma ventana
+    selected_payment_method_id = fields.Many2one("pos.payment.method", string="Método")
+    payment_amount = fields.Monetary(string="Importe")
+    payment_line_ids = fields.One2many("pos.payment", related="order_id.payment_ids", readonly=False)
+
     @api.depends('amount_total', 'amount_paid', 'amount_tendered', 'payment_type')
     def _compute_payment_amounts(self):
         for wizard in self:
@@ -69,6 +74,9 @@ class PosPaymentSelectionWizard(models.TransientModel):
     def _onchange_selections(self):
         if self.payment_type == 'cash' and not self.amount_tendered:
             self.amount_tendered = self.amount_due
+
+        if self.payment_type == 'combined' and not self.payment_amount:
+            self.payment_amount = self.amount_due
 
         if self.operation_type == 'ticket':
             self.document_type = 'factura_simplified'
@@ -255,7 +263,19 @@ class PosPaymentSelectionWizard(models.TransientModel):
                 return self.action_pago_tarjeta()
 
             elif self.payment_type == 'combined':
-                return self.action_pago_combinado()
+                # Si es combinado, ya hemos ido añadiendo pagos, ahora validamos
+                if float_compare(self.amount_due, 0, precision_rounding=self.currency_id.rounding or 0.01) > 0:
+                    raise UserError(_("El importe pagado es insuficiente."))
+
+                # Usamos el wizard de pago estándar para finalizar el proceso (facturación, impresión, etc.)
+                # con importe 0 ya que ya está pagado
+                wizard = self.env['pos.make.payment.wizard'].with_context(
+                    active_id=self.order_id.id,
+                ).create({
+                    'order_id': self.order_id.id,
+                    'amount_tendered': 0,
+                })
+                return wizard.action_validate()
 
         elif self.operation_type == 'delivery':
             return self.action_albaran()
@@ -266,9 +286,52 @@ class PosPaymentSelectionWizard(models.TransientModel):
         elif self.operation_type == 'credit':
             return self.action_credito()
 
+    def action_add_payment(self):
+        self.ensure_one()
+        if not self.selected_payment_method_id:
+            raise UserError(_("Debe seleccionar un método de pago."))
+        if float_is_zero(self.payment_amount, precision_rounding=self.currency_id.rounding or 0.01):
+            raise UserError(_("El importe debe ser distinto de cero."))
+
+        self.order_id.add_payment({
+            'pos_order_id': self.order_id.id,
+            'amount': self.payment_amount,
+            'payment_method_id': self.selected_payment_method_id.id,
+        })
+        self.payment_amount = self.amount_due
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': self._name,
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    def action_delete_payment(self):
+        # Este método ya no es accesible desde el tree si no está en el modelo pos.payment
+        payment_id = self.env.context.get('payment_id')
+        if payment_id:
+            payment = self.env['pos.payment'].browse(payment_id)
+            if payment.pos_order_id == self.order_id:
+                payment.unlink()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': self._name,
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
     def get_payment_methods(self):
         self.ensure_one()
         return [{
             'id': method.id,
             'name': method.name
         } for method in self.payment_method_ids]
+
+class PosPayment(models.Model):
+    _inherit = "pos.payment"
+
+    def action_delete_payment_from_wizard(self):
+        self.ensure_one()
+        self.unlink()
