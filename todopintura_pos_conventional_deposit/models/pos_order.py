@@ -395,7 +395,8 @@ class PosOrder(models.Model):
                 "to_invoice": False,
             }
             if "is_l10n_es_simplified_invoice" in order._fields:
-                write_vals["is_l10n_es_simplified_invoice"] = True
+                # We don't force True here anymore, as it might have been set to False for A4 invoices
+                pass
             order.with_context(skip_completeness_check=True).write(write_vals)
         return invoice
 

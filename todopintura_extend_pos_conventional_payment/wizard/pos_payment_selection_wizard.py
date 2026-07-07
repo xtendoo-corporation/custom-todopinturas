@@ -6,11 +6,27 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
+class PosPayment(models.Model):
+    _inherit = "pos.payment"
+
+    def action_delete_payment_from_wizard(self):
+        self.ensure_one()
+        self.unlink()
+
+class PosDepositPaymentWizardPaymentLine(models.TransientModel):
+    _inherit = "pos.deposit.payment.wizard.payment.line"
+
+    def action_delete_payment_from_wizard(self):
+        self.ensure_one()
+        self.unlink()
+
 class PosPaymentSelectionWizard(models.TransientModel):
     _name = "pos.payment.selection.wizard"
     _description = "Selección de tipo de pago POS"
 
-    order_id = fields.Many2one("pos.order", string="Pedido", required=True)
+    order_id = fields.Many2one("pos.order", string="Pedido", required=False)
+    deposit_wizard_id = fields.Many2one("pos.deposit.payment.wizard", string="Asistente de Depósitos", required=False)
+
     state = fields.Selection([
         ('doc_selection', 'Document Selection'),
         ('payment_selection', 'Payment Selection')
@@ -22,6 +38,11 @@ class PosPaymentSelectionWizard(models.TransientModel):
         ('delivery', 'Albarán'),
         ('deposit', 'Depósito'),
     ], string="¿Qué desea hacer?", default='ticket')
+
+    operation_type_deposit = fields.Selection([
+        ('ticket', 'Factura simplificada'),
+        ('invoice', 'Factura A4'),
+    ], string="¿Qué desea hacer (Depósitos)?", default='ticket')
 
     payment_type = fields.Selection([
         ('cash', 'Efectivo'),
@@ -35,20 +56,50 @@ class PosPaymentSelectionWizard(models.TransientModel):
         ('factura_a4', 'Factura A4')
     ])
 
-    partner_id = fields.Many2one("res.partner", related="order_id.partner_id")
-    config_id = fields.Many2one("pos.config", related="order_id.config_id")
-    payment_method_ids = fields.Many2many("pos.payment.method", related="config_id.payment_method_ids")
-    show_deposit_button = fields.Boolean(related="order_id.show_deposit_button")
-    partner_deposit_enabled = fields.Boolean(related="order_id.partner_deposit_enabled")
-    partner_deposit_available = fields.Boolean(related="order_id.partner_deposit_available")
-    partner_deposit_warning_message = fields.Text(related="order_id.partner_deposit_warning_message")
-    partner_credit_available = fields.Boolean(related="order_id.partner_credit_available")
+    partner_id = fields.Many2one("res.partner", compute="_compute_basic_fields", store=True, readonly=False)
+    config_id = fields.Many2one("pos.config", compute="_compute_basic_fields", store=True, readonly=False)
+    payment_method_ids = fields.Many2many("pos.payment.method", compute="_compute_basic_fields", store=True, readonly=False)
+    show_deposit_button = fields.Boolean(compute="_compute_basic_fields", store=True)
+    partner_deposit_enabled = fields.Boolean(compute="_compute_basic_fields", store=True)
+    partner_deposit_available = fields.Boolean(compute="_compute_basic_fields", store=True)
+    partner_deposit_warning_message = fields.Text(compute="_compute_basic_fields", store=True)
+    partner_credit_available = fields.Boolean(compute="_compute_basic_fields", store=True)
     partner_credit_limit_exceeded = fields.Boolean(compute="_compute_credit_status")
 
     # Campos de detalle de crédito para avisos
-    partner_credit_limit = fields.Monetary(related="order_id.partner_credit_limit_amount")
-    partner_current_due = fields.Monetary(related="order_id.partner_current_total_due")
-    partner_total_due_after = fields.Monetary(related="order_id.partner_total_due_after_order")
+    partner_credit_limit = fields.Monetary(compute="_compute_basic_fields", store=True)
+    partner_current_due = fields.Monetary(compute="_compute_basic_fields", store=True)
+    partner_total_due_after = fields.Monetary(compute="_compute_basic_fields", store=True)
+
+    @api.depends('order_id', 'deposit_wizard_id')
+    def _compute_basic_fields(self):
+        for wizard in self:
+            if wizard.order_id:
+                order = wizard.order_id
+                wizard.partner_id = order.partner_id
+                wizard.config_id = order.config_id
+                wizard.payment_method_ids = order.config_id.payment_method_ids
+                wizard.show_deposit_button = order.show_deposit_button
+                wizard.partner_deposit_enabled = order.partner_deposit_enabled
+                wizard.partner_deposit_available = order.partner_deposit_available
+                wizard.partner_deposit_warning_message = order.partner_deposit_warning_message
+                wizard.partner_credit_available = order.partner_credit_available
+                wizard.partner_credit_limit = order.partner_credit_limit_amount
+                wizard.partner_current_due = order.partner_current_total_due
+                wizard.partner_total_due_after = order.partner_total_due_after_order
+            elif wizard.deposit_wizard_id:
+                dep_wiz = wizard.deposit_wizard_id
+                wizard.partner_id = dep_wiz.partner_id
+                wizard.config_id = dep_wiz.config_id
+                wizard.payment_method_ids = dep_wiz.config_id.payment_method_ids
+                wizard.show_deposit_button = False
+                wizard.partner_deposit_enabled = False
+                wizard.partner_deposit_available = False
+                wizard.partner_deposit_warning_message = False
+                wizard.partner_credit_available = False
+                wizard.partner_credit_limit = 0.0
+                wizard.partner_current_due = 0.0
+                wizard.partner_total_due_after = 0.0
 
     @api.depends('order_id', 'operation_type')
     def _compute_credit_status(self):
@@ -60,32 +111,45 @@ class PosPaymentSelectionWizard(models.TransientModel):
                 wizard.partner_credit_limit_exceeded = False
 
     # Campos de importes para la vista unificada
-    amount_total = fields.Monetary(related="order_id.amount_total", readonly=True)
-    currency_id = fields.Many2one(related="order_id.currency_id", readonly=True)
-    amount_paid = fields.Monetary(related="order_id.amount_paid", readonly=True)
+    amount_total = fields.Monetary(compute="_compute_amounts", readonly=False)
+    currency_id = fields.Many2one("res.currency", compute="_compute_amounts", readonly=False)
+    currency_symbol = fields.Char(related="currency_id.symbol")
+    amount_paid = fields.Monetary(compute="_compute_amounts", readonly=False)
     amount_due = fields.Monetary(compute="_compute_payment_amounts")
     amount_tendered = fields.Monetary(string="Importe Entregado")
     amount_change = fields.Monetary(string="Diferencia", compute="_compute_payment_amounts")
     amount_change_abs = fields.Monetary(string="Cambio", compute="_compute_payment_amounts")
 
+    @api.depends('amount_total', 'amount_paid', 'amount_tendered')
+    def _compute_payment_amounts(self):
+        for wizard in self:
+            wizard.amount_due = wizard.amount_total - wizard.amount_paid
+            wizard.amount_change = wizard.amount_tendered - wizard.amount_due
+            wizard.amount_change_abs = wizard.amount_change if wizard.amount_change > 0 else 0.0
+
     # Campos para Gestión de Pagos Combinados en la misma ventana
     selected_payment_method_id = fields.Many2one("pos.payment.method", string="Método")
     payment_amount = fields.Monetary(string="Importe")
-    payment_line_ids = fields.One2many("pos.payment", related="order_id.payment_ids", readonly=False)
+    payment_line_ids = fields.Many2many("pos.payment", string="Pagos", compute="_compute_payment_lines")
+    deposit_payment_line_ids = fields.Many2many("pos.deposit.payment.wizard.payment.line", string="Pagos Depósitos", compute="_compute_deposit_payment_lines")
 
-    @api.depends('amount_total', 'amount_paid', 'amount_tendered', 'payment_type')
-    def _compute_payment_amounts(self):
+    @api.depends('order_id', 'order_id.payment_ids')
+    def _compute_payment_lines(self):
         for wizard in self:
-            due = wizard.amount_total - wizard.amount_paid
-            wizard.amount_due = due
-            if wizard.payment_type == 'cash':
-                # Si diff < 0 significa que se entregó de más (cambio)
-                diff = due - wizard.amount_tendered
-                wizard.amount_change = diff
-                wizard.amount_change_abs = abs(diff) if diff < 0 else 0.0
-            else:
-                wizard.amount_change = 0.0
-                wizard.amount_change_abs = 0.0
+            wizard.payment_line_ids = wizard.order_id.payment_ids if wizard.order_id else self.env['pos.payment']
+
+    @api.depends('deposit_wizard_id', 'deposit_wizard_id.payment_line_ids')
+    def _compute_deposit_payment_lines(self):
+        for wizard in self:
+            wizard.deposit_payment_line_ids = wizard.deposit_wizard_id.payment_line_ids if wizard.deposit_wizard_id else self.env['pos.deposit.payment.wizard.payment.line']
+
+    def _inverse_payment_lines(self):
+        pass
+
+    @api.onchange('operation_type_deposit')
+    def _onchange_operation_type_deposit(self):
+        if self.operation_type_deposit:
+            self.operation_type = self.operation_type_deposit
 
     @api.onchange('operation_type', 'payment_type', 'amount_due')
     def _onchange_selections(self):
@@ -130,6 +194,9 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
     def action_pago_combinado(self):
         self.ensure_one()
+        if not self.order_id:
+             # Para depósitos no abrimos el popup de pago estándar de POS
+             return False
         # Aplicamos el tipo de documento seleccionado antes de abrir el popup
         if self.document_type == 'ticket':
             self.order_id.write({
@@ -157,6 +224,19 @@ class PosPaymentSelectionWizard(models.TransientModel):
         if not payment_method_id:
             return False
 
+        if self.deposit_wizard_id:
+            # Caso depósito: registramos el pago en el wizard de depósito y confirmamos
+            method = self.env['pos.payment.method'].browse(payment_method_id)
+            self.deposit_wizard_id.payment_line_ids.unlink()
+            self.env['pos.deposit.payment.wizard.payment.line'].create({
+                'wizard_id': self.deposit_wizard_id.id,
+                'payment_method_id': method.id,
+                'amount': self.amount_total,
+            })
+            # Forzamos la factura según la selección del wizard
+            # (ticket/invoice ya mapeados a self.document_type)
+            return self.action_confirm()
+
         # Aplicamos el tipo de documento seleccionado antes de procesar el pago rápido
         if self.document_type == 'ticket':
             self.order_id.write({
@@ -174,7 +254,7 @@ class PosPaymentSelectionWizard(models.TransientModel):
              self.order_id.write({
                 'to_invoice': True,
                 'is_a4_invoice': True,
-                'is_l100n_es_simplified_invoice': False,
+                'is_l10n_es_simplified_invoice': False,
             })
 
         return self.order_id.action_pos_convention_pay_with_method(payment_method_id)
@@ -254,6 +334,55 @@ class PosPaymentSelectionWizard(models.TransientModel):
         self.ensure_one()
         _logger.info("Confirmando pago en wizard. Tipo operacion: %s", self.operation_type)
 
+        if self.deposit_wizard_id:
+            # Lógica para liquidación de depósitos
+            # 1. Validamos que el importe esté cubierto (ya validado en is_payment_ready si fuera combined,
+            # pero aquí es más directo para ticket/invoice)
+
+            # Registramos los pagos en el wizard de depósito si es pago simple (cash/card)
+            if self.payment_type in ['cash', 'card']:
+                method_id = self.cash_method_id.id if self.payment_type == 'cash' else self.card_method_id.id
+                if not method_id:
+                     raise UserError(_("No se ha configurado el método de pago seleccionado."))
+
+                self.deposit_wizard_id.payment_line_ids.unlink()
+                self.env['pos.deposit.payment.wizard.payment.line'].create({
+                    'wizard_id': self.deposit_wizard_id.id,
+                    'payment_method_id': method_id,
+                    'amount': self.amount_total,
+                })
+
+            # Creamos la factura a través del wizard de depósitos
+            selected_orders = self.deposit_wizard_id._validate_selected_orders()
+            # No llamamos a self.deposit_wizard_id.action_confirm() porque ya imprime,
+            # queremos controlar la impresión según el tipo de documento.
+
+            # Aplicamos la configuración del pedido según el tipo de operación ANTES de crear la factura
+            if self.operation_type == 'ticket':
+                selected_orders.write({
+                    'is_l10n_es_simplified_invoice': True,
+                    'is_a4_invoice': False,
+                })
+            else:
+                selected_orders.write({
+                    'is_l10n_es_simplified_invoice': False,
+                    'is_a4_invoice': True,
+                })
+
+            invoice = selected_orders._create_conventional_deposit_invoice(
+                invoice_partner=self.partner_id,
+            )
+
+            self.deposit_wizard_id._register_invoice_payments(invoice)
+            invoice.invalidate_recordset(["payment_state", "amount_residual"])
+
+            # Devolvemos la acción de impresión adecuada
+            if self.operation_type == 'ticket':
+                return self.deposit_wizard_id._build_print_simplified_invoice_action(invoice)
+            else:
+                # Para Factura A4, usamos el reporte estándar del wizard original modificado o el de account
+                return self.deposit_wizard_id._build_invoice_action(invoice)
+
         if self.operation_type == 'delivery':
             policy = self.order_id._get_conventional_credit_policy_data(allow_limit_override=self.env.context.get("allow_limit_override"))
             _logger.info("Política de crédito: %s", policy)
@@ -323,11 +452,21 @@ class PosPaymentSelectionWizard(models.TransientModel):
         if float_is_zero(self.payment_amount, precision_rounding=self.currency_id.rounding or 0.01):
             raise UserError(_("El importe debe ser distinto de cero."))
 
-        self.order_id.add_payment({
-            'pos_order_id': self.order_id.id,
-            'amount': self.payment_amount,
-            'payment_method_id': self.selected_payment_method_id.id,
-        })
+        if self.deposit_wizard_id:
+            self.env['pos.deposit.payment.wizard.payment.line'].create({
+                'wizard_id': self.deposit_wizard_id.id,
+                'amount': self.payment_amount,
+                'payment_method_id': self.selected_payment_method_id.id,
+            })
+            # Sincronizamos amount_paid desde el wizard de depósito
+            self._compute_amounts()
+        else:
+            self.order_id.add_payment({
+                'pos_order_id': self.order_id.id,
+                'amount': self.payment_amount,
+                'payment_method_id': self.selected_payment_method_id.id,
+            })
+
         self.payment_amount = self.amount_due
         return {
             'type': 'ir.actions.act_window',
@@ -337,13 +476,36 @@ class PosPaymentSelectionWizard(models.TransientModel):
             'target': 'new',
         }
 
+    # Necesitamos que amount_paid se sincronice para depósitos también
+    @api.depends('order_id', 'deposit_wizard_id', 'order_id.amount_paid', 'deposit_wizard_id.amount_paid_total')
+    def _compute_amounts(self):
+        for wizard in self:
+            if wizard.order_id:
+                wizard.amount_total = wizard.order_id.amount_total
+                wizard.amount_paid = wizard.order_id.amount_paid
+                wizard.currency_id = wizard.order_id.currency_id
+            elif wizard.deposit_wizard_id:
+                wizard.amount_total = wizard.deposit_wizard_id.amount_total
+                wizard.amount_paid = wizard.deposit_wizard_id.amount_paid_total
+                wizard.currency_id = wizard.deposit_wizard_id.currency_id
+
     def action_delete_payment(self):
         # Este método ya no es accesible desde el tree si no está en el modelo pos.payment
         payment_id = self.env.context.get('payment_id')
+        dep_payment_id = self.env.context.get('dep_payment_id')
         if payment_id:
             payment = self.env['pos.payment'].browse(payment_id)
-            if payment.pos_order_id == self.order_id:
+            if payment.exists() and payment.pos_order_id == self.order_id:
                 payment.unlink()
+        elif dep_payment_id:
+            payment = self.env['pos.deposit.payment.wizard.payment.line'].browse(dep_payment_id)
+            if payment.exists() and payment.wizard_id == self.deposit_wizard_id:
+                payment.unlink()
+
+        # Después de borrar, actualizamos importes
+        self._compute_amounts()
+        self.payment_amount = self.amount_due
+
         return {
             'type': 'ir.actions.act_window',
             'res_model': self._name,
@@ -351,17 +513,3 @@ class PosPaymentSelectionWizard(models.TransientModel):
             'view_mode': 'form',
             'target': 'new',
         }
-
-    def get_payment_methods(self):
-        self.ensure_one()
-        return [{
-            'id': method.id,
-            'name': method.name
-        } for method in self.payment_method_ids]
-
-class PosPayment(models.Model):
-    _inherit = "pos.payment"
-
-    def action_delete_payment_from_wizard(self):
-        self.ensure_one()
-        self.unlink()
