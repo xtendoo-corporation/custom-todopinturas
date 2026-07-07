@@ -16,6 +16,7 @@
         'security/ir.model.access.csv',
         'wizard/pos_payment_selection_wizard_views.xml',
         'views/pos_order_views.xml',
+        'views/res_partner_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

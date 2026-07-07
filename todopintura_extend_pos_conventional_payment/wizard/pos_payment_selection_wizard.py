@@ -21,7 +21,6 @@ class PosPaymentSelectionWizard(models.TransientModel):
         ('invoice', 'Factura A4'),
         ('delivery', 'Albarán'),
         ('deposit', 'Depósito'),
-        ('credit', 'Crédito'),
     ], string="¿Qué desea hacer?", default='ticket')
 
     payment_type = fields.Selection([
@@ -46,10 +45,15 @@ class PosPaymentSelectionWizard(models.TransientModel):
     partner_credit_available = fields.Boolean(related="order_id.partner_credit_available")
     partner_credit_limit_exceeded = fields.Boolean(compute="_compute_credit_status")
 
+    # Campos de detalle de crédito para avisos
+    partner_credit_limit = fields.Monetary(related="order_id.partner_credit_limit_amount")
+    partner_current_due = fields.Monetary(related="order_id.partner_current_total_due")
+    partner_total_due_after = fields.Monetary(related="order_id.partner_total_due_after_order")
+
     @api.depends('order_id', 'operation_type')
     def _compute_credit_status(self):
         for wizard in self:
-            if wizard.operation_type == 'credit':
+            if wizard.operation_type == 'delivery':
                 policy = wizard.order_id._get_conventional_credit_policy_data()
                 wizard.partner_credit_limit_exceeded = policy.get('limit_exceeded', False)
             else:
@@ -170,7 +174,7 @@ class PosPaymentSelectionWizard(models.TransientModel):
              self.order_id.write({
                 'to_invoice': True,
                 'is_a4_invoice': True,
-                'is_l10n_es_simplified_invoice': False,
+                'is_l100n_es_simplified_invoice': False,
             })
 
         return self.order_id.action_pos_convention_pay_with_method(payment_method_id)
@@ -226,6 +230,9 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
     def action_albaran(self):
         self.ensure_one()
+        policy = self.order_id._get_conventional_credit_policy_data()
+        if policy["needs_limit_override"]:
+            raise UserError(_("El cliente ha superado su límite de riesgo. No se puede confirmar el pedido."))
         # El albarán también es directo, no pasa por pagos
         # Forzamos que salte a un nuevo pedido sin mostrar advertencia de falta de pago
         return self.order_id.with_context(skip_payment_warning=True).action_pay_account()
@@ -237,46 +244,21 @@ class PosPaymentSelectionWizard(models.TransientModel):
         return self.order_id.with_context(skip_payment_warning=True).action_pay_deposit()
 
     def action_credito(self):
-        self.ensure_one()
-        # Forzamos que salte a un nuevo pedido sin mostrar advertencia de falta de pago
-        # Odoo 19 usa el contexto 'skip_payment_warning' en la vista para ocultar el aviso
-        return self.order_id.with_context(skip_payment_warning=True).action_pay_account()
+        return self.action_albaran()
 
     def confirm_payment_wizard_credit(self):
         """Metodo llamado tras aprobar un override de credito"""
-        return self.action_credito()
+        return self.action_albaran()
 
     def action_confirm(self):
         self.ensure_one()
         _logger.info("Confirmando pago en wizard. Tipo operacion: %s", self.operation_type)
 
-        if self.operation_type == 'credit':
+        if self.operation_type == 'delivery':
             policy = self.order_id._get_conventional_credit_policy_data(allow_limit_override=self.env.context.get("allow_limit_override"))
             _logger.info("Política de crédito: %s", policy)
             if policy["needs_limit_override"]:
-                _logger.info("Necesita override de crédito. Abriendo wizard de aviso.")
-                # Mostramos un aviso que permite continuar o no
-                message = _(
-                    "El crdito de este cliente es %(limit).2f y ya se ha pasado.\nDeuda actual: %(current).2f\nEste pedido: %(sale).2f\nTotal tras pedido: %(total).2f\n\nQuiere continuar con la venta?"
-                ) % {
-                    "limit": policy["credit_limit"],
-                    "current": policy["current_due"],
-                    "sale": policy["order_amount"],
-                    "total": policy["total_after"],
-                }
-                action = self.env.ref("todopintura_extend_pos_conventional.action_pos_conventional_credit_override_wizard").read()[0]
-                action["context"] = {
-                    **self.env.context,
-                    "default_order_id": self.order_id.id,
-                    "default_payment_wizard_id": "%s,%s" % (self._name, self.id),
-                    "default_warning_message": message,
-                    "default_resume_action": "confirm_payment_wizard_credit",
-                    "default_current_due": policy["current_due"],
-                    "default_credit_limit": policy["credit_limit"],
-                    "default_payment_amount": policy["order_amount"],
-                    "default_total_after": policy["total_after"],
-                }
-                return action
+                raise UserError(_("El cliente ha superado su límite de riesgo. No se puede confirmar el pedido."))
 
         # Aplicamos la configuración del pedido según el tipo de operación
         if self.operation_type == 'ticket':
@@ -333,8 +315,6 @@ class PosPaymentSelectionWizard(models.TransientModel):
         elif self.operation_type == 'deposit':
             return self.action_deposito()
 
-        elif self.operation_type == 'credit':
-            return self.action_credito()
 
     def action_add_payment(self):
         self.ensure_one()
