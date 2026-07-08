@@ -9,6 +9,7 @@
     "license": "LGPL-3",
     "depends": [
         "todopintura_extend_pos_conventional",
+        "pos_conventional_payment_wizard",
     ],
     "data": [
         "security/ir.model.access.csv",
@@ -26,4 +27,3 @@
     "application": False,
     "auto_install": False,
 }
-

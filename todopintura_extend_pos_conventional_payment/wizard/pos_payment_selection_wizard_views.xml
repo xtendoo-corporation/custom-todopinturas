@@ -1,24 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_pos_payment_selection_list" model="ir.ui.view">
-        <field name="name">pos.payment.selection.list</field>
+    <record id="view_pos_payment_selection_list_wizard" model="ir.ui.view">
+        <field name="name">pos.payment.selection.list.wizard</field>
         <field name="model">pos.payment</field>
+        <field name="priority">1</field>
         <field name="arch" type="xml">
             <list create="0" edit="0" delete="0" class="o_list_table_compact">
                 <field name="payment_method_id" string="Método"/>
-                <field name="amount" sum="Total" string="Importe"/>
+                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" string="Cantidad"/>
+                <field name="currency_id" column_invisible="True"/>
                 <button name="action_delete_payment_from_wizard" icon="fa-trash" type="object" class="text-danger" title="Eliminar"/>
             </list>
         </field>
     </record>
 
-    <record id="view_pos_deposit_payment_wizard_payment_line_list" model="ir.ui.view">
-        <field name="name">pos.deposit.payment.wizard.payment.line.list</field>
+    <record id="view_pos_deposit_payment_wizard_payment_line_list_wizard" model="ir.ui.view">
+        <field name="name">pos.deposit.payment.wizard.payment.line.list.wizard</field>
         <field name="model">pos.deposit.payment.wizard.payment.line</field>
+        <field name="priority">1</field>
         <field name="arch" type="xml">
             <list create="0" edit="0" delete="0" class="o_list_table_compact">
                 <field name="payment_method_id" string="Método"/>
-                <field name="amount" sum="Total" string="Importe"/>
+                <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" string="Cantidad"/>
+                <field name="currency_id" column_invisible="True"/>
                 <button name="action_delete_payment_from_wizard" icon="fa-trash" type="object" class="text-danger" title="Eliminar"/>
             </list>
         </field>
@@ -48,7 +52,7 @@
                 <div class="container-fluid">
                     <div class="row">
                         <!-- Izquierda: Selecciones -->
-                        <div class="col-md-6 border-end">
+                        <div class="col-md-5 border-end">
                             <group string="¿Qué desea hacer?">
                                 <field name="operation_type" widget="radio" nolabel="1"
                                        options="{'horizontal': true}"
@@ -89,47 +93,53 @@
                         </div>
 
                         <!-- Derecha: Detalles del Pago -->
-                        <div class="col-md-6 px-4">
-                            <div invisible="operation_type != 'ticket' and operation_type != 'invoice'" class="text-center">
-                                <h3 class="mt-0">Resumen de Pago</h3>
-                                <hr/>
-                                <div class="mb-4">
-                                    <div class="row mb-2">
-                                        <div class="col-7 text-start">Total Pedido:</div>
-                                        <div class="col-5 text-end font-weight-bold">
-                                            <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-2" invisible="amount_paid == 0">
-                                        <div class="col-7 text-start">Pagado:</div>
-                                        <div class="col-5 text-end text-success">
-                                            <field name="amount_paid" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3 h4">
-                                        <div class="col-7 text-start text-primary">Total a Pagar:</div>
-                                        <div class="col-5 text-end text-primary font-weight-bold">
-                                            <field name="amount_due" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        <div class="col-md-7 ps-4">
+                            <group string="RESUMEN DE PAGO" invisible="operation_type != 'ticket' and operation_type != 'invoice'">
+                                <div class="w-100 px-2" colspan="2">
+                                    <!-- Fila: Total Pedido -->
+                                    <div class="row align-items-center mb-3 fw-bold text-uppercase" invisible="amount_paid == 0">
+                                        <div class="col-7">Total Pedido:</div>
+                                        <div class="col-5 text-end h4 mb-0">
+                                            <field name="amount_total" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
                                         </div>
                                     </div>
 
-                                    <div invisible="payment_type != 'cash'">
-                                        <div class="mt-4 p-3 bg-light rounded shadow-sm">
-                                            <div class="form-group row mb-2 align-items-center">
-                                                <label for="amount_tendered" class="col-5 o_form_label py-0" style="font-size: 1.2rem;">Entregado:</label>
-                                                <div class="col-7 d-flex align-items-baseline">
-                                                    <field name="amount_tendered" id="amount_tendered" widget="float" class="text-end h2 mb-0 flex-grow-1" style="font-weight: bold; border-bottom: 2px solid #dee2e6; border-top: 0; border-left: 0; border-right: 0; background: transparent; outline: none;"/>
-                                                    <span class="ms-2 h3 mb-0" style="font-weight: bold;"><field name="currency_symbol" nolabel="1"/></span>
-                                                </div>
+                                    <!-- Fila: Pagado -->
+                                    <div class="row align-items-center mb-3 fw-bold text-uppercase text-success" invisible="amount_paid == 0">
+                                        <div class="col-7">Pagado:</div>
+                                        <div class="col-5 text-end h4 mb-0">
+                                            <field name="amount_paid" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                                        </div>
+                                    </div>
+
+                                    <!-- Fila: Total a Pagar -->
+                                    <div class="row align-items-center mb-4 fw-bold text-uppercase">
+                                        <div class="col-7">Total a Pagar:</div>
+                                        <div class="col-5 text-end h4 mb-0">
+                                            <field name="amount_due" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
+                                        </div>
+                                    </div>
+
+                                    <div invisible="payment_type != 'cash'" class="mt-4 pt-4 border-top">
+                                        <!-- Fila: Importe Entregado (Editable) -->
+                                        <div class="row align-items-center mb-4 fw-bold text-uppercase">
+                                            <div class="col-7">Importe Entregado:</div>
+                                            <div class="col-5 text-end d-flex align-items-center justify-content-end h4 mb-0">
+                                                <field name="amount_tendered" nolabel="1"
+                                                       widget="float"
+                                                       options="{'digits': [16, 2]}"
+                                                       class="fw-bold text-end h4 mb-0"
+                                                       style="width: 120px; border: none; border-bottom: 2px solid #dee2e6; background: transparent; outline: none; padding-right: 5px;"/>
+                                                <span class="fw-bold ms-1">€</span>
                                             </div>
-                                            <div class="row h3 mb-0 mt-2" invisible="amount_change == 0">
-                                                <div class="col-7 text-start">
-                                                    <span>Cambio / Restante:</span>
-                                                </div>
-                                                <div class="col-5 text-end font-weight-bold">
-                                                    <field name="amount_change" invisible="amount_change &lt;= 0" style="color: red;"/>
-                                                    <field name="amount_change_abs" invisible="amount_change &gt; 0" style="color: green;"/>
-                                                </div>
+                                        </div>
+
+                                        <!-- Fila: Cambio -->
+                                        <div class="row align-items-center fw-bold text-uppercase" invisible="amount_change == 0">
+                                            <div class="col-7">Cambio / Restante:</div>
+                                            <div class="col-5 text-end">
+                                                <field name="amount_change" nolabel="1" invisible="amount_change &lt;= 0" widget="monetary" options="{'currency_field': 'currency_id'}" style="color: red; font-size: 1.6rem;"/>
+                                                <field name="amount_change_abs" nolabel="1" invisible="amount_change > 0" widget="monetary" options="{'currency_field': 'currency_id'}" style="color: green; font-size: 1.6rem;"/>
                                             </div>
                                         </div>
                                     </div>
@@ -138,28 +148,34 @@
                                         <div class="mt-3">
                                             <div class="o_payment_list mb-3" style="max-height: 200px; overflow-y: auto;">
                                                 <field name="payment_line_ids" nolabel="1" invisible="deposit_wizard_id"
-                                                       context="{'tree_view_ref': 'todopintura_extend_pos_conventional_payment.view_pos_payment_selection_list'}"/>
+                                                       context="{'tree_view_ref': 'todopintura_extend_pos_conventional_payment.view_pos_payment_selection_list_wizard'}"/>
                                                 <field name="deposit_payment_line_ids" nolabel="1" invisible="not deposit_wizard_id"
-                                                       context="{'tree_view_ref': 'todopintura_extend_pos_conventional_payment.view_pos_deposit_payment_wizard_payment_line_list'}"/>
+                                                       context="{'tree_view_ref': 'todopintura_extend_pos_conventional_payment.view_pos_deposit_payment_wizard_payment_line_list_wizard'}"/>
                                             </div>
 
-                                            <div class="p-2 border rounded bg-light shadow-sm">
-                                                <div class="row align-items-center g-2">
+                                            <div class="p-3 border rounded bg-white shadow-sm">
+                                                <div class="row align-items-center g-3">
                                                     <div class="col-6">
-                                                        <field name="selected_payment_method_id" options="{'no_create': True, 'no_open': True}" placeholder="Método..."/>
+                                                        <field name="selected_payment_method_id" options="{'no_create': True, 'no_open': True}"
+                                                               placeholder="Método..." class="w-100 h4 mb-0"/>
                                                     </div>
-                                                    <div class="col-4">
-                                                        <field name="payment_amount" nolabel="1" class="text-end font-weight-bold"/>
+                                                    <div class="col-4 d-flex align-items-center justify-content-end border-bottom">
+                                                        <field name="payment_amount" nolabel="1"
+                                                               widget="float"
+                                                               options="{'digits': [16, 2]}"
+                                                               class="fw-bold text-end h4 mb-0 w-100"
+                                                               style="border: none; background: transparent; outline: none;"/>
+                                                        <span class="fw-bold ms-1 h4 mb-0">€</span>
                                                     </div>
                                                     <div class="col-2">
-                                                        <button name="action_add_payment" string="+" type="object" class="btn btn-primary w-100 p-1"/>
+                                                        <button name="action_add_payment" string="+" type="object" class="btn btn-primary w-100 h4 mb-0 py-2"/>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </group>
 
                             <div invisible="operation_type != 'delivery'" class="text-center py-5">
                                 <i class="fa fa-truck fa-5x text-muted mb-3"/>
