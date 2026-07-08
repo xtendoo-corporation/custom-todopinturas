@@ -58,42 +58,40 @@
         <xpath expr="//td[@name='td_sm_total']" position="replace">
             <td t-if="o.env.context.get('force_valued_picking') or ('valued_picking' in o.partner_id._fields and o.partner_id.valued_picking)"
                 name="td_sm_total" class="text-end">
-                <span t-esc="move._get_conventional_report_line_total(move.product_uom_qty)"
+                <span t-esc="move._get_conventional_report_line_total_included()"
                       t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
             </td>
         </xpath>
 
         <xpath expr="//div[@t-if='not o.signature']" position="before">
-            <div t-if="o.env.context.get('force_valued_picking')" class="clearfix" style="margin-top: 1rem;">
+            <div t-if="o.env.context.get('force_valued_picking') or o.partner_id.delivery_report_print_type == 'valued'" class="clearfix" style="margin-top: 1rem;">
                 <t t-set="report_totals" t-value="o._get_conventional_report_totals()"/>
                 <div class="row">
-                    <div class="col-6"/>
-                    <div class="col-6">
-                        <div class="table-responsive">
-                            <table class="table table-sm" style="page-break-inside: avoid;">
-                                <tr class="border-black">
-                                    <td class="text-end"><strong>Subtotal</strong></td>
-                                    <td class="text-end">
-                                        <span t-esc="report_totals['subtotal']"
-                                              t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="text-end"><strong>IVA (21%)</strong></td>
-                                    <td class="text-end">
-                                        <span t-esc="report_totals['tax']"
-                                              t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
-                                    </td>
-                                </tr>
-                                <tr class="border-black o_total">
-                                    <td class="text-end"><strong>Total con IVA</strong></td>
-                                    <td class="text-end">
-                                        <span t-esc="report_totals['total']"
-                                              t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
+                    <div class="col-7"/>
+                    <div class="col-5">
+                        <table class="table table-sm" style="page-break-inside: avoid;">
+                            <tr class="border-black">
+                                <td><strong>Base imponible</strong></td>
+                                <td class="text-end">
+                                    <span t-esc="report_totals['subtotal']"
+                                          t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Impuestos</strong></td>
+                                <td class="text-end">
+                                    <span t-esc="report_totals['tax']"
+                                          t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                                </td>
+                            </tr>
+                            <tr class="border-black o_total">
+                                <td><strong>Total albarán</strong></td>
+                                <td class="text-end">
+                                    <span t-esc="report_totals['total']"
+                                          t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -119,7 +117,7 @@
         <xpath expr="//td[@name='td_sml_total']" position="replace">
             <td t-if="o.env.context.get('force_valued_picking') or ('valued_picking' in o.partner_id._fields and o.partner_id.valued_picking)"
                 name="td_sml_total" class="text-center">
-                <span t-esc="move_line.move_id._get_conventional_report_line_total(move_line.quantity)"
+                <span t-esc="move_line.move_id._get_conventional_report_line_total_included(quantity=move_line.quantity)"
                       t-options='{"widget": "monetary", "display_currency": env.company.currency_id}'/>
             </td>
         </xpath>

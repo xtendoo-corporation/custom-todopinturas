@@ -40,14 +40,16 @@ class StockPicking(models.Model):
 
     def _get_conventional_report_totals(self):
         self.ensure_one()
-        subtotal = sum(
-            move._get_conventional_report_line_total()
-            for move in self.move_ids.filtered(lambda move: move.product_uom_qty)
-        )
+        total_untaxed = 0.0
+        total_included = 0.0
+        for move in self.move_ids.filtered(lambda m: m.product_uom_qty):
+            total_untaxed += move._get_conventional_report_line_total()
+            total_included += move._get_conventional_report_line_total_included()
+
         return {
-            "subtotal": subtotal,
-            "tax": subtotal * 0.21,
-            "total": subtotal * 1.21,
+            "subtotal": total_untaxed,
+            "tax": total_included - total_untaxed,
+            "total": total_included,
         }
 
 
@@ -102,3 +104,35 @@ class StockMove(models.Model):
         self.ensure_one()
         qty = quantity if quantity is not None else self._get_conventional_report_quantity()
         return self._get_conventional_report_discounted_price() * qty
+
+    def _get_conventional_report_line_total_included(self, quantity=None):
+        self.ensure_one()
+        source_line = self._get_conventional_report_source_line()
+        if not source_line:
+            return 0.0
+
+        qty = quantity if quantity is not None else self._get_conventional_report_quantity()
+        price_unit = self._get_conventional_report_price_unit()
+        discount = self._get_conventional_report_discount()
+        price_reduce = price_unit * (1 - (discount or 0.0) / 100.0)
+
+        if source_line._name == "sale.order.line":
+            taxes = source_line.tax_ids.compute_all(
+                price_reduce,
+                source_line.order_id.currency_id,
+                qty,
+                product=source_line.product_id,
+                partner=source_line.order_id.partner_shipping_id,
+            )
+            return taxes["total_included"]
+        elif source_line._name == "pos.order.line":
+            taxes = source_line.tax_ids.compute_all(
+                price_reduce,
+                source_line.order_id.currency_id,
+                qty,
+                product=source_line.product_id,
+                partner=source_line.order_id.partner_id,
+            )
+            return taxes["total_included"]
+
+        return self._get_conventional_report_line_total(quantity=qty)

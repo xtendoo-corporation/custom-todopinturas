@@ -389,6 +389,30 @@ class PosPaymentSelectionWizard(models.TransientModel):
             if policy["needs_limit_override"]:
                 raise UserError(_("El cliente ha superado su límite de riesgo. No se puede confirmar el pedido."))
 
+            # Determinar si imprimir albarán estándar o valorado según la config del cliente
+            is_valued = (
+                self.partner_id.delivery_report_print_type == 'valued' or
+                (hasattr(self.partner_id, 'valued_picking') and self.partner_id.valued_picking)
+            )
+            context = dict(self.env.context, skip_conventional_picking_print=True)
+            if is_valued:
+                context['force_valued_picking'] = True
+
+            action = self.order_id.with_context(**context).action_pay_account()
+
+            # Si action_pay_account devolvió un ir.actions.client con url, lo capturamos
+            # Nota: action_pay_account ya valida los pickings.
+            pickings = self.order_id._get_conventional_reprint_pickings()
+            if pickings:
+                report_ref = (
+                    "todopintura_extend_pos_conventional.action_custom_delivery_report_valued"
+                    if is_valued else
+                    "todopintura_administration.action_custom_delivery_report"
+                )
+                return self.env.ref(report_ref).report_action(pickings)
+
+            return action
+
         # Aplicamos la configuración del pedido según el tipo de operación
         if self.operation_type == 'ticket':
             self.order_id.write({
