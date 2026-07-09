@@ -45,15 +45,14 @@
                 <field name="partner_deposit_location_names" invisible="1"/>
                 <field name="partner_deposit_warning_message" invisible="1"/>
             </xpath>
-            <xpath expr="//div[hasclass('alert', 'alert-info') and @role='status']" position="attributes">
+            <xpath expr="//div[hasclass('alert') and @role='status']" position="attributes">
                 <attribute name="invisible">not partner_id or is_linked_to_sale</attribute>
             </xpath>
-            <xpath expr="//div[hasclass('d-flex', 'align-items-center', 'gap-3', 'small', 'flex-nowrap', 'overflow-auto')]" position="inside">
-                <div class="text-nowrap">
-                    <span class="fw-semibold">Depósito:</span>
-                    <span invisible="partner_deposit_enabled">No</span>
-                    <span invisible="not partner_deposit_enabled or not partner_deposit_available">Sí</span>
-                    <span invisible="not partner_deposit_enabled or partner_deposit_available">No en esta tienda</span>
+            <xpath expr="//div[@name='credit_info_row']" position="inside">
+                <div class="text-nowrap" invisible="not partner_deposit_enabled">
+                    · <span class="fw-semibold">Depósito:</span>
+                    <span invisible="not partner_deposit_available">Sí</span>
+                    <span invisible="partner_deposit_available">No en esta tienda</span>
                     <span invisible="not partner_deposit_location_names"> · Tiendas <field name="partner_deposit_location_names" readonly="1" nolabel="1"/></span>
                     <span invisible="not partner_deposit_warning_message"> · Aviso <field name="partner_deposit_warning_message" readonly="1" nolabel="1"/></span>
                 </div>
