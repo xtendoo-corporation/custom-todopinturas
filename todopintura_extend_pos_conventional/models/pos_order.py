@@ -177,20 +177,6 @@ class PosOrder(models.Model):
     def action_view_settled_orders(self):
         return True
 
-    def init(self):
-        super().init()
-        self.env.cr.execute("""
-            UPDATE ir_ui_view
-            SET active = false
-            WHERE id IN (
-                SELECT md.res_id
-                FROM ir_model_data md
-                JOIN ir_module_module m ON m.name = md.module
-                WHERE md.model = 'ir.ui.view'
-                  AND m.state != 'installed'
-            )
-        """)
-
     is_a4_invoice = fields.Boolean(
         string="Factura A4",
         default=False,
@@ -425,7 +411,6 @@ class PosOrder(models.Model):
                 )
 
     def _format_pickup_people_inline(self, pickup_people):
-        self.ensure_one()
         if not pickup_people:
             return False
         parts = [part.strip() for part in pickup_people.splitlines() if part.strip()]
@@ -1007,6 +992,81 @@ class SaleOrder(models.Model):
 
     pos_order_ids = fields.One2many('pos.order', 'linked_sale_order_id', string='Pedidos POS')
     pos_observations = fields.Text(string='Observaciones', compute='_compute_pos_observations')
+    partner_pickup_persons_display = fields.Text(
+        string="Autorizados de recogida",
+        compute="_compute_partner_info_alerts",
+    )
+    partner_pickup_persons_inline = fields.Char(
+        string="Autorizados de recogida (resumen)",
+        compute="_compute_partner_info_alerts",
+    )
+    partner_requires_voucher = fields.Boolean(
+        string="Necesita vale",
+        compute="_compute_partner_info_alerts",
+    )
+    partner_voucher_reference = fields.Char(
+        string="Código / documento del vale",
+        compute="_compute_partner_info_alerts",
+    )
+    partner_current_total_due = fields.Monetary(
+        string="Deuda POS pendiente",
+        compute="_compute_partner_info_alerts",
+        currency_field="currency_id",
+    )
+    partner_credit_limit_amount = fields.Monetary(
+        string="Límite de riesgo",
+        compute="_compute_partner_info_alerts",
+        currency_field="currency_id",
+    )
+    partner_total_due_after_order = fields.Monetary(
+        string="Deuda tras el pedido",
+        compute="_compute_partner_info_alerts",
+        currency_field="currency_id",
+    )
+    partner_credit_warning_message = fields.Text(
+        string="Aviso de crédito",
+        compute="_compute_partner_info_alerts",
+    )
+
+    @api.depends('partner_id', 'amount_total')
+    def _compute_partner_info_alerts(self):
+        for order in self:
+            partner = order.partner_id.commercial_partner_id
+            order.partner_pickup_persons_display = partner._get_conventional_pickup_people_display() if partner else False
+            order.partner_pickup_persons_inline = order._format_pickup_people_inline(order.partner_pickup_persons_display)
+            order.partner_requires_voucher = partner._uses_conventional_voucher() if partner else False
+            order.partner_voucher_reference = partner._get_conventional_voucher_reference() if partner else False
+
+            # Crédito (reutilizando lógica si es posible, o simplificada para SaleOrder)
+            order.partner_current_total_due = 0.0
+            order.partner_credit_limit_amount = 0.0
+            order.partner_total_due_after_order = 0.0
+            order.partner_credit_warning_message = False
+
+            if partner:
+                # Nota: _get_conventional_total_due requiere config_id en pos.order,
+                # pero en sale.order no tenemos config_id.
+                # Usaremos una versión genérica si está disponible en el partner.
+                order.partner_current_total_due = partner._get_conventional_total_due()
+                order.partner_credit_limit_amount = partner._get_conventional_credit_limit()
+                order.partner_total_due_after_order = order.partner_current_total_due + order.amount_total
+
+                # Para el mensaje de aviso, podemos intentar llamar a una versión similar
+                # o construirlo aquí si es crítico.
+                # Por ahora, al menos mostramos los datos básicos.
+                if order.partner_credit_limit_amount > 0 and order.partner_total_due_after_order > order.partner_credit_limit_amount:
+                    order.partner_credit_warning_message = _(
+                        "La deuda proyectada (%(total).2f) supera el límite de riesgo (%(limit).2f)."
+                    ) % {
+                        'total': order.partner_total_due_after_order,
+                        'limit': order.partner_credit_limit_amount,
+                    }
+
+    def _format_pickup_people_inline(self, pickup_people):
+        if not pickup_people:
+            return False
+        parts = [part.strip() for part in pickup_people.splitlines() if part.strip()]
+        return ", ".join(parts) or pickup_people.strip()
 
     @api.depends('pos_order_ids.pos_observations')
     def _compute_pos_observations(self):
@@ -1027,6 +1087,4 @@ class AccountMoveLine(models.Model):
         string="Tienda de recogida",
         help="Tienda desde la que se servirá esta línea de factura creada desde POS.",
     )
-
-
 
