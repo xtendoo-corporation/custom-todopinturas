@@ -74,7 +74,7 @@
     <record id="view_pos_order_form_inherit_credit_policy_panel" model="ir.ui.view">
         <field name="name">pos.order.form.inherit.credit.policy.panel</field>
         <field name="model">pos.order</field>
-        <field name="priority">110</field>
+        <field name="priority">2001</field>
         <field name="inherit_id" ref="pos_conventional_core.view_pos_pos_form_inherit_pos_conventional_core" />
         <field name="arch" type="xml">
             <!-- Insertar campos técnicos al final del sheet -->
@@ -93,13 +93,13 @@
                 <field name="partner_credit_location_names" invisible="1" />
             </xpath>
 
-            <!-- Insertar avisos arriba del título (oe_title) que es lo que crea pos_conventional_core -->
-            <xpath expr="//div[hasclass('oe_title')] | //group[@name='order_fields']" position="before">
+            <!-- Insertar avisos arriba del todo en el sheet para máxima visibilidad y evitar conflictos de XPath -->
+            <xpath expr="//form/sheet/*[1]" position="before">
                 <!-- Bloque Unificado de Avisos -->
                 <div class="alert alert-warning mb-2"
                     name="credit_alert_container"
                     role="alert"
-                    invisible="not partner_id or (not partner_requires_voucher and not partner_pickup_persons_display and partner_credit_warning_message == False and partner_current_total_due == 0 and partner_credit_limit_amount == 0)">
+                    invisible="not partner_id">
 
                     <!-- Fila 1: Vale y Autorizados -->
                     <div class="d-flex align-items-center gap-3"
