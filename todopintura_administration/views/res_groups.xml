@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Grupo para permitir edición de precios en TPV desde el backend -->
+    <record id="group_pos_price_editor" model="res.groups">
+        <field name="name">POS Price Editor</field>
+        <!-- 'category_id' no es un campo válido en res.groups en esta versión de Odoo; lo eliminamos -->
+    </record>
+</odoo>
+

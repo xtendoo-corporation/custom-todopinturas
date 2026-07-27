@@ -4,7 +4,7 @@ import logging
 import json
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, AccessError
 from odoo.tools.translate import _
 from odoo.tools import float_compare
 
@@ -805,6 +805,53 @@ class PosOrder(models.Model):
             "target": "current",
         }
 
+    def _order_line_commands_have_protected(self, commands):
+        """Detecta en una lista de comandos one2many si se están modificando
+        o creando valores protegidos (price_unit, discount).
+        """
+        protected = {"price_unit", "discount"}
+        if not commands:
+            return False
+        for cmd in commands:
+            if not isinstance(cmd, (list, tuple)):
+                continue
+            if len(cmd) < 2:
+                continue
+            kind = cmd[0]
+            # Crear (0, 0, vals) o actualizar (1, id, vals)
+            if kind in (0, 1):
+                vals = cmd[2] if len(cmd) > 2 and isinstance(cmd[2], dict) else {}
+                if any(f in vals for f in protected):
+                    return True
+        return False
+
+    def write(self, vals):
+        # Si se intentan modificar líneas con precio desde el formulario/one2many,
+        # bloquear si el usuario no tiene permiso.
+        # Exenciones: si la operación forma parte de una actualización de pricelist
+        # (por ejemplo el propio cambio de pricelist en la orden) permitimos el cambio.
+        is_pricelist_update = bool(vals.get('pricelist_id') or vals.get('pricelist')) or bool(self.env.context.get('pricelist_update') or self.env.context.get('from_pricelist') or self.env.context.get('allow_price_update'))
+        if not is_pricelist_update:
+            if "lines" in vals and self._order_line_commands_have_protected(vals.get("lines")):
+                if not getattr(self.env.user, "pos_can_edit_price", False):
+                    raise AccessError(_("No tiene permisos para cambiar precios en TPV."))
+            if "order_line" in vals and self._order_line_commands_have_protected(vals.get("order_line")):
+                if not getattr(self.env.user, "pos_can_edit_price", False):
+                    raise AccessError(_("No tiene permisos para cambiar precios en TPV."))
+        return super(PosOrder, self).write(vals)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            is_pricelist_update = bool(vals.get('pricelist_id') or vals.get('pricelist')) or bool(self.env.context.get('pricelist_update') or self.env.context.get('from_pricelist') or self.env.context.get('allow_price_update'))
+            if not is_pricelist_update:
+                if "lines" in vals and self._order_line_commands_have_protected(vals.get("lines")):
+                    if not getattr(self.env.user, "pos_can_edit_price", False):
+                        raise AccessError(_("No tiene permisos para crear líneas con precio modificado en TPV."))
+                if "order_line" in vals and self._order_line_commands_have_protected(vals.get("order_line")):
+                    if not getattr(self.env.user, "pos_can_edit_price", False):
+                        raise AccessError(_("No tiene permisos para crear líneas con precio modificado en TPV."))
+        return super(PosOrder, self).create(vals_list)
 
     def _get_invoice_lines_values(self, line_values, pos_line, move_type):
         res = super()._get_invoice_lines_values(line_values, pos_line, move_type)

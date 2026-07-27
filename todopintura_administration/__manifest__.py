@@ -27,6 +27,7 @@
         'views/res_partner_views.xml',
         'views/stock_orderpoint_views.xml',
         'views/res_users_views.xml',
+        'views/res_groups.xml',
         'views/stock_warehouse_views.xml',
         'views/stock_min_date_views.xml',
         'views/report_invoice_document_custom.xml',
