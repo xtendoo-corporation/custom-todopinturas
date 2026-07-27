@@ -203,6 +203,7 @@
             </xpath>
             <xpath expr="//field[@name='pricelist_id']" position="after">
                 <field name="is_a4_invoice" widget="boolean_toggle" invisible="state != 'draft'"/>
+                <field name="origin_warehouse_id" readonly="1" options="{'no_open': True}" string="Almacén TPV"/>
             </xpath>
         </field>
     </record>
