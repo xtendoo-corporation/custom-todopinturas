@@ -65,6 +65,8 @@ class PosPaymentSelectionWizard(models.TransientModel):
     partner_deposit_warning_message = fields.Text(compute="_compute_basic_fields", store=True)
     partner_credit_available = fields.Boolean(compute="_compute_basic_fields", store=True)
     partner_credit_limit_exceeded = fields.Boolean(compute="_compute_credit_status")
+    # Guardamos el estado de crédito en el momento de apertura del wizard
+    partner_credit_available_at_open = fields.Boolean(string="Partner credit available at open", default=False, copy=False)
 
     # Campos de detalle de crédito para avisos
     partner_credit_limit = fields.Monetary(compute="_compute_basic_fields", store=True)
@@ -87,6 +89,10 @@ class PosPaymentSelectionWizard(models.TransientModel):
                 wizard.partner_credit_limit = order.partner_credit_limit_amount
                 wizard.partner_current_due = order.partner_current_total_due
                 wizard.partner_total_due_after = order.partner_total_due_after_order
+                # Inicializamos el flag solo la primera vez que se calcula para este wizard transient
+                if not wizard.partner_credit_available_at_open:
+                    # Guardamos el estado actual del crédito del partner al abrir el wizard
+                    wizard.partner_credit_available_at_open = bool(order.partner_credit_available)
             elif wizard.deposit_wizard_id:
                 dep_wiz = wizard.deposit_wizard_id
                 wizard.partner_id = dep_wiz.partner_id
@@ -100,6 +106,18 @@ class PosPaymentSelectionWizard(models.TransientModel):
                 wizard.partner_credit_limit = 0.0
                 wizard.partner_current_due = 0.0
                 wizard.partner_total_due_after = 0.0
+
+    @api.model
+    def create(self, vals):
+        # Aseguramos que al crear el wizard almacenamos el estado de crédito del partner
+        wiz = super(PosPaymentSelectionWizard, self).create(vals)
+        try:
+            if wiz.order_id:
+                wiz.partner_credit_available_at_open = bool(wiz.order_id.partner_credit_available)
+        except Exception:
+            # No hacemos nada si por alguna razón no está disponible
+            pass
+        return wiz
 
     @api.depends('order_id', 'operation_type')
     def _compute_credit_status(self):
@@ -315,13 +333,15 @@ class PosPaymentSelectionWizard(models.TransientModel):
             raise UserError(_("El cliente ha superado su límite de riesgo. No se puede confirmar el pedido."))
         # El albarán también es directo, no pasa por pagos
         # Forzamos que salte a un nuevo pedido sin mostrar advertencia de falta de pago
-        return self.order_id.with_context(skip_payment_warning=True).action_pay_account()
+        # Aseguramos que además se suprima la advertencia de crédito en el flujo cliente
+        return self.order_id.with_context(skip_payment_warning=True, skip_credit_cashier_warning=True).action_pay_account()
 
     def action_deposito(self):
         self.ensure_one()
         # El depósito es directo, usa la lógica del módulo original
         # Forzamos que salte a un nuevo pedido sin mostrar advertencia de falta de pago
-        return self.order_id.with_context(skip_payment_warning=True).action_pay_deposit()
+        # Incluimos también la clave de contexto de skip_credit_cashier_warning por coherencia
+        return self.order_id.with_context(skip_payment_warning=True, skip_credit_cashier_warning=True).action_pay_deposit()
 
     def action_credito(self):
         return self.action_albaran()
@@ -394,24 +414,17 @@ class PosPaymentSelectionWizard(models.TransientModel):
                 self.partner_id.delivery_report_print_type == 'valued' or
                 (hasattr(self.partner_id, 'valued_picking') and self.partner_id.valued_picking)
             )
-            context = dict(self.env.context, skip_conventional_picking_print=True)
+            # No forzamos skip_conventional_picking_print: delegamos en action_pay_account
+            # para que devuelva la acción cliente de impresión con next_action incluido.
+            context = dict(self.env.context)
             if is_valued:
                 context['force_valued_picking'] = True
+            # cuando venimos desde el wizard queremos suprimir el warning de crédito
+            context['skip_credit_cashier_warning'] = True
 
-            action = self.order_id.with_context(**context).action_pay_account()
-
-            # Si action_pay_account devolvió un ir.actions.client con url, lo capturamos
-            # Nota: action_pay_account ya valida los pickings.
-            pickings = self.order_id._get_conventional_reprint_pickings()
-            if pickings:
-                report_ref = (
-                    "todopintura_extend_pos_conventional.action_custom_delivery_report_valued"
-                    if is_valued else
-                    "todopintura_administration.action_custom_delivery_report"
-                )
-                return self.env.ref(report_ref).report_action(pickings)
-
-            return action
+            # Devolver la acción producida por action_pay_account, que imprimirá y
+            # luego disparará la acción de nuevo pedido (pos_conventional_new_order).
+            return self.order_id.with_context(**context).action_pay_account()
 
         # Aplicamos la configuración del pedido según el tipo de operación
         if self.operation_type == 'ticket':
