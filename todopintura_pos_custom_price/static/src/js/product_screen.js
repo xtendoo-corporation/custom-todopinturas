@@ -87,11 +87,28 @@ export class CustomPricePopup extends Dialog {
 patch(ProductScreen.prototype, {
     setup() {
         super.setup();
+        this.pos_user_can_edit_price = false;
         this.dialog = useService("dialog");
 
         // Usar onMounted para interceptar el barcode reader cuando todo esté listo
         onMounted(() => {
             const pos = this.env.services.pos;
+            // Cargar permisos desde el módulo todopintura_extend_pos_conventional
+            (async () => {
+                try {
+                    const res = await fetch('/todopintura_extend_pos_conventional/user_permissions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({}),
+                    });
+                    const data = await res.json();
+                    this.pos_user_can_edit_price = !!data.pos_can_edit_price;
+                    console.debug('[CUSTOM PRICE] pos_user_can_edit_price=', this.pos_user_can_edit_price);
+                } catch (e) {
+                    console.warn('[CUSTOM PRICE] No se pudo cargar permisos de usuario:', e);
+                    this.pos_user_can_edit_price = false;
+                }
+            })();
             if (pos && pos.barcodeReader) {
                 // Guardar referencia al método original
                 const originalScan = pos.barcodeReader.scan;
@@ -113,6 +130,11 @@ patch(ProductScreen.prototype, {
                             const product = products.find(p => p.barcode === searchCode || p.default_code === searchCode);
 
                             if (product) {
+                                // Si el usuario no tiene permiso, no mostramos el popup de precio
+                                if (!this.pos_user_can_edit_price) {
+                                    return originalScan.call(pos.barcodeReader, code);
+                                }
+
                                 const shouldShow = await this.shouldShowCustomPricePopup(product);
                                 if (shouldShow) {
                                     await this.showCustomPricePopup(product);
@@ -216,6 +238,12 @@ patch(ProductScreen.prototype, {
 
     async addProductWithCustomPrice(product, customPriceWithTax, discount) {
         const pos = this.env.services.pos;
+
+        // Protección cliente: si el usuario no tiene permiso, no permitir añadir con precio personalizado
+        if (!this.pos_user_can_edit_price) {
+            this.env.services.notification.add(_t('No tienes permiso para modificar precios en TPV'), { type: 'warning' });
+            return;
+        }
 
         if (!pos) {
             console.error('[CUSTOM PRICE] ❌ POS no disponible');

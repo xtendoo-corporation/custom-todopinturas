@@ -10,3 +10,8 @@ class ResUsers(models.Model):
         help='Almacén principal asociado al usuario',
     )
 
+    pos_can_edit_price = fields.Boolean(
+        string='Puede modificar precios en TPV',
+        default=False,
+        help='Permite al usuario cambiar manualmente el precio de líneas en el Punto de Venta',
+    )

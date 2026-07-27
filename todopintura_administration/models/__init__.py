@@ -7,3 +7,4 @@ from . import stock_count
 from . import stock_warehouse_orderpoint
 from . import res_users
 from . import stock_warehouse
+from . import pos_order_line_permissions

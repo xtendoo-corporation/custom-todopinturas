@@ -11,4 +11,5 @@ from . import product_pricelist_item
 from . import stock_location
 from . import stock_picking
 from . import pos_session
+from . import pos_order_line_permissions
 

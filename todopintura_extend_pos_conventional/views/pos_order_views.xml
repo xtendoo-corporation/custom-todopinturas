@@ -13,6 +13,19 @@
         </field>
     </record>
 
+    <!-- Forzar campo Fecha como solo lectura en POS Conventional -->
+    <record id="view_pos_order_form_readonly_date" model="ir.ui.view">
+        <field name="name">pos.order.form.inherit.readonly.date</field>
+        <field name="model">pos.order</field>
+        <field name="priority">125</field>
+        <field name="inherit_id" ref="pos_conventional_core.view_pos_pos_form_inherit_pos_conventional_core" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date_order']" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Recogida por línea del pedido -->
     <record id="view_pos_order_form_inherit_route_lines" model="ir.ui.view">
         <field name="name">pos.order.form.inherit.pickup.lines</field>
@@ -227,4 +240,21 @@
         </field>
     </record>
 
+    <!-- Forzar campo Fecha como solo lectura en POS Conventional -->
+    <record id="view_pos_order_form_readonly_date" model="ir.ui.view">
+        <field name="name">pos.order.form.inherit.readonly.date</field>
+        <field name="model">pos.order</field>
+        <field name="priority">125</field>
+        <field name="inherit_id" ref="pos_conventional_core.view_pos_pos_form_inherit_pos_conventional_core" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date_order']" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>
+
+
+
+

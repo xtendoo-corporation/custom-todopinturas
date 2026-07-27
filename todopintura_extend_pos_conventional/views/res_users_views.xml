@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista movida a todopintura_administration/res_users_views.xml
+         para asegurar que el campo pos_can_edit_price (definido en
+         todopintura_administration) se muestre correctamente en el formulario
+         de usuarios. Mantengo este archivo como marcador.
+    -->
+</odoo>
+
