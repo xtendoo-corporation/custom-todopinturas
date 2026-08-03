@@ -121,7 +121,7 @@
                             </tr>
                         </table>
                     </td>
-                    <td width="55%" style="font-size:9px;">
+                    <td width="55%" style="font-size:9px; position: relative;">
                         <strong>SEVILLA</strong>
                         <br/>
                         Pino Montano - C\/ Parque Torcal de Antequera, Esq. Parque de Grazalema. 41015 Sevilla - Tel.:
@@ -146,6 +146,7 @@
                         <br/>
                         Ayamonte - C\/ Río Tinto, 1. 21400 Ayamonte - Tel.: 959 101 254
                         <br/>
+                        <!-- Número de documento eliminado de la cabecera para evitar duplicados; se muestra encima de las fechas -->
                     </td>
                 </tr>
             </table>

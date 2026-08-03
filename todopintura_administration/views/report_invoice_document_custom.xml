@@ -12,6 +12,8 @@
                     <t t-call="todopintura_administration.report_delivery_header_footer"/>
 
                     <!-- El contenido de la factura debe estar dentro de main -->
+                    <!-- Nota: eliminada la inserción fija superior para evitar duplicados. El número se muestra
+                         únicamente encima del bloque de fechas mediante otra herencia de la plantilla base. -->
                     <main>
                         <t t-call="account.report_invoice_document" t-lang="lang"/>
                     </main>
@@ -31,4 +33,19 @@
         <field name="binding_model_id" ref="account.model_account_move"/>
         <field name="binding_type">report</field>
     </record>
+    <!-- Insertar número de factura justo por encima del bloque de fechas (informations) -->
+    <template id="report_invoice_number_above_date" inherit_id="account.report_invoice_document">
+            <xpath expr="//div[@id='informations']" position="before">
+            <!-- Ajuste: número de factura más visible y alineado a la izquierda -->
+            <div class="row mb-2" style="margin-top:4mm;">
+                <div class="col-12 text-start">
+                    <!-- Alineamos a la izquierda y hacemos el título más prominente -->
+                    <h1 t-if="o.name and o.name != '/'" style="margin:0; text-align:left; font-size:24px; font-weight:700; color:#000;">Factura Nº <span t-field="o.name"/></h1>
+                </div>
+            </div>
+        </xpath>
+    </template>
+    <!-- No eliminamos aquí el span del título original para evitar errores de herencia en instalaciones
+         donde otras personalizaciones hayan modificado previamente esa zona. -->
 </odoo>
+
