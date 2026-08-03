@@ -7,6 +7,11 @@
     "website": "http://www.xtendoo.es",
     'depends': ['base', 'product', 'contacts', 'stock', 'point_of_sale'],
     "license": "AGPL-3",
+    'assets': {
+        'web.assets_backend': [
+            'todopintura_administration/static/src/js/pricelist_line_filter.js',
+        ],
+    },
     "data": [
         'wizards/import_contacts_wizard_view.xml',
         'wizards/import_suppliers_wizard_view.xml',

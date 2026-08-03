@@ -25,6 +25,23 @@
                 <field name="price_discount" invisible="not compute_price == 'formula'" string="Desc %"
                        optional="show"/>
             </xpath>
+            <!-- Añadimos controles de filtrado inline antes de las líneas (filtro cliente-side mediante JS) -->
+            <xpath expr="//field[@name='item_ids']" position="before">
+                <!-- Placeholder container for the inline filter controls. JS will inject
+                     the inputs/buttons here at runtime so the view XML stays valid. -->
+                <div class="todopintura-pricelist-filter" style="margin-bottom:10px;"/>
+            </xpath>
+
+            <!-- No se añade botón en el header: el buscador inline se insertará antes del one2many -->
         </field>
     </record>
+
+    <!-- Acción que muestra las líneas de tarifa en una vista separada para permitir búsquedas por producto, plantilla o categoría -->
+    <record id="action_product_pricelist_item_lines_todopintura" model="ir.actions.act_window">
+        <field name="name">Líneas de Tarifa</field>
+        <field name="res_model">product.pricelist.item</field>
+        <field name="view_mode">tree,form</field>
+        <field name="target">current</field>
+    </record>
+
 </odoo>
