@@ -94,13 +94,14 @@ class ProductTemplate(models.Model):
                     ], limit=1)
                     if not exists:
                         try:
+                            # Crear la línea como ajuste porcentual (descuento 0%)
                             Item.create({
                                 'pricelist_id': pl.id,
                                 'product_tmpl_id': tmpl.id,
                                 'name': pl.name + ' - ' + (tmpl.name or ''),
                                 'applied_on': '1_product',
-                                'compute_price': 'fixed',
-                                'fixed_price': 0.0,
+                                'compute_price': 'percentage',
+                                'percent_price': 0.0,
                             })
                         except Exception:
                             # no bloquear la creación de productos si por algún motivo
