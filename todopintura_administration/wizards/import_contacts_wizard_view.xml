@@ -4,13 +4,24 @@
         <field name="name">import.contacts.wizard.form</field>
         <field name="model">import.contacts.wizard</field>
         <field name="arch" type="xml">
-            <form string="Importar Contactos">
-                <group>
+            <form string="Importar Clientes">
+                <field name="state" invisible="1"/>
+                <group invisible="state != 'upload'">
                     <field name="file" filename="file_name"/>
                 </group>
+                <div invisible="state != 'done'">
+                    <group>
+                        <field name="created_count" string="Clientes nuevos"/>
+                        <field name="updated_count" string="Clientes actualizados"/>
+                        <field name="error_count" string="Errores"/>
+                    </group>
+                    <separator string="Registro de importación"/>
+                    <field name="log" nolabel="1"/>
+                </div>
                 <footer>
-                    <button name="action_import_contacts" string="Importar" type="object" class="btn-primary"/>
-                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                    <button name="action_import_contacts" string="Importar" type="object" class="btn-primary" invisible="state != 'upload'"/>
+                    <button name="action_reset" string="Nueva importación" type="object" class="btn-secondary" invisible="state != 'done'"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>

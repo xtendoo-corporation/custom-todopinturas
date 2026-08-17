@@ -1,4 +1,7 @@
 import base64
+import io
+
+import openpyxl
 
 from odoo.tests.common import TransactionCase
 
@@ -40,7 +43,7 @@ class TestImportContactsWizard(TransactionCase):
         })
         country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
 
-        result = self.wizard._create_or_update_contact(1235, 'CLIENTE PRUEBA VAT', {
+        result, status = self.wizard._create_or_update_contact(1235, 'CLIENTE PRUEBA VAT', {
             'ref': 1235,
             'name': 'CLIENTE PRUEBA VAT',
             'street': 'NUEVA DIRECCION',
@@ -61,9 +64,29 @@ class TestImportContactsWizard(TransactionCase):
         ])
 
         self.assertEqual(result, contact)
+        self.assertEqual(status, 'updated')
         self.assertEqual(len(contacts), 1)
         self.assertEqual(contact.ref, '1235')
         self.assertEqual(contact.street, 'NUEVA DIRECCION')
+
+    def test_create_or_update_contact_creates_new_contact(self):
+        country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+
+        result, status = self.wizard._create_or_update_contact(9999, 'CLIENTE NUEVO', {
+            'ref': 9999,
+            'name': 'CLIENTE NUEVO',
+            'street': 'CALLE NUEVA',
+            'zip': '08021',
+            'country_id': country.id,
+            'phone': '934652558',
+            'vat': '',
+            'email': 'nuevo@example.com',
+            'comment': '',
+            'is_company': True,
+        })
+
+        self.assertEqual(status, 'created')
+        self.assertEqual(result.name, 'CLIENTE NUEVO')
 
     def test_find_existing_contact_by_iban(self):
         contact = self.env['res.partner'].create({
@@ -83,4 +106,64 @@ class TestImportContactsWizard(TransactionCase):
         self.assertIsNone(self.wizard._parse_credit_limit('            '))
         self.assertIsNone(self.wizard._parse_credit_limit(''))
         self.assertEqual(self.wizard._parse_credit_limit('2223.75'), 2223.75)
+
+    @staticmethod
+    def _build_xlsx(rows):
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(['NUMERO CLIENTE', 'NOMBRE DE CLIENTE', 'DIRECCION', 'CODIGO POSTAL',
+                   'TELEFONO 1', 'TELEFONO 2', 'DNI O CFIF'])
+        for row in rows:
+            ws.append(row)
+        buf = io.BytesIO()
+        wb.save(buf)
+        return buf.getvalue()
+
+    def test_action_import_contacts_creates_then_updates_without_duplicating(self):
+        xlsx_data = self._build_xlsx([
+            [5001, 'CLIENTE UNO', 'CALLE UNO', 41001, 954000001, 0, '11111111H'],
+            [5002, 'CLIENTE DOS', 'CALLE DOS', 41002, 954000002, 0, '22222222J'],
+        ])
+
+        first_wizard = self.env['import.contacts.wizard'].create({
+            'file': base64.b64encode(xlsx_data),
+            'file_name': 'clientes.xlsx',
+        })
+        first_wizard.action_import_contacts()
+
+        self.assertEqual(first_wizard.state, 'done')
+        self.assertEqual(first_wizard.created_count, 2)
+        self.assertEqual(first_wizard.updated_count, 0)
+        self.assertEqual(first_wizard.error_count, 0)
+        self.assertIn('CLIENTE UNO', first_wizard.log)
+
+        second_wizard = self.env['import.contacts.wizard'].create({
+            'file': base64.b64encode(xlsx_data),
+            'file_name': 'clientes.xlsx',
+        })
+        second_wizard.action_import_contacts()
+
+        self.assertEqual(second_wizard.created_count, 0)
+        self.assertEqual(second_wizard.updated_count, 2)
+
+        contacts = self.env['res.partner'].search([
+            ('ref', 'in', ['5001', '5002']),
+            ('is_company', '=', True),
+        ])
+        self.assertEqual(len(contacts), 2)
+
+    def test_action_reset_clears_state_and_file(self):
+        xlsx_data = self._build_xlsx([[6001, 'CLIENTE RESET', 'CALLE RESET', 41003, 954000003, 0, '33333333K']])
+        wizard = self.env['import.contacts.wizard'].create({
+            'file': base64.b64encode(xlsx_data),
+            'file_name': 'clientes.xlsx',
+        })
+        wizard.action_import_contacts()
+        self.assertEqual(wizard.state, 'done')
+
+        wizard.action_reset()
+
+        self.assertEqual(wizard.state, 'upload')
+        self.assertFalse(wizard.file)
+        self.assertFalse(wizard.log)
 

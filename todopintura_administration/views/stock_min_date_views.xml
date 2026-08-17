@@ -44,7 +44,7 @@
 
     <menuitem id="menu_stock_min_dates"
               name="Stock Minimum Dates"
-              parent="todopintura_administration.menu_imports"
+              parent="todopintura_administration.menu_imports_stock"
               action="action_stock_min_dates"
               sequence="150"/>
 </odoo>
