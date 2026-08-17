@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+        <!-- Grupos de seguridad -->
+        <record id="group_todopintura_manager" model="res.groups">
+            <field name="name">Todopintura Manager</field>
+            <field
+                name="comment"
+            >Puede gestionar importaciones de clientes desde Todopintura</field>
+            <field name="category_id" ref="base.module_category_sales_management" />
+        </record>
+
+        <!-- Reglas de registro (si es necesario) -->
+</odoo>

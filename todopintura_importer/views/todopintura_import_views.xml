@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+
+        <!-- ============================================== -->
+        <!-- WIZARD: TODOPINTURA IMPORT WIZARD             -->
+        <!-- ============================================== -->
+
+        <record id="todopintura_import_wizard_form" model="ir.ui.view">
+            <field name="name">todopintura.import.wizard - form</field>
+            <field name="model">todopintura.import.wizard</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <group>
+                            <label for="file" string="Archivo Excel UMACLI" />
+                            <field name="file" widget="binary" />
+                            <field name="file_name" />
+                        </group>
+                    </group>
+
+                    <group>
+                        <div class="alert alert-info">
+                            <strong>ℹ Instrucciones:</strong>
+                            <ol>
+                                <li
+                                >Selecciona el archivo UMACLI.xlsx de Todopintura</li>
+                                <li>Revisa la vista previa de los datos</li>
+                                <li>Si todo es correcto, haz clic en "Importar"</li>
+                                <li
+                                >Se crearán o actualizarán automáticamente los clientes</li>
+                            </ol>
+                        </div>
+                    </group>
+
+                    <notebook>
+                        <page string="Vista Previa" name="preview">
+                            <group>
+                                <field name="total_records" />
+                                <field name="has_errors" />
+                            </group>
+                            <separator string="Datos a Importar" />
+                            <field
+                                name="preview"
+                                nolabel="1"
+                                widget="text"
+                                readonly="1"
+                            />
+                        </page>
+
+                        <page
+                            string="Advertencias"
+                            name="warnings"
+                            attrs="{'invisible': [('warning_messages', '=', '')]}"
+                        >
+                            <field name="warning_messages" nolabel="1" readonly="1" />
+                        </page>
+
+                        <page
+                            string="Errores"
+                            name="errors"
+                            attrs="{'invisible': [('error_messages', '=', '')]}"
+                        >
+                            <field name="error_messages" nolabel="1" readonly="1" />
+                        </page>
+                    </notebook>
+
+                    <footer>
+                        <button
+                            name="action_import"
+                            type="object"
+                            string="Importar"
+                            class="btn-primary"
+                            attrs="{'invisible': [('has_errors', '=', True)]}"
+                        />
+                        <button
+                            string="Cancelar"
+                            special="cancel"
+                            class="btn-default"
+                        />
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="todopintura_import_wizard_action" model="ir.actions.act_window">
+            <field name="name">Importar Clientes</field>
+            <field name="res_model">todopintura.import.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="view_id" ref="todopintura_import_wizard_form" />
+        </record>
+
+        <!-- ============================================== -->
+        <!-- TODOPINTURA IMPORT: FORM VIEW                -->
+        <!-- ============================================== -->
+
+        <record id="todopintura_import_form" model="ir.ui.view">
+            <field name="name">todopintura.import - form</field>
+            <field name="model">todopintura.import</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                        <field name="state" widget="statusbar" />
+                    </header>
+
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" />
+                            </h1>
+                        </div>
+
+                        <group>
+                            <group>
+                                <field name="file_name" />
+                                <field name="import_date" />
+                                <field name="total_records" />
+                            </group>
+                            <group>
+                                <field name="created_partners" />
+                                <field name="updated_partners" />
+                                <field name="error_count" />
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <page string="Notas" name="notes">
+                                <field name="notes" nolabel="1" />
+                            </page>
+
+                            <page string="Registro de Importación" name="logs">
+                                <field name="log_lines" nolabel="1">
+                                    <tree>
+                                        <field name="create_date" />
+                                        <field name="level" />
+                                        <field name="partner_id" />
+                                        <field name="message" />
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- ============================================== -->
+        <!-- TODOPINTURA IMPORT: TREE VIEW                -->
+        <!-- ============================================== -->
+
+        <record id="todopintura_import_tree" model="ir.ui.view">
+            <field name="name">todopintura.import - tree</field>
+            <field name="model">todopintura.import</field>
+            <field name="arch" type="xml">
+                <tree>
+                    <field name="name" />
+                    <field name="import_date" />
+                    <field name="total_records" />
+                    <field name="created_partners" />
+                    <field name="updated_partners" />
+                    <field name="error_count" />
+                    <field name="state" />
+                </tree>
+            </field>
+        </record>
+
+        <!-- ============================================== -->
+        <!-- TODOPINTURA IMPORT: ACTIONS & MENUS          -->
+        <!-- ============================================== -->
+
+        <record id="todopintura_import_action" model="ir.actions.act_window">
+            <field name="name">Importaciones de Todopintura</field>
+            <field name="res_model">todopintura.import</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <!-- Menú principal -->
+        <menuitem id="todopintura_menu" name="Todopintura" sequence="100" />
+
+        <!-- Submenú: Importar clientes -->
+        <menuitem
+            id="todopintura_import_menu"
+            name="Importar Clientes"
+            parent="todopintura_menu"
+            action="todopintura_import_wizard_action"
+            sequence="10"
+        />
+
+        <!-- Submenú: Histórico de importaciones -->
+        <menuitem
+            id="todopintura_import_history_menu"
+            name="Histórico de Importaciones"
+            parent="todopintura_menu"
+            action="todopintura_import_action"
+            sequence="20"
+        />
+
+    </data>
+</odoo>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+
+        <!-- ============================================== -->
+        <!-- RES.PARTNER: EXTEND WITH TODOPINTURA FIELDS  -->
+        <!-- ============================================== -->
+
+        <record id="res_partner_todopintura_form" model="ir.ui.view">
+            <field name="name">res.partner - todopintura fields</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form" />
+            <field name="arch" type="xml">
+                <xpath expr="//page[@name='sales_purchases']" position="inside">
+                    <group string="Todopintura" name="todopintura">
+                        <group>
+                            <field name="todopintura_external_id" />
+                            <field name="todopintura_credit_limit" />
+                        </group>
+                        <group>
+                            <field name="todopintura_discount_fixed" />
+                            <field name="todopintura_discount_early_payment" />
+                        </group>
+                        <group>
+                            <field name="todopintura_needs_voucher" />
+                            <field name="todopintura_last_sync" />
+                        </group>
+                    </group>
+                </xpath>
+
+                <xpath expr="//page[@name='history']" position="inside">
+                    <group string="Histórico Todopintura" name="todopintura_history">
+                        <field name="todopintura_import_log" nolabel="1" />
+                    </group>
+                </xpath>
+            </field>
+        </record>
+</odoo>
