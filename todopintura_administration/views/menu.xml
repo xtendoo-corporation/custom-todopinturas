@@ -110,4 +110,22 @@
               parent="todopintura_administration.menu_imports_stock"
               action="action_import_stock_in_hand_wizard"
               sequence="140"/>
+
+    <record id="action_import_payment_terms_wizard" model="ir.actions.act_window">
+        <field name="name">Importar Formas de Pago</field>
+        <field name="res_model">import.payment.terms.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_imports_account"
+              name="Importaciones"
+              parent="account.menu_finance_configuration"
+              sequence="50"/>
+
+    <menuitem id="menu_import_payment_terms"
+              name="Importar Formas de Pago"
+              parent="todopintura_administration.menu_imports_account"
+              action="action_import_payment_terms_wizard"
+              sequence="10"/>
 </odoo>

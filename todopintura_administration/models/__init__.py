@@ -12,3 +12,4 @@ from . import product_pricelist
 from . import sale_order_line
 from . import pos_order_line
 from . import account_move_line
+from . import account_payment_term
