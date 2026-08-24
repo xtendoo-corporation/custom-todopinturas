@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_import_payment_modes_wizard" model="ir.ui.view">
+        <field name="name">import.payment.modes.wizard.form</field>
+        <field name="model">import.payment.modes.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Importar Modos de Pago">
+                <field name="state" invisible="1"/>
+                <group invisible="state != 'upload'">
+                    <field name="file" filename="file_name"/>
+                </group>
+                <div invisible="state != 'done'">
+                    <group>
+                        <field name="created_count" string="Modos de pago nuevos"/>
+                        <field name="updated_count" string="Modos de pago actualizados"/>
+                        <field name="error_count" string="Errores"/>
+                    </group>
+                    <separator string="Registro de importación"/>
+                    <field name="log" nolabel="1"/>
+                </div>
+                <footer>
+                    <button name="action_import_payment_modes" string="Importar" type="object" class="btn-primary" invisible="state != 'upload'"/>
+                    <button name="action_reset" string="Nueva importación" type="object" class="btn-secondary" invisible="state != 'done'"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
+

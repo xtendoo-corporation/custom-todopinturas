@@ -326,6 +326,40 @@ class ImportContactsWizard(models.TransientModel):
                     [('name', '=', PAYMENT_TERMS[forma_pago])], limit=1)
                 if payment_term:
                     record['property_payment_term_id'] = payment_term.id
+            # Map codigo de forma de pago to customer payment mode (account.payment.mode)
+            # We derive a simple label from the payment term name and try to find a
+            # matching account.payment.mode by name (case-insensitive, partial match).
+            try:
+                if forma_pago in PAYMENT_TERMS and PAYMENT_TERMS[forma_pago]:
+                    term_name = PAYMENT_TERMS[forma_pago].upper()
+                    pm_label = None
+                    if 'CHEQUE' in term_name:
+                        pm_label = 'CHEQUE'
+                    elif 'CONFIRMING' in term_name:
+                        pm_label = 'CONFIRMING'
+                    elif 'CONTADO' in term_name or 'REPOSICION' in term_name:
+                        # Some terms are 'CONTADO' or 'REPOSICION ...' we treat both as a cash/reposition mode
+                        pm_label = 'CONTADO REPOSICION'
+                    elif 'PAGARE' in term_name:
+                        pm_label = 'PAGARE'
+                    elif 'TRANSF' in term_name or 'TRANSFER' in term_name or 'ES572' in term_name:
+                        # Use a generic label for transfers; specific IBANs will be matched by the
+                        # payment mode name if present (we use partial match below).
+                        pm_label = 'TRANSFERENCIA'
+                    elif 'GIRO' in term_name:
+                        pm_label = 'GIRO'
+                    elif 'COMPROMISO' in term_name:
+                        pm_label = 'COMPROMISO'
+
+                    if pm_label:
+                        payment_mode = self.env['account.payment.mode'].with_context(active_test=False).search([
+                            ('name', 'ilike', pm_label)
+                        ], limit=1)
+                        if payment_mode:
+                            record['customer_payment_mode_id'] = payment_mode.id
+            except Exception:
+                # don't break the import for mapping errors; log and continue
+                _logger.exception('Error mapeando customer_payment_mode para codigo %s', forma_pago)
 
             contact, status = self._create_or_update_contact(num_client, name, record, iban=iban)
             self.env.cr.flush()
