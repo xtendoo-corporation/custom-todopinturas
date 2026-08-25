@@ -9,4 +9,3 @@ from . import stock_count_wizard
 from . import stock_count_compare
 from . import import_warehouses_wizard
 from . import import_payment_terms_wizard
-from . import import_payment_modes_wizard

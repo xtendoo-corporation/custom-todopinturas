@@ -22,7 +22,6 @@
         'wizards/import_warehouses_wizard_view.xml',
         'wizards/import_stock_in_hand_wizard_view.xml',
         'wizards/import_payment_terms_wizard_view.xml',
-        'wizards/import_payment_modes_wizard_view.xml',
         'wizards/stock_count_wizard_view.xml',
         'wizards/stock_count_compare_views.xml',
         'views/menu.xml',
