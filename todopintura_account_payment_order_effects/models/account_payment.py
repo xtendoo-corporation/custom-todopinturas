@@ -87,10 +87,26 @@ class AccountPayment(models.Model):
                 payment._xtd_create_discount_move_one(mode, bank_account)
         return True
 
+    def _xtd_open_outstanding_line(self):
+        """The still-unreconciled line in this payment's own outstanding
+        account.
+
+        Plain ``_seek_for_lines()[0]`` is not enough: when this payment was
+        created from a move line that already sat in the outstanding
+        account itself (piece 2's "Orden de cobro" picking up an existing
+        effect payment's open line), ``destination_account_id`` and
+        ``outstanding_account_id`` end up being the SAME account, so
+        ``_seek_for_lines()`` can't tell the two lines of this move apart by
+        account alone -- one of them is already reconciled (against the
+        previous payment) by the time this runs, so we filter it out.
+        """
+        self.ensure_one()
+        return self._seek_for_lines()[0].filtered(lambda line: not line.reconciled)
+
     def _xtd_create_collection_move(self, bank_account):
         """Already-due effect: close the bridge account straight to the bank."""
         self.ensure_one()
-        general_line = self._seek_for_lines()[0]
+        general_line = self._xtd_open_outstanding_line()
         label = self.env._("Cobro efecto %s", self.name)
         move = self.env["account.move"].create(
             {
@@ -132,7 +148,7 @@ class AccountPayment(models.Model):
         debt account."""
         self.ensure_one()
         pending_account, discounted_account = mode._xtd_effects_accounts_or_raise()
-        general_line = self._seek_for_lines()[0]
+        general_line = self._xtd_open_outstanding_line()
         label = self.env._("Anticipo banco efecto %s", self.name)
         move = self.env["account.move"].create(
             {

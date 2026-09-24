@@ -11,6 +11,85 @@ from .common import TestXtdEffectsCommon
 
 @tagged("-at_install", "post_install")
 class TestAccountPaymentOrderEffects(TestXtdEffectsCommon):
+    def test_invoice_validation_creates_effect_payment(self):
+        # Validating an invoice with a Giro-like payment mode must, right
+        # away, reclassify 430 -> 411000 through a real account.payment (not
+        # a bare journal entry), so the invoice shows as "in_payment", not
+        # "paid": that distinguishes "the bank/effect machinery has it" from
+        # "it has actually been collected".
+        self.giro_mode.xtd_effect_on_validate = True
+        invoice = self._create_customer_invoice(amount=123.45)
+        invoice.action_post()
+
+        self.assertEqual(invoice.payment_state, "in_payment")
+        payment = invoice.xtd_effect_payment_id
+        self.assertTrue(payment)
+        self.assertEqual(payment.amount, 123.45)
+
+        receivable_line = invoice.line_ids.filtered(
+            lambda line: line.account_id.account_type == "asset_receivable"
+        )
+        self.assertTrue(receivable_line.reconciled)
+
+        general_line = payment._seek_for_lines()[0]
+        self.assertEqual(general_line.account_id, self.general_account)
+        self.assertFalse(general_line.reconciled)
+
+    def test_invoice_validation_skipped_when_not_enabled(self):
+        # Sanity check: with the flag off (the default), invoices are left
+        # completely untouched at validation time.
+        invoice = self._create_customer_invoice(amount=60.0)
+        invoice.action_post()
+
+        self.assertEqual(invoice.payment_state, "not_paid")
+        self.assertFalse(invoice.xtd_effect_payment_id)
+
+    def test_orden_de_cobro_picks_up_effect_payment_line(self):
+        # Piece 2: the "Importar apuntes contables" wizard on a fresh Orden
+        # de cobro must surface the outstanding line left open by the
+        # validation-time effect payment (piece 1, an account.payment.line
+        # can't point to a receivable/payable account), and driving it
+        # through confirm/generate/upload must reach the same discount
+        # accounting already verified for the "normal" path.
+        self.giro_mode.xtd_effect_on_validate = True
+        due_date = date.today() + timedelta(days=20)
+        invoice = self._create_customer_invoice(amount=88.0, invoice_date_due=due_date)
+        invoice.action_post()
+        self.assertEqual(invoice.payment_state, "in_payment")
+        outstanding_line = invoice.xtd_effect_payment_id._seek_for_lines()[0]
+        self.assertFalse(outstanding_line.reconciled)
+
+        order = self.env["account.payment.order"].create(
+            {
+                "payment_type": "inbound",
+                "payment_mode_id": self.giro_mode.id,
+                "journal_id": self.journal.id,
+            }
+        )
+        wizard = self.env["account.payment.line.create"].with_context(
+            active_model="account.payment.order", active_id=order.id
+        ).create({})
+        # Like a human would: widen the date filter to cover this invoice's
+        # (not-yet-due) maturity date, or it won't show up as a candidate.
+        wizard.filter_date = due_date
+        # Also set a "Filtro de diarios" on the SALES journal, exactly as
+        # the real wizard defaults to: it must NOT hide the effect's line,
+        # which lives in the bank journal's own move, not in Ventas.
+        wizard.journal_ids = self.company_data["default_journal_sale"]
+        wizard.populate()
+        self.assertIn(outstanding_line, wizard.move_line_ids)
+        wizard.move_line_ids = outstanding_line
+        wizard.create_payment_lines()
+
+        order.draft2open()
+        order.open2generated()
+        order.generated2uploaded()
+
+        payment = order.payment_ids
+        self.assertEqual(len(payment), 1)
+        self.assertEqual(payment.xtd_effect_state, "discounted")
+        self.assertTrue(outstanding_line.reconciled)
+
     def test_upload_creates_discount_move_and_pending_effect(self):
         """At upload, an invoice NOT YET DUE must be reclassified from the
         general effects account (411000) to the 'pendientes de vencer'

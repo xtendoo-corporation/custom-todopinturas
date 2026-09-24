@@ -6,6 +6,7 @@
         <field name="inherit_id" ref="account_payment_mode.account_payment_mode_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='refund_payment_mode_id']" position="after">
+                <field name="xtd_effect_on_validate"/>
                 <field name="xtd_manage_effects_discount"/>
                 <field
                     name="xtd_pending_effects_account_id"

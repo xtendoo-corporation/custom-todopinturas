@@ -6,6 +6,18 @@ from odoo.exceptions import UserError
 class AccountPaymentMode(models.Model):
     _inherit = "account.payment.mode"
 
+    xtd_effect_on_validate = fields.Boolean(
+        string="Contabilizar efecto al validar la factura",
+        help=(
+            "Al validar una factura con este modo de pago, se crea y "
+            "contabiliza automáticamente un pago que reclasifica el importe "
+            "de la cuenta de clientes (430) a la cuenta puente del método de "
+            "pago (p.ej. 411000); la factura queda 'en proceso de pago', no "
+            "'pagada'. Pieza independiente de la gestión de descuento al "
+            "subir la orden de cobro (más abajo), que por ahora sigue "
+            "esperando encontrar el 430 sin conciliar."
+        ),
+    )
     xtd_manage_effects_discount = fields.Boolean(
         string="Gestionar descuento de efectos",
         help=(
