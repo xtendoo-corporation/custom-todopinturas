@@ -90,6 +90,42 @@ class TestAccountPaymentOrderEffects(TestXtdEffectsCommon):
         self.assertEqual(payment.xtd_effect_state, "discounted")
         self.assertTrue(outstanding_line.reconciled)
 
+    def test_preferred_method_line_follows_payment_mode(self):
+        # A mode with xtd_preferred_method_line_id set must win over the
+        # partner's own default, whenever an invoice uses that mode.
+        self.pagare_mode.xtd_preferred_method_line_id = self.pagare_method_line
+        invoice = self._create_customer_invoice(amount=50.0, mode=self.pagare_mode)
+        self.assertEqual(
+            invoice.preferred_payment_method_line_id, self.pagare_method_line
+        )
+
+    def test_orden_de_cobro_picks_up_any_mode_manual_payment(self):
+        # Pagaré case: no xtd flags at all, several method lines share the
+        # same payment_method_id (a "variable" mode), and the invoice was
+        # covered by a plain manual "Registrar pago" -- not by our own
+        # validation-time mechanism. The wizard must still surface its
+        # still-open bridge line, because it matches by payment_mode_id, not
+        # by a specific method_line/journal.
+        invoice = self._create_customer_invoice(amount=64.0, mode=self.pagare_mode)
+        invoice.action_post()
+        payment = self._register_manual_payment(invoice, self.pagare_method_line)
+        outstanding_line = payment._seek_for_lines()[0]
+        self.assertFalse(outstanding_line.reconciled)
+        self.assertFalse(invoice.xtd_effect_payment_id)  # not our mechanism
+
+        order = self.env["account.payment.order"].create(
+            {
+                "payment_type": "inbound",
+                "payment_mode_id": self.pagare_mode.id,
+                "journal_id": self.pagare_journal.id,
+            }
+        )
+        wizard = self.env["account.payment.line.create"].with_context(
+            active_model="account.payment.order", active_id=order.id
+        ).create({})
+        wizard.populate()
+        self.assertIn(outstanding_line, wizard.move_line_ids)
+
     def test_upload_creates_discount_move_and_pending_effect(self):
         """At upload, an invoice NOT YET DUE must be reclassified from the
         general effects account (411000) to the 'pendientes de vencer'

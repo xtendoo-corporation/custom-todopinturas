@@ -69,7 +69,47 @@ class TestXtdEffectsCommon(AccountTestInvoicingCommon):
 
         cls.partner = cls.env["res.partner"].create({"name": "Test Partner Giro"})
 
-    def _create_customer_invoice(self, amount=100.0, invoice_date_due=None):
+        # A second, unrelated payment mode with NO xtd flags at all, whose
+        # bridge account is only ever reached by a plain manual "Registrar
+        # pago" -- mirrors Pagaré in todopintura (several method lines/
+        # journals for the same payment_method_id, no fixed one).
+        cls.manual_bridge_account = cls.env["account.account"].create(
+            {
+                "name": "Pagos pendientes",
+                "code": "572999",
+                "account_type": "asset_current",
+                "reconcile": True,
+            }
+        )
+        cls.pagare_journal = cls.env["account.journal"].create(
+            {
+                "name": "Efectos a cobrar",
+                "code": "EFCT",
+                "type": "bank",
+                "company_id": cls.company.id,
+            }
+        )
+        cls.pagare_mode = cls.env["account.payment.mode"].create(
+            {
+                "name": "Pagaré",
+                "bank_account_link": "variable",
+                "variable_journal_ids": [(6, 0, [cls.pagare_journal.id])],
+                "payment_method_id": cls.payment_method.id,
+                "company_id": cls.company.id,
+            }
+        )
+        cls.pagare_method_line = cls.env["account.payment.method.line"].search(
+            [
+                ("payment_method_id", "=", cls.payment_method.id),
+                ("journal_id", "=", cls.pagare_journal.id),
+            ],
+            limit=1,
+        )
+        cls.pagare_method_line.payment_account_id = cls.manual_bridge_account.id
+
+    def _create_customer_invoice(
+        self, amount=100.0, invoice_date_due=None, mode=None
+    ):
         with Form(
             self.env["account.move"].with_context(default_move_type="out_invoice")
         ) as invoice_form:
@@ -83,11 +123,36 @@ class TestXtdEffectsCommon(AccountTestInvoicingCommon):
         invoice_form.reference_type = "structured"
         invoice = invoice_form.save()
         invoice_form = Form(invoice)
-        invoice_form.payment_mode_id = self.giro_mode
+        invoice_form.payment_mode_id = mode or self.giro_mode
         invoice = invoice_form.save()
         if invoice_date_due:
             invoice.invoice_date_due = invoice_date_due
         return invoice
+
+    def _register_manual_payment(self, invoice, method_line):
+        """Simulate a plain "Registrar pago" against `invoice`, using
+        `method_line`'s own bridge account as outstanding -- no xtd
+        machinery involved, exactly like a manually booked Pagaré payment."""
+        receivable_line = invoice.line_ids.filtered(
+            lambda line: line.account_id.account_type == "asset_receivable"
+            and not line.reconciled
+        )
+        payment = self.env["account.payment"].create(
+            {
+                "payment_type": "inbound",
+                "partner_type": "customer",
+                "partner_id": invoice.partner_id.id,
+                "amount": invoice.amount_residual,
+                "currency_id": invoice.currency_id.id,
+                "journal_id": method_line.journal_id.id,
+                "payment_method_line_id": method_line.id,
+                "destination_account_id": receivable_line.account_id.id,
+            }
+        )
+        payment.action_post()
+        counterpart_line = payment._seek_for_lines()[1]
+        (receivable_line + counterpart_line).reconcile()
+        return payment
 
     def _create_and_upload_order(self, invoices):
         invoices.action_post()

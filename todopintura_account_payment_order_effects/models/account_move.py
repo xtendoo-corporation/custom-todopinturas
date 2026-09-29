@@ -1,5 +1,5 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
-from odoo import fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -25,6 +25,14 @@ class AccountMove(models.Model):
             "res_id": self.xtd_effect_payment_id.id,
             "target": "current",
         }
+
+    @api.depends("payment_mode_id")
+    def _compute_preferred_payment_method_line_id(self):
+        super()._compute_preferred_payment_method_line_id()
+        for move in self:
+            preferred_line = move.payment_mode_id.xtd_preferred_method_line_id
+            if preferred_line:
+                move.preferred_payment_method_line_id = preferred_line
 
     def _get_invoice_in_payment_state(self):
         """Show "in_payment" for invoices covered by our own effect payment,

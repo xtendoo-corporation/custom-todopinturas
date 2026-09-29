@@ -49,6 +49,21 @@ class AccountPaymentMode(models.Model):
             "banco mientras el efecto está pendiente de vencer."
         ),
     )
+    xtd_preferred_method_line_id = fields.Many2one(
+        comodel_name="account.payment.method.line",
+        string="Línea de método de pago preferida",
+        domain="[('payment_method_id', '=', payment_method_id)]",
+        check_company=True,
+        help=(
+            "Cuando una factura usa este modo de pago, su 'Línea de método "
+            "de pago preferida' (preferred_payment_method_line_id, la que "
+            "decide qué cuenta bancaria se muestra en la factura) se fija a "
+            "esta línea. Útil cuando el modo de pago admite varios diarios "
+            "(banco_account_link 'variable') y quieres que siempre se "
+            "muestre uno concreto, en vez del que el partner tenga por "
+            "defecto."
+        ),
+    )
 
     def _xtd_effects_accounts_or_raise(self):
         self.ensure_one()
