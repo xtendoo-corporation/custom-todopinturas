@@ -11,14 +11,17 @@ class ProductTemplate(models.Model):
         if 'route_ids' in fields_list:
             routes = self.env['stock.route'].search([('product_selectable', '=', True)])
             res['route_ids'] = [(6, 0, routes.ids)]
-        # Valores por defecto en el formulario Nuevo Producto
-        # Aseguramos available_in_pos por defecto aunque no esté en fields_list
-        if 'available_in_pos' not in res:
-            try:
-                print('default_get: setting available_in_pos -> True')
-            except Exception:
-                pass
+        # Valores por defecto en el formulario Nuevo Producto.
+        # OJO: 'available_in_pos' e 'is_storable' tienen su propio default
+        # (False) en sus módulos de origen, así que super() YA los deja en
+        # `res` con valor False -- comprobar "not in res" nunca se cumple.
+        # Hay que forzar el valor, no solo rellenar si falta la clave.
+        if 'available_in_pos' in fields_list:
             res['available_in_pos'] = True
+        # Rastrear inventario (is_storable) activado por defecto, para que
+        # se vea la cantidad real (On Hand) desde el propio formulario Nuevo.
+        if 'is_storable' in fields_list:
+            res['is_storable'] = True
 
         # Nota: las líneas de tarifa no están mapeadas como un one2many directo en
         # product.template por defecto (son registros en product.pricelist.item),
@@ -47,6 +50,11 @@ class ProductTemplate(models.Model):
                 pass
             # Forzar available_in_pos a True para todos los productos creados
             v['available_in_pos'] = True
+            # Rastrear inventario (cantidad real / On Hand visible) siempre
+            # activado, igual que available_in_pos -- salvo para servicios,
+            # donde no aplica y Odoo lo desactiva solo de todas formas.
+            if v.get('type', 'consu') == 'consu':
+                v['is_storable'] = True
             # política de facturación por entrega
             if 'invoice_policy' not in v:
                 v['invoice_policy'] = 'delivery'
