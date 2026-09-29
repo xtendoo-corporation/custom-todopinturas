@@ -19,6 +19,22 @@
                     invisible="not xtd_manage_effects_discount"
                     required="xtd_manage_effects_discount"
                 />
+                <field name="xtd_effect_chain_enabled"/>
+                <field
+                    name="xtd_chain_receivable_account_id"
+                    invisible="not xtd_effect_chain_enabled"
+                    required="xtd_effect_chain_enabled"
+                />
+                <field
+                    name="xtd_chain_remesado_account_id"
+                    invisible="not xtd_effect_chain_enabled"
+                    required="xtd_effect_chain_enabled"
+                />
+                <field
+                    name="xtd_chain_bank_debt_account_id"
+                    invisible="not xtd_effect_chain_enabled"
+                    required="xtd_effect_chain_enabled"
+                />
             </xpath>
         </field>
     </record>

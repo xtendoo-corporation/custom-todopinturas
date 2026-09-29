@@ -11,6 +11,168 @@ from .common import TestXtdEffectsCommon
 
 @tagged("-at_install", "post_install")
 class TestAccountPaymentOrderEffects(TestXtdEffectsCommon):
+    def test_discount_and_chain_mechanisms_are_exclusive(self):
+        # Real incident: enabling both on the same mode (e.g. someone
+        # testing chain fields on the Giro mode, which already had discount
+        # enabled) silently rewired Giro's own bridge account and made its
+        # orders run through the chain's generated2uploaded branch instead
+        # of the discount one.
+        with self.assertRaises(Exception):
+            self.giro_mode.xtd_effect_chain_enabled = True
+
+    def test_effect_chain_triggered_by_manual_payment_not_validate(self):
+        # Pagaré's real trigger for stage 1: validating the invoice does
+        # NOTHING (xtd_effect_on_validate off); a plain manual "Registrar
+        # pago" is what produces the open line in the chain's own
+        # "efectos en cartera" account. Stages 2/3 must work exactly the
+        # same afterwards, regardless of which trigger opened that line.
+        self.chain_mode.xtd_effect_on_validate = False
+        invoice = self._create_customer_invoice(amount=50.0, mode=self.chain_mode)
+        invoice.action_post()
+        self.assertEqual(invoice.payment_state, "not_paid")
+        self.assertFalse(invoice.xtd_effect_payment_id)
+
+        first_payment = self._register_manual_payment(invoice, self.chain_method_line)
+        stage1_line = first_payment._seek_for_lines()[0]
+        self.assertEqual(stage1_line.account_id, self.chain_bridge_account)
+        self.assertFalse(stage1_line.reconciled)
+
+        order = self.env["account.payment.order"].create(
+            {
+                "payment_type": "inbound",
+                "payment_mode_id": self.chain_mode.id,
+                "journal_id": self.chain_journal.id,
+            }
+        )
+        wizard = self.env["account.payment.line.create"].with_context(
+            active_model="account.payment.order", active_id=order.id
+        ).create({})
+        wizard.filter_date = date.today() + timedelta(days=60)
+        wizard.populate()
+        self.assertIn(stage1_line, wizard.move_line_ids)
+        wizard.move_line_ids = stage1_line
+        wizard.create_payment_lines()
+
+        order.draft2open()
+        self.assertFalse(stage1_line.reconciled)
+
+        order.open2generated()
+        self.assertTrue(first_payment.xtd_chain_remesado_move_id)
+        self.assertFalse(stage1_line.reconciled)
+
+        order.generated2uploaded()
+        self.assertTrue(first_payment.xtd_chain_close_move_id)
+        self.assertTrue(stage1_line.reconciled)
+
+    def test_effect_chain_validate_confirm_generate_upload(self):
+        # Stage 1 (Validar factura): fires immediately at action_post(),
+        # via xtd_effect_on_validate -- exactly like Giro. 430 -> 441. This
+        # is the ONLY place anything gets booked before "Generar fichero".
+        invoice = self._create_customer_invoice(amount=77.0, mode=self.chain_mode)
+        invoice.action_post()
+        self.assertEqual(invoice.payment_state, "in_payment")
+        first_payment = invoice.xtd_effect_payment_id
+        self.assertTrue(first_payment)
+        stage1_line = first_payment._seek_for_lines()[0]
+        self.assertEqual(stage1_line.account_id, self.chain_bridge_account)
+        self.assertFalse(stage1_line.reconciled)
+
+        # The invoice is already "en proceso de pago" by the time it reaches
+        # the Orden de cobro: pick it up via the generalized wizard, same as
+        # any other already-covered invoice (Giro, Pagaré manual...).
+        order = self.env["account.payment.order"].create(
+            {
+                "payment_type": "inbound",
+                "payment_mode_id": self.chain_mode.id,
+                "journal_id": self.chain_journal.id,
+            }
+        )
+        wizard = self.env["account.payment.line.create"].with_context(
+            active_model="account.payment.order", active_id=order.id
+        ).create({})
+        wizard.filter_date = date.today() + timedelta(days=60)
+        wizard.populate()
+        self.assertIn(stage1_line, wizard.move_line_ids)
+        wizard.move_line_ids = stage1_line
+        wizard.create_payment_lines()
+
+        # "Confirmar pagos" must NOT book anything at all: the order's own
+        # (native) payment stays in draft with no move, and stage1_line
+        # (the REAL payment, from validation) is untouched.
+        order.draft2open()
+        self.assertEqual(order.payment_ids.state, "draft")
+        self.assertFalse(order.payment_ids.move_id)
+        self.assertFalse(stage1_line.reconciled)
+
+        # Stage 2 (Generar fichero): a self-contained 4411/5208 pair on the
+        # ORIGINAL payment, still NOT touching stage1_line at all.
+        order.open2generated()
+        remesado_move = first_payment.xtd_chain_remesado_move_id
+        self.assertTrue(remesado_move)
+        remesado_line = remesado_move.line_ids.filtered(
+            lambda line: line.account_id == self.chain_remesado_account
+        )
+        debt_line = remesado_move.line_ids.filtered(
+            lambda line: line.account_id == self.chain_bank_debt_account
+        )
+        self.assertEqual(remesado_line.debit, 77.0)
+        self.assertEqual(debt_line.credit, 77.0)
+        self.assertFalse(stage1_line.reconciled)
+
+        # Stage 3 (Subir fichero): closes stage1_line straight to the bank;
+        # 4411/5208 are left open (known consequence of the literal spec:
+        # nothing in this flow ever closes them).
+        order.generated2uploaded()
+        close_move = first_payment.xtd_chain_close_move_id
+        self.assertTrue(close_move)
+        bank_line = close_move.line_ids.filtered(
+            lambda line: line.account_id == self.chain_journal.default_account_id
+        )
+        self.assertEqual(bank_line.debit, 77.0)
+        self.assertTrue(stage1_line.reconciled)
+        self.assertFalse(remesado_line.reconciled)
+        self.assertFalse(debt_line.reconciled)
+
+        # The 3 real moves must also be tagged with this order, so the
+        # NATIVE "Asientos contables" smart button (move_count) shows them
+        # too, not just ours.
+        order.invalidate_recordset(fnames=["move_count"])
+        self.assertEqual(order.move_count, 3)
+        self.assertEqual(
+            first_payment.move_id.payment_order_id
+            | remesado_move.payment_order_id
+            | close_move.payment_order_id,
+            order,
+        )
+
+        # The order's own "1 pago" payment is an empty placeholder for this
+        # flow -- the smart button must point to the REAL moves instead.
+        action = order.action_open_xtd_chain_moves()
+        self.assertEqual(
+            set(action["domain"][0][2]),
+            {first_payment.move_id.id, remesado_move.id, close_move.id},
+        )
+
+    def test_effect_chain_disabled_mode_keeps_native_behaviour(self):
+        # Sanity check: a mode without xtd_effect_chain_enabled must NOT
+        # post early at draft2open() -- payment stays draft until upload,
+        # exactly like vanilla account_payment_order.
+        invoice = self._create_customer_invoice(amount=40.0)
+        invoice.action_post()
+        order = self.env["account.payment.order"].create(
+            {
+                "payment_type": "inbound",
+                "payment_mode_id": self.giro_mode.id,
+                "journal_id": self.journal.id,
+            }
+        )
+        self.env["account.invoice.payment.line.multi"].with_context(
+            active_model="account.move", active_ids=invoice.ids
+        ).create({}).run()
+        order.draft2open()
+        self.assertEqual(order.payment_ids.state, "draft")
+        self.assertFalse(order.payment_ids.move_id)
+
     def test_invoice_validation_creates_effect_payment(self):
         # Validating an invoice with a Giro-like payment mode must, right
         # away, reclassify 430 -> 411000 through a real account.payment (not

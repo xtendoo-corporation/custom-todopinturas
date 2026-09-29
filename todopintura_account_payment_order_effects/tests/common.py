@@ -107,6 +107,66 @@ class TestXtdEffectsCommon(AccountTestInvoicingCommon):
         )
         cls.pagare_method_line.payment_account_id = cls.manual_bridge_account.id
 
+        # Third mode: the "cadena de efectos" flow (confirmar -> generar ->
+        # subir, no due-date branching) -- e.g. Pagaré with immediate
+        # posting at order confirmation instead of at upload.
+        cls.chain_bridge_account = cls.env["account.account"].create(
+            {
+                "name": "Deudores, efectos comerciales a cobrar (test)",
+                "code": "441990",
+                "account_type": "asset_current",
+                "reconcile": True,
+            }
+        )
+        cls.chain_remesado_account = cls.env["account.account"].create(
+            {
+                "name": "Efectos remesados al descuento (test)",
+                "code": "441991",
+                "account_type": "asset_current",
+                "reconcile": True,
+            }
+        )
+        cls.chain_bank_debt_account = cls.env["account.account"].create(
+            {
+                "name": "Deudas por efectos descontados (cadena, test)",
+                "code": "520899",
+                "account_type": "liability_current",
+                "reconcile": True,
+            }
+        )
+        cls.chain_journal = cls.env["account.journal"].create(
+            {
+                "name": "Banco cadena efectos",
+                "code": "CHJR",
+                "type": "bank",
+                "company_id": cls.company.id,
+            }
+        )
+        cls.chain_mode = cls.env["account.payment.mode"].create(
+            {
+                "name": "Pagaré cadena",
+                "bank_account_link": "fixed",
+                "fixed_journal_id": cls.chain_journal.id,
+                "payment_method_id": cls.payment_method.id,
+                "company_id": cls.company.id,
+                "xtd_effect_on_validate": True,
+                "xtd_effect_chain_enabled": True,
+                "xtd_chain_receivable_account_id": cls.chain_bridge_account.id,
+                "xtd_chain_remesado_account_id": cls.chain_remesado_account.id,
+                "xtd_chain_bank_debt_account_id": cls.chain_bank_debt_account.id,
+            }
+        )
+        # Deliberately NOT setting payment_account_id on the method line here
+        # -- that's the point of xtd_chain_receivable_account_id: create()
+        # above must have synced it there automatically already.
+        cls.chain_method_line = cls.env["account.payment.method.line"].search(
+            [
+                ("payment_method_id", "=", cls.payment_method.id),
+                ("journal_id", "=", cls.chain_journal.id),
+            ],
+            limit=1,
+        )
+
     def _create_customer_invoice(
         self, amount=100.0, invoice_date_due=None, mode=None
     ):
@@ -154,13 +214,15 @@ class TestXtdEffectsCommon(AccountTestInvoicingCommon):
         (receivable_line + counterpart_line).reconcile()
         return payment
 
-    def _create_and_upload_order(self, invoices):
+    def _create_and_upload_order(self, invoices, mode=None, journal=None):
+        mode = mode or self.giro_mode
+        journal = journal or self.journal
         invoices.action_post()
         order = self.env["account.payment.order"].create(
             {
                 "payment_type": "inbound",
-                "payment_mode_id": self.giro_mode.id,
-                "journal_id": self.journal.id,
+                "payment_mode_id": mode.id,
+                "journal_id": journal.id,
             }
         )
         self.env["account.invoice.payment.line.multi"].with_context(

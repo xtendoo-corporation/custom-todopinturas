@@ -17,6 +17,7 @@
         'views/account_payment_mode_views.xml',
         'views/account_payment_views.xml',
         'views/account_move_views.xml',
+        'views/account_payment_order_views.xml',
         'data/ir_cron_data.xml',
     ],
     'installable': True,

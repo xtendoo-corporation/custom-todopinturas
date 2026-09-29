@@ -51,6 +51,28 @@
                         <span class="o_stat_text">Liquidación</span>
                     </div>
                 </button>
+                <button
+                    name="action_open_xtd_chain_remesado_move"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-bank"
+                    invisible="not xtd_chain_remesado_move_id"
+                >
+                    <div class="o_form_field o_stat_info">
+                        <span class="o_stat_text">Efecto remesado</span>
+                    </div>
+                </button>
+                <button
+                    name="action_open_xtd_chain_close_move"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-check-circle"
+                    invisible="not xtd_chain_close_move_id"
+                >
+                    <div class="o_form_field o_stat_info">
+                        <span class="o_stat_text">Cobro</span>
+                    </div>
+                </button>
             </xpath>
         </field>
     </record>

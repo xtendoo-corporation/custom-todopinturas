@@ -55,24 +55,7 @@ class AccountMove(models.Model):
     def _xtd_create_effect_payment(self):
         for invoice in self:
             mode = invoice.payment_mode_id
-            if mode.bank_account_link != "fixed":
-                raise UserError(
-                    self.env._(
-                        "La gestión automática de efectos al validar la"
-                        " factura solo está soportada para modos de pago con"
-                        " banco fijo. Revisa el modo de pago '%s'.",
-                        mode.display_name,
-                    )
-                )
-            journal = mode.fixed_journal_id
-            if not journal:
-                raise UserError(
-                    self.env._(
-                        "El modo de pago '%s' no tiene diario de banco fijo"
-                        " configurado.",
-                        mode.display_name,
-                    )
-                )
+            journal = mode._xtd_effect_on_validate_journal_or_raise()
             method_line = self.env["account.payment.method.line"].search(
                 [
                     ("payment_method_id", "=", mode.payment_method_id.id),

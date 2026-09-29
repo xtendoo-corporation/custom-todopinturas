@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="account_payment_order_form_xtd_effects" model="ir.ui.view">
+        <field name="name">account.payment.order.form.xtd.effects</field>
+        <field name="model">account.payment.order</field>
+        <field name="inherit_id" ref="account_payment_order.account_payment_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <field name="xtd_effect_chain_enabled" invisible="1"/>
+                <button
+                    name="action_open_xtd_chain_moves"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-bank"
+                    invisible="not xtd_effect_chain_enabled"
+                    string="Asientos del efecto"
+                />
+            </xpath>
+        </field>
+    </record>
+</odoo>

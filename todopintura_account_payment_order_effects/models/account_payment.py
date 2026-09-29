@@ -49,6 +49,23 @@ class AccountPayment(models.Model):
         help="Línea en la cuenta de efectos pendientes de vencer abierta al "
         "descontar el efecto; se reconcilia al liquidarlo en su vencimiento.",
     )
+    xtd_chain_remesado_move_id = fields.Many2one(
+        comodel_name="account.move",
+        string="Asiento de efecto remesado",
+        readonly=True,
+        copy=False,
+        help="Generado al 'Generar fichero': cuenta de efectos remesados "
+        "(debe) / cuenta de deuda por efectos remesados (haber). No mueve "
+        "caja todavía.",
+    )
+    xtd_chain_close_move_id = fields.Many2one(
+        comodel_name="account.move",
+        string="Asiento de cobro (cadena de efectos)",
+        readonly=True,
+        copy=False,
+        help="Generado al 'Subir fichero' con éxito: cierra el asiento "
+        "creado al confirmar (cuenta puente -> banco).",
+    )
 
     def xtd_create_discount_move(self):
         """Process effects right after uploading the payment order's file.
@@ -292,6 +309,140 @@ class AccountPayment(models.Model):
         (discount_line + new_discount_line).reconcile()
         (pending_line + new_pending_line).reconcile()
         self.write({"xtd_settlement_move_id": move.id, "xtd_effect_state": "settled"})
+
+    def xtd_create_chain_remesado_move(self, order):
+        """Stage 2 of the "cadena de efectos" (open2generated): reclassify
+        into the "efectos remesados" account and recognize the debt with
+        the bank, in one self-contained pair -- deliberately NOT touching
+        the account opened at stage 1 (confirmed but literally not
+        referenced by this pair, per how this flow was specified: it closes
+        at stage 3 directly, not through this one).
+
+        Called on the ORIGINAL validation-time payment (see
+        account_payment_order._xtd_chain_original_payments()), not on the
+        order's own (never-posted, for this flow) payment_ids -- so `order`
+        is passed explicitly rather than resolved from
+        payment.payment_order_id, which is empty for that payment.
+        """
+        mode = order.payment_mode_id
+        for payment in self:
+            if payment.xtd_chain_remesado_move_id or not payment.move_id:
+                continue
+            remesado_account, bank_debt_account = mode._xtd_chain_accounts_or_raise()
+            label = self.env._("Efecto remesado %s", payment.name)
+            move = self.env["account.move"].create(
+                {
+                    "journal_id": order.journal_id.id,
+                    "date": fields.Date.context_today(self),
+                    "ref": label,
+                    "line_ids": [
+                        Command.create(
+                            {
+                                "name": label,
+                                "account_id": remesado_account.id,
+                                "partner_id": payment.partner_id.id,
+                                "debit": payment.amount,
+                                "credit": 0.0,
+                            }
+                        ),
+                        Command.create(
+                            {
+                                "name": label,
+                                "account_id": bank_debt_account.id,
+                                "partner_id": payment.partner_id.id,
+                                "debit": 0.0,
+                                "credit": payment.amount,
+                            }
+                        ),
+                    ],
+                }
+            )
+            move._post()
+            move.payment_order_id = order
+            # Tag stage 1's own move too (native account_payment_order.py
+            # would have done this at draft2open()/generated2uploaded(),
+            # but that never runs for this payment): otherwise "Asientos
+            # contables" on the order shows 0, even though real entries
+            # exist -- they're just not linked to it.
+            if not payment.move_id.payment_order_id:
+                payment.move_id.payment_order_id = order
+            payment.write({"xtd_chain_remesado_move_id": move.id})
+        return True
+
+    def xtd_close_chain_remesado_move(self, order):
+        """Stage 3 (generated2uploaded, chain mode): the bridge account
+        opened at validation (stage 1) finally gets its cash, straight from
+        the bank. See xtd_create_chain_remesado_move() docstring for why
+        `order` is passed explicitly."""
+        for payment in self:
+            if payment.xtd_chain_close_move_id or not payment.move_id:
+                continue
+            bank_account = order.journal_id.default_account_id
+            if not bank_account:
+                raise UserError(
+                    self.env._(
+                        "El diario '%s' no tiene configurada una cuenta"
+                        " contable.",
+                        order.journal_id.display_name,
+                    )
+                )
+            general_line = payment._xtd_open_outstanding_line()
+            label = self.env._("Cobro efecto remesado %s", payment.name)
+            move = self.env["account.move"].create(
+                {
+                    "journal_id": order.journal_id.id,
+                    "date": fields.Date.context_today(self),
+                    "ref": label,
+                    "line_ids": [
+                        Command.create(
+                            {
+                                "name": label,
+                                "account_id": bank_account.id,
+                                "partner_id": payment.partner_id.id,
+                                "debit": payment.amount,
+                                "credit": 0.0,
+                            }
+                        ),
+                        Command.create(
+                            {
+                                "name": label,
+                                "account_id": general_line.account_id.id,
+                                "partner_id": payment.partner_id.id,
+                                "debit": 0.0,
+                                "credit": payment.amount,
+                            }
+                        ),
+                    ],
+                }
+            )
+            move._post()
+            move.payment_order_id = order
+            new_general_line = move.line_ids.filtered(
+                lambda line, acc=general_line.account_id: line.account_id == acc
+            )
+            (general_line + new_general_line).reconcile()
+            payment.write({"xtd_chain_close_move_id": move.id})
+        return True
+
+    def action_open_xtd_chain_remesado_move(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "account.move",
+            "view_mode": "form",
+            "res_id": self.xtd_chain_remesado_move_id.id,
+            "target": "current",
+        }
+
+    def action_open_xtd_chain_close_move(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "account.move",
+            "view_mode": "form",
+            "res_id": self.xtd_chain_close_move_id.id,
+            "target": "current",
+        }
 
     def action_open_xtd_collection_move(self):
         self.ensure_one()
