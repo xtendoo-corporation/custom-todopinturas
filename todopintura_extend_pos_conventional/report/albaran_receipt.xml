@@ -33,7 +33,11 @@
 
     <template id="report_delivery_document_cross_store_info"
               inherit_id="stock.report_delivery_document">
-        <xpath expr="//h2/span[@t-out='o.picking_type_id._get_code_report_name()']" position="replace"/>
+        <!-- todopintura_administration (a hard dependency of this module, always
+             loaded first) already replaces the whole //h2 with its own "ALBARAN"
+             heading, so the original picking type name span this used to strip
+             out no longer exists; trying to remove it here just breaks a fresh
+             install. Only the cross-store info insertion is still needed. -->
         <xpath expr="//div[@id='informations']" position="after">
             <t t-call="todopintura_extend_pos_conventional.report_cross_store_picking_info_block"/>
         </xpath>

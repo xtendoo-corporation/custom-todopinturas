@@ -5,7 +5,7 @@
         <field name="model">pos.make.payment.wizard</field>
         <field name="inherit_id" ref="pos_conventional_payment_wizard.view_pos_make_payment_wizard_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//separator[1]" position="before">
+            <xpath expr="//field[@name='available_payment_method_ids']" position="after">
                 <field name="show_credit_cashier_warning" invisible="1"/>
                 <field name="credit_cashier_warning_message" invisible="1"/>
             </xpath>

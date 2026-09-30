@@ -79,6 +79,7 @@ class PosOrderLinePermissions(models.Model):
                 return True
         return False
 
+    @api.model_create_multi
     def create(self, vals_list):
         # Si se intenta crear líneas con precio distinto y el usuario no tiene permiso, denegar
         is_pricelist_update = bool(

@@ -198,6 +198,22 @@ class PosPaymentSelectionWizard(models.TransientModel):
             wizard.has_card_method = bool(card)
             wizard.card_method_id = card.id
 
+    def _write_document_flags(self, order, to_invoice=None, is_a4_invoice=False, is_simplified_invoice=False):
+        """Escribe los flags de tipo de documento en `order`.
+
+        `is_l10n_es_simplified_invoice` sólo existe en `pos.order` cuando hay
+        instalado un módulo de localización española que lo añade (no es un
+        campo propio de este módulo); escribirlo incondicionalmente rompe
+        `action_confirm`/`action_pago_metodo`/`action_pago_combinado` en
+        cualquier base de datos que no lo tenga instalado.
+        """
+        vals = {'is_a4_invoice': is_a4_invoice}
+        if to_invoice is not None:
+            vals['to_invoice'] = to_invoice
+        if 'is_l10n_es_simplified_invoice' in order._fields:
+            vals['is_l10n_es_simplified_invoice'] = is_simplified_invoice
+        order.write(vals)
+
     def action_ticket(self):
         self.ensure_one()
         self.document_type = 'factura_simplified'
@@ -217,23 +233,11 @@ class PosPaymentSelectionWizard(models.TransientModel):
              return False
         # Aplicamos el tipo de documento seleccionado antes de abrir el popup
         if self.document_type == 'ticket':
-            self.order_id.write({
-                'to_invoice': False,
-                'is_a4_invoice': False,
-                'is_l10n_es_simplified_invoice': False,
-            })
+            self._write_document_flags(self.order_id, to_invoice=False)
         elif self.document_type == 'factura_simplified':
-             self.order_id.write({
-                'to_invoice': True,
-                'is_a4_invoice': False,
-                'is_l10n_es_simplified_invoice': True,
-            })
+            self._write_document_flags(self.order_id, to_invoice=True, is_simplified_invoice=True)
         elif self.document_type == 'factura_a4':
-             self.order_id.write({
-                'to_invoice': True,
-                'is_a4_invoice': True,
-                'is_l10n_es_simplified_invoice': False,
-            })
+            self._write_document_flags(self.order_id, to_invoice=True, is_a4_invoice=True)
         return self.order_id.action_open_payment_popup()
 
     def action_pago_metodo(self):
@@ -257,23 +261,11 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
         # Aplicamos el tipo de documento seleccionado antes de procesar el pago rápido
         if self.document_type == 'ticket':
-            self.order_id.write({
-                'to_invoice': False,
-                'is_a4_invoice': False,
-                'is_l10n_es_simplified_invoice': False,
-            })
+            self._write_document_flags(self.order_id, to_invoice=False)
         elif self.document_type == 'factura_simplified':
-             self.order_id.write({
-                'to_invoice': True,
-                'is_a4_invoice': False,
-                'is_l10n_es_simplified_invoice': True,
-            })
+            self._write_document_flags(self.order_id, to_invoice=True, is_simplified_invoice=True)
         elif self.document_type == 'factura_a4':
-             self.order_id.write({
-                'to_invoice': True,
-                'is_a4_invoice': True,
-                'is_l10n_es_simplified_invoice': False,
-            })
+            self._write_document_flags(self.order_id, to_invoice=True, is_a4_invoice=True)
 
         return self.order_id.action_pos_convention_pay_with_method(payment_method_id)
 
@@ -379,15 +371,9 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
             # Aplicamos la configuración del pedido según el tipo de operación ANTES de crear la factura
             if self.operation_type == 'ticket':
-                selected_orders.write({
-                    'is_l10n_es_simplified_invoice': True,
-                    'is_a4_invoice': False,
-                })
+                self._write_document_flags(selected_orders, is_simplified_invoice=True)
             else:
-                selected_orders.write({
-                    'is_l10n_es_simplified_invoice': False,
-                    'is_a4_invoice': True,
-                })
+                self._write_document_flags(selected_orders, is_a4_invoice=True)
 
             invoice = selected_orders._create_conventional_deposit_invoice(
                 invoice_partner=self.partner_id,
@@ -428,17 +414,9 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
         # Aplicamos la configuración del pedido según el tipo de operación
         if self.operation_type == 'ticket':
-            self.order_id.write({
-                'to_invoice': True,
-                'is_a4_invoice': False,
-                'is_l10n_es_simplified_invoice': True,
-            })
+            self._write_document_flags(self.order_id, to_invoice=True, is_simplified_invoice=True)
         elif self.operation_type == 'invoice':
-             self.order_id.write({
-                'to_invoice': True,
-                'is_a4_invoice': True,
-                'is_l10n_es_simplified_invoice': False,
-            })
+            self._write_document_flags(self.order_id, to_invoice=True, is_a4_invoice=True)
 
         # Despachamos según la operación
         if self.operation_type in ['ticket', 'invoice']:
@@ -503,6 +481,13 @@ class PosPaymentSelectionWizard(models.TransientModel):
                 'amount': self.payment_amount,
                 'payment_method_id': self.selected_payment_method_id.id,
             })
+            # order_id.amount_paid just changed; without this, amount_paid/
+            # amount_due on this wizard keep showing the stale pre-payment
+            # values (the automatic @api.depends recompute across the
+            # order_id.amount_paid relation does not fire reliably here),
+            # which would incorrectly block action_confirm's "importe
+            # insuficiente" check even once the order is fully paid.
+            self._compute_amounts()
 
         self.payment_amount = self.amount_due
         return {
