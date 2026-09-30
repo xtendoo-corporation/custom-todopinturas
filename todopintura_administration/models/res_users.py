@@ -16,16 +16,17 @@ class ResUsers(models.Model):
         help='Permite al usuario cambiar manualmente el precio de líneas en el Punto de Venta',
     )
 
-    @api.model
-    def create(self, vals):
-        user = super(ResUsers, self).create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        users = super(ResUsers, self).create(vals_list)
         # ensure group membership matches flag on create
-        if vals.get('pos_can_edit_price'):
-            group = self.env.ref('todopintura_administration.group_pos_price_editor', raise_if_not_found=False)
-            if group:
-                # field is `group_ids` on res.users (not `groups_id`)
-                user.sudo().write({'group_ids': [(4, group.id)]})
-        return user
+        group = self.env.ref('todopintura_administration.group_pos_price_editor', raise_if_not_found=False)
+        if group:
+            for user, vals in zip(users, vals_list):
+                if vals.get('pos_can_edit_price'):
+                    # field is `group_ids` on res.users (not `groups_id`)
+                    user.sudo().write({'group_ids': [(4, group.id)]})
+        return users
 
     def write(self, vals):
         res = super(ResUsers, self).write(vals)
