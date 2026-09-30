@@ -1,0 +1,141 @@
+// Reuses Odoo's own brand variable (already loaded earlier in the
+// web.assets_backend bundle) instead of hardcoding a color, so this always
+// matches the instance's real primary color (the same one used by the
+// Confirmar/Cancelar buttons in this same dialog).
+$o-todopintura-primary: $o-brand-primary;
+
+.o_todopintura_payment_wizard {
+    // Section titles ("¿Qué desea hacer?", "Método de Pago", "RESUMEN DE PAGO")
+    .o_horizontal_separator {
+        font-size: 0.8rem;
+        letter-spacing: 0.03em;
+        color: $o-todopintura-primary;
+    }
+
+    // Radio groups rendered as compact, standard-looking toggle buttons
+    .o_horizontal {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .o_radio_item {
+        position: relative;
+        margin: 0;
+
+        .o_radio_input {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        // Same box model as a standard Bootstrap/Odoo .btn (see Confirmar/Cancelar
+        // in this same dialog's footer): no icons, no oversized padding. The
+        // selected state uses a light tint (like Odoo's own filter/tag chips)
+        // instead of a solid fill, which reads as much more "native".
+        .o_form_label {
+            display: inline-block;
+            margin: 0;
+            padding: .375rem .75rem;
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
+            background-color: #fff;
+            color: #212529;
+            font-weight: 400;
+            line-height: 1.5;
+            cursor: pointer;
+            transition: background-color .15s ease-in-out, border-color .15s ease-in-out, color .15s ease-in-out;
+        }
+
+        .o_radio_input:hover + .o_form_label {
+            border-color: $o-todopintura-primary;
+        }
+
+        .o_radio_input:checked + .o_form_label {
+            border-color: $o-todopintura-primary;
+            background-color: rgba($o-todopintura-primary, .12);
+            color: $o-todopintura-primary;
+            font-weight: 600;
+        }
+    }
+
+    // Payment summary panel
+    .o_todopintura_summary_card {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: .5rem;
+        padding: 1.25rem !important;
+    }
+
+    // position:absolute was a dead end here: this dialog (a Bootstrap/Odoo
+    // modal) applies a transform on one of its ancestors, and a transformed
+    // ancestor becomes the containing block for any position:absolute
+    // descendant -- so "right:0" resolved against the whole modal instead of
+    // this row. A float doesn't have that failure mode: it is always
+    // contained by its own parent in normal flow, full stop, regardless of
+    // transforms/positioning anywhere above it.
+    .o_todopintura_amount_row {
+        overflow: hidden; // clearfix: contains the floated label/value
+        padding: .3rem 0;
+    }
+
+    .o_todopintura_amount_label {
+        float: left;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: .8rem;
+    }
+
+    .o_todopintura_amount_value {
+        float: right !important;
+        text-align: right;
+        font-weight: 700;
+        font-size: 1.1rem;
+        white-space: nowrap;
+    }
+
+    .o_todopintura_total_due {
+        margin-top: .5rem;
+        padding-top: 1rem;
+        border-top: 1px dashed #dee2e6;
+
+        .o_todopintura_amount_value {
+            color: $o-todopintura-primary;
+            font-size: 1.4rem;
+        }
+    }
+
+    // The generic <Field> wrapper adds an extra "o_field_widget" div around the
+    // widget's own template, and the editable MonetaryField itself places its
+    // currency symbol via an absolutely-positioned "ghost" overlay -- both the
+    // overlay and the real (invisible) input are left-packed by default deep
+    // inside that markup, so every level has to be pushed right explicitly for
+    // the visible text to land on the table cell's right edge, like the plain
+    // readonly amounts elsewhere in the same column.
+    .o_todopintura_amount_input {
+        .d-inline-flex.w-100 {
+            justify-content: flex-end;
+        }
+
+        .position-absolute {
+            justify-content: flex-end;
+        }
+
+        input.o_input {
+            text-align: right;
+        }
+    }
+
+    // Combined payment add-line card
+    .o_payment_list {
+        border: 1px solid #e9ecef;
+        border-radius: .375rem;
+        padding: 8px;
+        background-color: #fff;
+    }
+}

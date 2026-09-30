@@ -21,6 +21,7 @@
     'assets': {
         'web.assets_backend': [
             'todopintura_extend_pos_conventional_payment/static/src/js/pos_payment_selection_bypass.js',
+            'todopintura_extend_pos_conventional_payment/static/src/scss/pos_payment_selection_wizard.scss',
         ],
     },
     'installable': True,

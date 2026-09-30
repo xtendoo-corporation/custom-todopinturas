@@ -32,7 +32,7 @@
         <field name="name">pos.payment.selection.wizard.form</field>
         <field name="model">pos.payment.selection.wizard</field>
         <field name="arch" type="xml">
-            <form string="Seleccione tipo de pago">
+            <form string="Seleccione tipo de pago" class="o_todopintura_payment_wizard">
                 <field name="order_id" invisible="1"/>
                 <field name="deposit_wizard_id" invisible="1"/>
                 <field name="state" invisible="1"/>
@@ -95,54 +95,38 @@
 
                         <!-- Derecha: Detalles del Pago -->
                         <div class="col-md-7 ps-4">
-                            <group string="RESUMEN DE PAGO" invisible="operation_type != 'ticket' and operation_type != 'invoice'">
-                                <div class="w-100 px-2" colspan="2">
-                                    <!-- Fila: Total Pedido -->
-                                    <div class="row align-items-center mb-3 fw-bold text-uppercase" invisible="amount_paid == 0">
-                                        <div class="col-7">Total Pedido:</div>
-                                        <div class="col-5 text-end h4 mb-0">
-                                            <field name="amount_total" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
-                                        </div>
+                            <div invisible="operation_type != 'ticket' and operation_type != 'invoice'">
+                                <div class="o_horizontal_separator mt-4 mb-3 text-uppercase fw-bolder small">RESUMEN DE PAGO</div>
+                                <div class="w-100 px-2 o_todopintura_summary_card">
+                                    <!-- Deliberately a plain <div>, NOT inside <group>: Odoo's <group> wraps
+                                         every one of its cells in its own CSS Grid item machinery, which was
+                                         silently forcing everything nested inside (rows, labels, values) to
+                                         stack as blocks no matter what layout technique (flex/grid/table/
+                                         absolute/float) was tried on them. -->
+                                    <div class="o_todopintura_amount_row" invisible="amount_paid == 0">
+                                        <span class="o_todopintura_amount_label">Total Pedido:</span>
+                                        <field name="amount_total" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               readonly="1" class="o_todopintura_amount_value"/>
                                     </div>
-
-                                    <!-- Fila: Pagado -->
-                                    <div class="row align-items-center mb-3 fw-bold text-uppercase text-success" invisible="amount_paid == 0">
-                                        <div class="col-7">Pagado:</div>
-                                        <div class="col-5 text-end h4 mb-0">
-                                            <field name="amount_paid" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
-                                        </div>
+                                    <div class="o_todopintura_amount_row" invisible="amount_paid == 0">
+                                        <span class="o_todopintura_amount_label text-success">Pagado:</span>
+                                        <field name="amount_paid" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               readonly="1" class="o_todopintura_amount_value text-success"/>
                                     </div>
-
-                                    <!-- Fila: Total a Pagar -->
-                                    <div class="row align-items-center mb-4 fw-bold text-uppercase">
-                                        <div class="col-7">Total a Pagar:</div>
-                                        <div class="col-5 text-end h4 mb-0">
-                                            <field name="amount_due" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1"/>
-                                        </div>
+                                    <div class="o_todopintura_amount_row o_todopintura_total_due">
+                                        <span class="o_todopintura_amount_label">Total a Pagar:</span>
+                                        <field name="amount_due" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               readonly="1" class="o_todopintura_amount_value"/>
                                     </div>
-
-                                    <div invisible="payment_type != 'cash'" class="mt-4 pt-4 border-top">
-                                        <!-- Fila: Importe Entregado (Editable) -->
-                                        <div class="row align-items-center mb-4 fw-bold text-uppercase">
-                                            <div class="col-7">Importe Entregado:</div>
-                                            <div class="col-5 text-end d-flex align-items-center justify-content-end h4 mb-0">
-                                                <field name="amount_tendered" nolabel="1"
-                                                       widget="float"
-                                                       options="{'digits': [16, 2]}"
-                                                       class="fw-bold text-end h4 mb-0"
-                                                       style="width: 120px; border: none; border-bottom: 2px solid #dee2e6; background: transparent; outline: none; padding-right: 5px;"/>
-                                                <span class="fw-bold ms-1">€</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Fila: Cambio -->
-                                        <div class="row align-items-center fw-bold text-uppercase" invisible="amount_change == 0">
-                                            <div class="col-7">Cambio / Restante:</div>
-                                            <div class="col-5 text-end">
-                                                <field name="amount_change" nolabel="1" invisible="amount_change &lt;= 0" widget="monetary" options="{'currency_field': 'currency_id'}" style="color: red; font-size: 1.6rem;"/>
-                                                <field name="amount_change_abs" nolabel="1" invisible="amount_change > 0" widget="monetary" options="{'currency_field': 'currency_id'}" style="color: green; font-size: 1.6rem;"/>
-                                            </div>
-                                        </div>
+                                    <div class="o_todopintura_amount_row" invisible="payment_type != 'cash'">
+                                        <span class="o_todopintura_amount_label">Importe Entregado:</span>
+                                        <field name="amount_tendered" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               class="o_todopintura_amount_value o_todopintura_amount_input"/>
+                                    </div>
+                                    <div class="o_todopintura_amount_row" invisible="payment_type != 'cash' or amount_change == 0">
+                                        <span class="o_todopintura_amount_label">Cambio / Restante:</span>
+                                        <field name="amount_change" nolabel="1" invisible="amount_change &lt;= 0" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" class="o_todopintura_amount_value text-danger"/>
+                                        <field name="amount_change_abs" nolabel="1" invisible="amount_change > 0" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}" class="o_todopintura_amount_value text-success"/>
                                     </div>
 
                                     <div invisible="payment_type != 'combined'">
@@ -176,7 +160,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </group>
+                            </div>
 
                             <div invisible="operation_type != 'delivery'" class="text-center py-5">
                                 <i class="fa fa-truck fa-5x text-muted mb-3"/>
