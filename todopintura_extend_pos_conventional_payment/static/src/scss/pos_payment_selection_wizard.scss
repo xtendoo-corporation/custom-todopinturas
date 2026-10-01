@@ -99,36 +99,100 @@ $o-todopintura-primary: $o-brand-primary;
         white-space: nowrap;
     }
 
+    // Etiqueta arriba, salto de línea, caja debajo a todo el ancho -- para
+    // Total a Pagar / Importe Entregado / Cambio, en vez de la fila
+    // horizontal (label izquierda / valor derecha) que usan Total
+    // Pedido/Pagado más arriba.
+    .o_todopintura_amount_block {
+        margin-bottom: .75rem;
+
+        .o_todopintura_amount_label {
+            float: none;
+            display: block;
+            margin-bottom: .25rem;
+        }
+    }
+
     .o_todopintura_total_due {
         margin-top: .5rem;
         padding-top: 1rem;
         border-top: 1px dashed #dee2e6;
 
-        .o_todopintura_amount_value {
+        .o_todopintura_cash_input_group {
+            height: 3.25rem;
+        }
+
+        // Igual que arriba: "Total a Pagar" es de solo lectura (un <span>,
+        // sin <input> real), así que hace falta apuntar también al wrapper
+        // directamente, o este énfasis más grande/de color nunca llegaba a
+        // aplicarse.
+        .input-group-text,
+        .o_todopintura_amount_input,
+        .o_todopintura_amount_input input.o_input {
             color: $o-todopintura-primary;
             font-size: 1.4rem;
         }
     }
 
-    // The generic <Field> wrapper adds an extra "o_field_widget" div around the
-    // widget's own template, and the editable MonetaryField itself places its
-    // currency symbol via an absolutely-positioned "ghost" overlay -- both the
-    // overlay and the real (invisible) input are left-packed by default deep
-    // inside that markup, so every level has to be pushed right explicitly for
-    // the visible text to land on the table cell's right edge, like the plain
-    // readonly amounts elsewhere in the same column.
-    .o_todopintura_amount_input {
-        .d-inline-flex.w-100 {
-            justify-content: flex-end;
+    // "Importe Entregado"/"Total a Pagar"/"Cambio" styled like the native POS
+    // closing screen's cash inputs
+    // (pos_conventional/static/src/css/pos_session_closing.css,
+    // .close-pos-popup .cash-input / .cash-move-popup .input-group-text):
+    // same font-size/weight, same plain Bootstrap .input-group construction.
+    // The field carries the "form-control" class so Bootstrap's own
+    // .input-group CSS handles its border/radius/sizing the same way it
+    // would a real <input> -- no need to hand-roll any of that ourselves.
+    .o_todopintura_cash_input_group {
+        width: 100%;
+        // Forzamos la misma altura en los dos lados explícitamente, en vez
+        // de confiar en que el cálculo automático (padding + line-height de
+        // cada lado, con fuentes/paddings de origen distinto) coincida por
+        // sí solo -- de ahí venía el escalón visible entre las dos cajas.
+        height: 2.75rem;
+
+        .input-group-text,
+        .o_todopintura_amount_input {
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
         }
 
-        .position-absolute {
-            justify-content: flex-end;
+        .input-group-text {
+            font-size: 1.25rem;
+            font-weight: 600;
         }
 
-        input.o_input {
+        .o_todopintura_amount_input {
+            padding: 0 .5rem;
+            // Este wrapper ya es display:flex (regla de arriba); para el
+            // texto plano de los campos de solo lectura (Total a Pagar,
+            // Cambio) eso lo convierte en un "flex item" anónimo, así que
+            // text-align no le afecta -- hace falta justify-content en el
+            // propio contenedor flex para alinearlo a la derecha. Sin esto,
+            // sólo el <input> real (editable) quedaba a la derecha y los
+            // de solo lectura se quedaban a la izquierda.
+            justify-content: flex-end;
             text-align: right;
+            // Mismo motivo: el tamaño/grosor de más abajo sólo apunta al
+            // <input> real, que no existe para los campos de solo lectura
+            // (se renderizan como <span>) -- sin esto quedaban más pequeños
+            // que "Importe Entregado".
+            font-size: 1.25rem;
+            font-weight: 600;
+
+            .d-inline-flex {
+                height: 100%;
+                justify-content: flex-end;
+            }
         }
+    }
+
+    .o_todopintura_amount_input input.o_input {
+        height: 100%;
+        font-size: 1.25rem;
+        font-weight: 600;
+        text-align: right;
     }
 
     // Combined payment add-line card
