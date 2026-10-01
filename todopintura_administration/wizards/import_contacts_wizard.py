@@ -1,11 +1,24 @@
 import base64
 import io
 import logging
+import re
 
 from markupsafe import escape
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+
+# account.payment.term.note (creado por el wizard import.payment.terms.wizard,
+# ver models/account_payment_term.py) tiene el formato:
+#   "<p>Condiciones de pago: X<br>Método de pago: Y</p>"
+# Las columnas Z/AA del Excel de clientes ("CONDICIONES PAGO"/"METODO PAGO")
+# son exactamente esos mismos dos valores -- así que podemos usarlas para
+# encontrar el término de pago ya existente que corresponde a ese cliente,
+# en vez de depender solo del código numérico de la columna I (FORMA DE PAGO).
+_CONDICIONES_PAGO_RE = re.compile(
+    r'Condiciones de pago:\s*(.*?)(?:<br\s*/?>|</p>|$)', re.IGNORECASE | re.DOTALL)
+_METODO_PAGO_RE = re.compile(
+    r'M[eé]todo de pago:\s*(.*?)(?:</p>|$)', re.IGNORECASE | re.DOTALL)
 
 try:
     import xlrd
@@ -126,6 +139,34 @@ class ImportContactsWizard(models.TransientModel):
             return ''
         text = value.strip() if isinstance(value, str) else str(value).strip()
         return '' if text and all(char == '*' for char in text) else text
+
+    @api.model
+    def _normalize_payment_lookup_text(self, value):
+        text = self._sanitize_import_text(value)
+        return ' '.join(text.upper().split())
+
+    @api.model
+    def _build_payment_term_lookup(self):
+        """Mapea (condiciones de pago, método de pago) normalizados -> id de
+        account.payment.term, parseando el campo `note` que genera
+        import.payment.terms.wizard. Se calcula una sola vez por importación
+        (no por fila) ya que recorre todos los términos de pago existentes.
+        """
+        lookup = {}
+        for term in self.env['account.payment.term'].search([]):
+            if not term.note:
+                continue
+            note_text = str(term.note)
+            condiciones_match = _CONDICIONES_PAGO_RE.search(note_text)
+            if not condiciones_match:
+                continue
+            condiciones = self._normalize_payment_lookup_text(condiciones_match.group(1))
+            if not condiciones:
+                continue
+            metodo_match = _METODO_PAGO_RE.search(note_text)
+            metodo = self._normalize_payment_lookup_text(metodo_match.group(1)) if metodo_match else ''
+            lookup.setdefault((condiciones, metodo), term.id)
+        return lookup
 
     @api.model
     def _normalize_contact_vat(self, nif):
@@ -278,7 +319,7 @@ class ImportContactsWizard(models.TransientModel):
                 yield [sheet.cell(row_index, col).value for col in range(sheet.ncols)]
 
     @api.model
-    def _process_import_row(self, row, country_id, results):
+    def _process_import_row(self, row, country_id, results, payment_term_lookup=None):
         """Procesa una fila del Excel: crea/actualiza el cliente y registra el resultado.
 
         Devuelve False cuando la fila está completamente vacía (fin de los datos reales),
@@ -300,6 +341,10 @@ class ImportContactsWizard(models.TransientModel):
             forma_pago = str(int(cell(8))) if cell(8) else ''
         except (ValueError, TypeError):
             forma_pago = ''
+        # Columnas Z/AA: "CONDICIONES PAGO" / "METODO PAGO" -- ver
+        # _build_payment_term_lookup para de dónde sale esta combinación.
+        condiciones_pago = self._normalize_payment_lookup_text(cell(25))
+        metodo_pago = self._normalize_payment_lookup_text(cell(26))
         email = self._sanitize_import_text(cell(23))
         credit_limit = self._parse_credit_limit(cell(11))
         iban = self._sanitize_import_text(cell(14))
@@ -321,11 +366,33 @@ class ImportContactsWizard(models.TransientModel):
             if credit_limit is not None:
                 record['use_partner_credit_limit'] = True
                 record['credit_limit'] = credit_limit
-            if forma_pago in PAYMENT_TERMS and PAYMENT_TERMS[forma_pago]:
+
+            # 1) Prioridad: columnas Z+AA (condiciones/método de pago en texto
+            #    libre) contra los términos de pago ya existentes (importados
+            #    con import.payment.terms.wizard, que guarda esa misma pareja
+            #    de valores en su `note`).
+            payment_term_id = None
+            if payment_term_lookup is not None and condiciones_pago:
+                payment_term_id = payment_term_lookup.get((condiciones_pago, metodo_pago))
+                if payment_term_id is None and metodo_pago:
+                    # El término puede no tener "Método de pago" en su nota.
+                    payment_term_id = payment_term_lookup.get((condiciones_pago, ''))
+                if payment_term_id is None:
+                    results.setdefault('payment_term_unmatched', {})
+                    key = (condiciones_pago, metodo_pago)
+                    results['payment_term_unmatched'][key] = results['payment_term_unmatched'].get(key, 0) + 1
+
+            # 2) Si no hay match por Z/AA, caemos en la lógica previa: código
+            #    numérico de la columna I (FORMA DE PAGO) contra un
+            #    diccionario fijo de nombres de término de pago.
+            if payment_term_id is None and forma_pago in PAYMENT_TERMS and PAYMENT_TERMS[forma_pago]:
                 payment_term = self.env['account.payment.term'].search(
                     [('name', '=', PAYMENT_TERMS[forma_pago])], limit=1)
                 if payment_term:
-                    record['property_payment_term_id'] = payment_term.id
+                    payment_term_id = payment_term.id
+
+            if payment_term_id:
+                record['property_payment_term_id'] = payment_term_id
 
             contact, status = self._create_or_update_contact(num_client, name, record, iban=iban)
             self.env.cr.flush()
@@ -345,10 +412,19 @@ class ImportContactsWizard(models.TransientModel):
             lines = ''.join(f'<li>{escape(line)}</li>' for line in items)
             return f'<p><b>{escape(title)} ({len(items)}):</b></p><ul class="{css_class}">{lines}</ul>'
 
+        unmatched = results.get('payment_term_unmatched') or {}
+        unmatched_lines = [
+            f"Condiciones: \"{condiciones}\" / Método: \"{metodo or '(vacío)'}\" -- {count} cliente(s)"
+            for (condiciones, metodo), count in sorted(unmatched.items(), key=lambda kv: -kv[1])
+        ]
+
         return (
             section('Clientes nuevos', results['created'], 'text-success')
             + section('Clientes actualizados', results['updated'], 'text-info')
             + section('Errores', results['error'], 'text-danger')
+            + section(
+                'Condiciones/método de pago (columnas Z/AA) sin término de pago coincidente',
+                unmatched_lines, 'text-warning')
         )
 
     def _load_sheet(self):
@@ -386,9 +462,10 @@ class ImportContactsWizard(models.TransientModel):
         if not country_id:
             raise UserError("País 'España' no encontrado en la base de datos.")
 
-        results = {'created': [], 'updated': [], 'error': []}
+        results = {'created': [], 'updated': [], 'error': [], 'payment_term_unmatched': {}}
+        payment_term_lookup = self._build_payment_term_lookup()
         for row in self._iter_rows(sheet, is_xlsx):
-            if not self._process_import_row(row, country_id, results):
+            if not self._process_import_row(row, country_id, results, payment_term_lookup=payment_term_lookup):
                 break
 
         self.write({

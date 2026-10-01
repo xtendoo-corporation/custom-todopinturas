@@ -152,6 +152,94 @@ class TestImportContactsWizard(TransactionCase):
         ])
         self.assertEqual(len(contacts), 2)
 
+    @staticmethod
+    def _build_row(num_client, name, address='', cp='', telefono='', nif='',
+                    forma_pago='', credit_limit='', iban='', email='',
+                    condiciones_pago='', metodo_pago=''):
+        """Construye una fila con el mismo layout posicional que
+        _process_import_row espera (ver cell(idx) ahí), rellenando con
+        cadenas vacías las columnas que no nos interesan para estos tests.
+        """
+        row = [''] * 27
+        row[0] = num_client
+        row[1] = name
+        row[2] = address
+        row[3] = cp
+        row[4] = telefono
+        row[6] = nif
+        row[8] = forma_pago
+        row[11] = credit_limit
+        row[14] = iban
+        row[23] = email
+        row[25] = condiciones_pago
+        row[26] = metodo_pago
+        return row
+
+    def _make_payment_term(self, name, condiciones, metodo=None):
+        note = f'<p>Condiciones de pago: {condiciones}'
+        if metodo:
+            note += f'<br>Método de pago: {metodo}'
+        note += '</p>'
+        return self.env['account.payment.term'].create({'name': name, 'note': note})
+
+    def test_payment_term_lookup_parses_condiciones_and_metodo_from_note(self):
+        self._make_payment_term('CONTADO', 'CONTADO', 'CONTADO REPOSICION')
+        self._make_payment_term('Pago inmediato', 'pago inmediato')
+
+        lookup = self.wizard._build_payment_term_lookup()
+
+        self.assertIn(('CONTADO', 'CONTADO REPOSICION'), lookup)
+        self.assertIn(('PAGO INMEDIATO', ''), lookup)
+
+    def test_process_import_row_prefers_condiciones_metodo_over_forma_pago_code(self):
+        term_from_zaa = self._make_payment_term('CONTADO', 'CONTADO', 'CONTADO REPOSICION')
+        term_from_code = self._make_payment_term('GIRO A 30 DIAS', '30 dias', 'GIRO')
+        country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        lookup = self.wizard._build_payment_term_lookup()
+        results = {'created': [], 'updated': [], 'error': [], 'payment_term_unmatched': {}}
+
+        row = self._build_row(
+            7001, 'CLIENTE ZAA', nif='44444444A',
+            forma_pago='1010',  # -> 'GIRO A 30 DIAS' si Z/AA no tuvieran prioridad
+            condiciones_pago='CONTADO', metodo_pago='CONTADO REPOSICION',
+        )
+        self.wizard._process_import_row(row, country, results, payment_term_lookup=lookup)
+
+        contact = self.env['res.partner'].search([('ref', '=', '7001')], limit=1)
+        self.assertEqual(contact.property_payment_term_id, term_from_zaa)
+        self.assertNotEqual(contact.property_payment_term_id, term_from_code)
+        self.assertFalse(results['payment_term_unmatched'])
+
+    def test_process_import_row_falls_back_to_forma_pago_when_no_zaa_match(self):
+        term_from_code = self._make_payment_term('GIRO A 30 DIAS', '30 dias', 'GIRO')
+        country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        lookup = self.wizard._build_payment_term_lookup()
+        results = {'created': [], 'updated': [], 'error': [], 'payment_term_unmatched': {}}
+
+        row = self._build_row(
+            7002, 'CLIENTE SIN ZAA', nif='55555555B',
+            forma_pago='1010', condiciones_pago='', metodo_pago='',
+        )
+        self.wizard._process_import_row(row, country, results, payment_term_lookup=lookup)
+
+        contact = self.env['res.partner'].search([('ref', '=', '7002')], limit=1)
+        self.assertEqual(contact.property_payment_term_id, term_from_code)
+
+    def test_process_import_row_records_unmatched_payment_term_combo(self):
+        country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        lookup = self.wizard._build_payment_term_lookup()
+        results = {'created': [], 'updated': [], 'error': [], 'payment_term_unmatched': {}}
+
+        row = self._build_row(
+            7003, 'CLIENTE COMBO DESCONOCIDO', nif='66666666C',
+            condiciones_pago='ALGO RARO', metodo_pago='OTRA COSA',
+        )
+        self.wizard._process_import_row(row, country, results, payment_term_lookup=lookup)
+
+        contact = self.env['res.partner'].search([('ref', '=', '7003')], limit=1)
+        self.assertFalse(contact.property_payment_term_id)
+        self.assertEqual(results['payment_term_unmatched'].get(('ALGO RARO', 'OTRA COSA')), 1)
+
     def test_action_reset_clears_state_and_file(self):
         xlsx_data = self._build_xlsx([[6001, 'CLIENTE RESET', 'CALLE RESET', 41003, 954000003, 0, '33333333K']])
         wizard = self.env['import.contacts.wizard'].create({
