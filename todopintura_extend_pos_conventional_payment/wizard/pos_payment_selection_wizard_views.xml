@@ -157,6 +157,7 @@
                                                 <div class="row align-items-center g-3">
                                                     <div class="col-6">
                                                         <field name="selected_payment_method_id" options="{'no_create': True, 'no_open': True}"
+                                                               domain="[('id', 'in', payment_method_ids)]"
                                                                placeholder="Método..." class="w-100 h4 mb-0"/>
                                                     </div>
                                                     <div class="col-4 d-flex align-items-center justify-content-end border-bottom">
