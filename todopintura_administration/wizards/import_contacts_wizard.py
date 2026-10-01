@@ -216,16 +216,32 @@ class ImportContactsWizard(models.TransientModel):
     def _find_existing_contact(self, num_client, name, vat, iban=None):
         partner_model = self.env['res.partner'].with_context(active_test=False)
         base_domain = [('parent_id', '=', False), ('is_company', '=', True)]
+        has_ref = num_client not in ['', None]
+
+        if has_ref:
+            ref_domains = [
+                base_domain + [('ref', '=', num_client)],
+                base_domain + [('ref', '=', num_client), ('name', '=', name)],
+            ]
+            for domain in ref_domains:
+                contact = partner_model.search(domain, limit=1)
+                if contact:
+                    return contact
+
+        # NUMERO CLIENTE (ref) es la clave única real. Si la fila trae uno y
+        # no existe todavía, NO debemos fusionarla con un contacto que ya
+        # pertenece a OTRO número de cliente sólo porque comparten VAT/IBAN
+        # (cuentas de grupo, NIF de empleados, etc.) -- eso le robaba la
+        # ficha a ese otro cliente y mezclaba sus datos. El fallback por
+        # VAT/IBAN sólo puede quedarse con contactos que todavía no tengan
+        # ref propio (fichas antiguas sin número de cliente asignado).
+        no_ref_domain = [('ref', 'in', [False, ''])] if has_ref else []
 
         search_domains = []
-        if num_client not in ['', None]:
-            search_domains.append(base_domain + [('ref', '=', num_client)])
         if vat:
-            search_domains.append(base_domain + [('vat', '=', vat)])
-        if num_client not in ['', None] and name:
-            search_domains.append(base_domain + [('ref', '=', num_client), ('name', '=', name)])
+            search_domains.append(base_domain + no_ref_domain + [('vat', '=', vat)])
         if vat and name:
-            search_domains.append(base_domain + [('vat', '=', vat), ('name', '=', name)])
+            search_domains.append(base_domain + no_ref_domain + [('vat', '=', vat), ('name', '=', name)])
 
         for domain in search_domains:
             contact = partner_model.search(domain, limit=1)
@@ -238,7 +254,9 @@ class ImportContactsWizard(models.TransientModel):
                 ('acc_number', '=', normalized_iban),
             ], limit=1)
             if bank_record:
-                return bank_record.partner_id.commercial_partner_id
+                candidate = bank_record.partner_id.commercial_partner_id
+                if not has_ref or not candidate.ref:
+                    return candidate
 
         return partner_model.browse()
 
@@ -253,6 +271,10 @@ class ImportContactsWizard(models.TransientModel):
 
         try:
             if contact:
+                # Una fila sin NUMERO CLIENTE no debe borrar el ref de un
+                # contacto encontrado por VAT/IBAN que ya tuviera uno.
+                if not record.get('ref') and contact.ref:
+                    record = dict(record, ref=contact.ref)
                 contact.write(record)
                 status = 'updated'
             else:

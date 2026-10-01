@@ -102,6 +102,95 @@ class TestImportContactsWizard(TransactionCase):
 
         self.assertEqual(found_contact, contact)
 
+    def test_find_existing_contact_does_not_steal_other_ref_by_iban(self):
+        """Dos clientes distintos (p.ej. una cuenta de grupo) comparten IBAN.
+        Si la fila trae un NUMERO CLIENTE que no existe todavía, no debe
+        devolver el contacto del otro cliente (eso le roba la ficha y
+        mezcla sus datos) -- debe comportarse como "no encontrado" para que
+        se cree un contacto nuevo.
+        """
+        existing = self.env['res.partner'].create({
+            'name': 'GRUPO LOGISTICO HISPALCARGO',
+            'ref': '50468',
+            'is_company': True,
+        })
+        self.env['res.partner.bank'].create({
+            'acc_number': 'ES9121000418450200051332',
+            'partner_id': existing.id,
+        })
+
+        found = self.wizard._find_existing_contact(
+            '1807', 'HISPALCARGO LOGISTICA', '', iban='ES91 2100 0418 4502 0005 1332')
+
+        self.assertFalse(found)
+
+    def test_find_existing_contact_by_iban_still_claims_contact_without_ref(self):
+        """Si el contacto encontrado por IBAN todavía no tiene ref propio
+        (ficha antigua sin número de cliente), sí se puede reutilizar.
+        """
+        existing = self.env['res.partner'].create({
+            'name': 'CLIENTE SIN REF',
+            'is_company': True,
+        })
+        self.env['res.partner.bank'].create({
+            'acc_number': 'ES9121000418450200051332',
+            'partner_id': existing.id,
+        })
+
+        found = self.wizard._find_existing_contact(
+            '1807', 'CLIENTE SIN REF', '', iban='ES91 2100 0418 4502 0005 1332')
+
+        self.assertEqual(found, existing)
+
+    def test_find_existing_contact_does_not_steal_other_ref_by_vat(self):
+        existing = self.env['res.partner'].create({
+            'name': 'EMPLEADOS',
+            'ref': '9999999',
+            'vat': 'ESB41089947',
+            'is_company': True,
+        })
+
+        found = self.wizard._find_existing_contact('9003000', 'OTRO CLIENTE', 'ESB41089947')
+
+        self.assertFalse(found)
+        self.assertEqual(existing.ref, '9999999')
+
+    def test_create_or_update_contact_creates_separate_contacts_sharing_iban(self):
+        """Reproduce el bug real: dos números de cliente (1807 y 50468)
+        comparten IBAN. Tras el fix, la reimportación debe crear/actualizar
+        AMBOS contactos por separado, cada uno con sus propios datos.
+        """
+        iban = 'ES91 2100 0418 4502 0005 1332'
+        country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+
+        record_50468 = {
+            'ref': '50468', 'name': 'GRUPO LOGISTICO HISPALCARGO',
+            'street': 'CALLE GRUPO', 'zip': '41001', 'country_id': country.id,
+            'phone': '954000111', 'vat': '', 'email': 'grupo@example.com',
+            'comment': '', 'is_company': True,
+        }
+        contact_50468, status_50468 = self.wizard._create_or_update_contact(
+            '50468', 'GRUPO LOGISTICO HISPALCARGO', record_50468, iban=iban)
+        self.wizard._ensure_bank_account(contact_50468, iban)
+        self.assertEqual(status_50468, 'created')
+
+        record_1807 = {
+            'ref': '1807', 'name': 'HISPALCARGO LOGISTICA',
+            'street': 'CALLE HISPALCARGO', 'zip': '41002', 'country_id': country.id,
+            'phone': '954000222', 'vat': '', 'email': 'hispalcargo@example.com',
+            'comment': '', 'is_company': True,
+        }
+        contact_1807, status_1807 = self.wizard._create_or_update_contact(
+            '1807', 'HISPALCARGO LOGISTICA', record_1807, iban=iban)
+        self.wizard._ensure_bank_account(contact_1807, iban)
+
+        self.assertEqual(status_1807, 'created')
+        self.assertNotEqual(contact_1807, contact_50468)
+        self.assertEqual(contact_1807.ref, '1807')
+        self.assertEqual(contact_1807.street, 'CALLE HISPALCARGO')
+        self.assertEqual(contact_50468.ref, '50468')
+        self.assertEqual(contact_50468.street, 'CALLE GRUPO')
+
     def test_parse_credit_limit_ignores_blank_strings(self):
         self.assertIsNone(self.wizard._parse_credit_limit('            '))
         self.assertIsNone(self.wizard._parse_credit_limit(''))
