@@ -52,6 +52,12 @@ patch(PosReceiptClientAction.prototype, {
         }).catch((error) => {
             console.error("[PosReceiptClientActionPatch] Error printing receipt:", error);
             return false;
+        }).finally(() => {
+            // Antes, window.bypassPosLeave se quedaba en `true` para siempre
+            // tras imprimir (nada lo revertía), desarmando el guard de "no
+            // salir de un pedido en borrador" para cualquier pedido abierto
+            // después de este, no sólo el recién impreso.
+            window.bypassPosLeave = false;
         });
 
         return this._receiptPrintPromise;

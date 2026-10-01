@@ -68,14 +68,22 @@ async function posPrintReceiptWindowAction(env, action) {
     window.bypassPosLeave = true;
 
     const absoluteUrl = new URL(url, window.location.origin).toString();
-    await printReceiptInBackground(absoluteUrl, env, {
-        reportAutoprints: !!params.report_autoprints,
-    });
+    try {
+        await printReceiptInBackground(absoluteUrl, env, {
+            reportAutoprints: !!params.report_autoprints,
+        });
 
-    if (params.next_action) {
-        return env.services.action.doAction(params.next_action, { clearBreadcrumbs });
+        if (params.next_action) {
+            return await env.services.action.doAction(params.next_action, { clearBreadcrumbs });
+        }
+        return { type: "ir.actions.act_window_close" };
+    } finally {
+        // Antes nada revertía esto: window.bypassPosLeave se quedaba en
+        // `true` para siempre tras imprimir, desarmando el guard de "no
+        // salir de un pedido en borrador" para cualquier pedido abierto
+        // después de este.
+        window.bypassPosLeave = false;
     }
-    return { type: "ir.actions.act_window_close" };
 }
 
 registry.category("actions").add(

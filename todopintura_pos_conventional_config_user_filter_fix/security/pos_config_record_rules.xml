@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Parcheamos la regla existente (por su external id completo, sin tocar
+         el repo xtendoo-pos-conventional) para quitarle el permiso de
+         "create". Su dominio filtra por 'id in allowed_pos_config_ids', y una
+         caja recién creada nunca puede tener un id que ya estuviera en esa
+         lista de antemano: con perm_create=1 ahí, un admin con cualquier caja
+         restringida en "Cajas permitidas" jamás podría crear una caja nueva
+         (se le denegaría siempre, justo después de insertarla), y el propio
+         write interno que point_of_sale hace nada más crear
+         (_create_sequences) tampoco podría pasar esta misma regla, por el
+         mismo motivo. La creación (y esa auto-inicialización/auto-concesión
+         de acceso) para base.group_system se resuelve en Python, en
+         models/pos_config.py de este módulo. -->
+    <record id="pos_conventional_config_user_filter.pos_config_rule_system_all" model="ir.rule">
+        <field name="perm_create">0</field>
+    </record>
+</odoo>
