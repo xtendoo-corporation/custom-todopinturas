@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- «Último coste de compra» se valora como precio estándar: la cuenta de
+         diferencia de precio también debe mostrarse con este método -->
+    <record id="view_category_property_form_last_cost" model="ir.ui.view">
+        <field name="name">product.category.form.last.cost</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="stock_account.view_category_property_form"/>
+        <field name="arch" type="xml">
+            <field name="property_price_difference_account_id" position="attributes">
+                <attribute name="invisible">not (property_cost_method in ('standard', 'last') and property_valuation == 'real_time')</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>
