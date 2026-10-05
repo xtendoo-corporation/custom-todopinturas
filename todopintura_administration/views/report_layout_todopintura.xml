@@ -24,7 +24,7 @@
         <div class="header tp_header" style="font-size: 9px; color: #1c2b5a; height: 190px; overflow: hidden; position: relative;">
             <!-- wkhtmltopdf crea la página de cabecera con <html style="height:0">; con el CSS de informes cargado
                  su altura se mide como 0 y la cabecera se desplaza sobre el cuerpo. -->
-            <style>html, body { height: auto !important; } .tp_header td, .tp_header th { border: 0 !important; padding: 0; }</style>
+            <style>html, body { height: auto !important; } .tp_header, .tp_header * { border: 0 !important; box-shadow: none !important; outline: 0 !important; } .tp_header td, .tp_header th { padding: 0; }</style>
             <table style="width: 100%; height: 188px; border: none;">
                 <tr>
                     <td style="width: 46%; vertical-align: top;">
@@ -64,7 +64,12 @@
              t-att-data-oe-model="o and o._name"
              t-att-data-oe-id="o and o.id"
              t-att-data-oe-lang="o and o.env.context.get('lang')">
-            <style>.tp_albaran td, .tp_factura td { border: 0 !important; }</style>
+            <style>
+                .tp_doc table, .tp_doc thead, .tp_doc tbody, .tp_doc tr, .tp_doc td, .tp_doc th { border: 0 !important; }
+                .tp_doc table.tp_box { border: 1px solid #1c2b5a !important; }
+                .tp_doc td.tp_cellbox { border: 1px solid #1c2b5a !important; border-bottom: 0 !important; }
+                .tp_doc table.tp_box thead th { border-bottom: 1px solid #1c2b5a !important; }
+            </style>
             <t t-out="0"/>
         </div>
 
@@ -88,14 +93,14 @@
                 <td style="width: 60%; vertical-align: bottom; padding-bottom: 4px;">
                     <img src="/todopintura_administration/static/img/fox.png" width="84" height="34" style="width: 84px; height: 34px;"/>
                 </td>
-                <td style="width: 40%; border: 1px solid #1c2b5a; border-bottom: none; padding: 6px 10px; font-family: monospace; font-size: 12px;">
+                <td class="tp_cellbox" style="width: 40%; padding: 6px 10px; font-family: monospace; font-size: 12px;">
                     <strong>CLIENTE</strong>
                     <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.ref or ''"/>
                     <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.vat or ''"/>
                 </td>
             </tr>
         </table>
-        <table style="width: 100%; border: 1px solid #1c2b5a; border-collapse: collapse; color: #1c2b5a; font-family: monospace; font-size: 12px;">
+        <table class="tp_box" style="width: 100%; border-collapse: collapse; color: #1c2b5a; font-family: monospace; font-size: 12px;">
             <tr>
                 <td style="width: 55%; vertical-align: top; padding: 8px 10px;">
                     <div t-out="partner"

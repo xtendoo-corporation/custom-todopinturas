@@ -9,7 +9,7 @@
                 <t t-set="salesperson" t-value="o._tp_report_salesperson()"/>
                 <t t-call="todopintura_administration.external_layout_todopintura">
                     <t t-foreach="o._tp_report_copies()" t-as="copy_label">
-                        <div class="page tp_albaran"
+                        <div class="page tp_doc tp_albaran"
                              t-attf-style="font-size: 11px; color: #1c2b5a; #{'page-break-before: always;' if not copy_label_first else ''}">
                             <t t-call="todopintura_administration.tp_document_top_boxes">
                                 <t t-set="right_block">
@@ -22,9 +22,9 @@
                                 </t>
                             </t>
 
-                            <table style="width: 100%; border: 1px solid #1c2b5a; border-collapse: collapse;">
+                            <table class="tp_box" style="width: 100%; border-collapse: collapse;">
                                 <thead>
-                                    <tr style="border-bottom: 1px solid #1c2b5a;">
+                                    <tr>
                                         <th style="padding: 4px 6px;">ARTICULO</th>
                                         <th class="text-end" style="padding: 4px 6px;">CANTIDAD</th>
                                         <th class="text-center" style="padding: 4px 6px;">TAMAÑO</th>
@@ -60,7 +60,7 @@
 
                             <t t-if="is_valued">
                                 <t t-set="summary" t-value="o._tp_report_tax_summary()"/>
-                                <table style="width: 100%; border: 1px solid #1c2b5a; margin-top: 8px;">
+                                <table class="tp_box" style="width: 100%; margin-top: 8px;">
                                     <tr>
                                         <th style="padding: 3px 6px;">BASE IMP.</th>
                                         <th style="padding: 3px 6px;">% IVA</th>

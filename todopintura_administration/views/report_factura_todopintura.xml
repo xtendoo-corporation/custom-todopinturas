@@ -7,7 +7,7 @@
                 <t t-set="partner" t-value="o.partner_id"/>
                 <t t-set="summary" t-value="o._tp_report_tax_summary()"/>
                 <t t-call="todopintura_administration.external_layout_todopintura">
-                    <div class="page tp_factura" style="font-size: 11px; color: #1c2b5a;">
+                    <div class="page tp_doc tp_factura" style="font-size: 11px; color: #1c2b5a;">
                         <t t-call="todopintura_administration.tp_document_top_boxes">
                             <t t-set="copy_label" t-value="False"/>
                             <t t-set="salesperson" t-value="o.invoice_user_id"/>
@@ -24,9 +24,9 @@
                             </t>
                         </t>
 
-                        <table style="width: 100%; border: 1px solid #1c2b5a; border-collapse: collapse;">
+                        <table class="tp_box" style="width: 100%; border-collapse: collapse;">
                             <thead>
-                                <tr style="border-bottom: 1px solid #1c2b5a;">
+                                <tr>
                                     <th style="padding: 4px 6px;">CONCEPTO</th>
                                     <th class="text-end" style="padding: 4px 6px;">CANTIDAD</th>
                                     <th class="text-center" style="padding: 4px 6px;">TAMAÑO</th>
@@ -54,7 +54,7 @@
                             </tbody>
                         </table>
 
-                        <table style="width: 100%; border: 1px solid #1c2b5a; margin-top: 8px;">
+                        <table class="tp_box" style="width: 100%; margin-top: 8px;">
                             <tr>
                                 <th style="padding: 3px 6px;">BASE</th>
                                 <th style="padding: 3px 6px;">IVA</th>
