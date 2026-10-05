@@ -21,15 +21,18 @@
             <t t-else="" t-set="company" t-value="res_company"/>
         </t>
 
-        <div class="header tp_header" style="font-size: 9px; color: #1c2b5a;">
-            <table style="width: 100%; border: none;">
+        <div class="header tp_header" style="font-size: 9px; color: #1c2b5a; height: 190px; overflow: hidden; position: relative;">
+            <!-- wkhtmltopdf crea la página de cabecera con <html style="height:0">; con el CSS de informes cargado
+                 su altura se mide como 0 y la cabecera se desplaza sobre el cuerpo. -->
+            <style>html, body { height: auto !important; } .tp_header td, .tp_header th { border: 0 !important; padding: 0; }</style>
+            <table style="width: 100%; height: 188px; border: none;">
                 <tr>
                     <td style="width: 46%; vertical-align: top;">
-                        <img src="/todopintura_administration/static/img/logo_todopintura.png" style="width: 290px;"/>
+                        <img src="/todopintura_administration/static/img/logo_todopintura.png" width="290" height="94" style="width: 290px; height: 94px;"/>
                         <table style="width: 100%; border: none; margin-top: 6px;">
                             <tr>
                                 <td style="width: 38%; vertical-align: middle;">
-                                    <img src="/todopintura_administration/static/img/sellos.png" style="width: 175px;"/>
+                                    <img src="/todopintura_administration/static/img/sellos.png" width="175" height="80" style="width: 175px; height: 80px;"/>
                                 </td>
                                 <td style="width: 62%; vertical-align: middle; font-size: 10px; line-height: 1.25; padding-left: 8px;">
                                     <strong style="font-size: 11px;">Oficinas y Almacén Central:</strong><br/>
@@ -61,6 +64,7 @@
              t-att-data-oe-model="o and o._name"
              t-att-data-oe-id="o and o.id"
              t-att-data-oe-lang="o and o.env.context.get('lang')">
+            <style>.tp_albaran td, .tp_factura td { border: 0 !important; }</style>
             <t t-out="0"/>
         </div>
 
@@ -82,7 +86,7 @@
         <table style="width: 100%; border: none; border-collapse: collapse; color: #1c2b5a;">
             <tr>
                 <td style="width: 60%; vertical-align: bottom; padding-bottom: 4px;">
-                    <img src="/todopintura_administration/static/img/fox.png" style="height: 34px;"/>
+                    <img src="/todopintura_administration/static/img/fox.png" width="84" height="34" style="width: 84px; height: 34px;"/>
                 </td>
                 <td style="width: 40%; border: 1px solid #1c2b5a; border-bottom: none; padding: 6px 10px; font-family: monospace; font-size: 12px;">
                     <strong>CLIENTE</strong>
