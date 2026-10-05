@@ -7,9 +7,11 @@ from . import stock_count
 from . import stock_warehouse_orderpoint
 from . import res_users
 from . import stock_warehouse
+from . import stock_picking
 from . import pos_order_line_permissions
 from . import product_pricelist
 from . import sale_order_line
 from . import pos_order_line
+from . import account_move
 from . import account_move_line
 from . import account_payment_term

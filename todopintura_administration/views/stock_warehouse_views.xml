@@ -8,6 +8,7 @@
             <xpath expr="//sheet" position="inside">
                 <group string="TodoPinturas">
                     <field name="id_todopinturas"/>
+                    <field name="tp_report_copies"/>
                 </group>
             </xpath>
         </field>

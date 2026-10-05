@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="report_albaran_todopintura_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="o" t-value="o.with_context(lang=o._get_report_lang())"/>
+                <t t-set="partner" t-value="o.partner_id or (o.move_ids and o.move_ids[0].partner_id) or o.env['res.partner']"/>
+                <t t-set="is_valued" t-value="o._tp_report_is_valued()"/>
+                <t t-set="salesperson" t-value="o._tp_report_salesperson()"/>
+                <t t-call="todopintura_administration.external_layout_todopintura">
+                    <t t-foreach="o._tp_report_copies()" t-as="copy_label">
+                        <div class="page tp_albaran"
+                             t-attf-style="font-size: 11px; color: #1c2b5a; #{'page-break-before: always;' if not copy_label_first else ''}">
+                            <t t-call="todopintura_administration.tp_document_top_boxes">
+                                <t t-set="right_block">
+                                    <div t-out="o._tp_report_date_str()"/>
+                                    <div style="margin-top: 10px;">
+                                        <strong t-out="o._tp_report_title()"/>
+                                        <span style="margin-left: 10px;" t-out="o.name.split('/')[-1] if o.name else ''"/>
+                                    </div>
+                                    <div t-if="o.note" style="margin-top: 6px;" t-field="o.note"/>
+                                </t>
+                            </t>
+
+                            <table style="width: 100%; border: 1px solid #1c2b5a; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid #1c2b5a;">
+                                        <th style="padding: 4px 6px;">ARTICULO</th>
+                                        <th class="text-end" style="padding: 4px 6px;">CANTIDAD</th>
+                                        <th class="text-center" style="padding: 4px 6px;">TAMAÑO</th>
+                                        <th t-if="is_valued" class="text-end" style="padding: 4px 6px;">PRECIO</th>
+                                        <th t-if="is_valued" class="text-end" style="padding: 4px 6px;">NETO</th>
+                                        <th t-if="is_valued" class="text-end" style="padding: 4px 6px;">IMPORTE</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.move_ids.filtered(lambda m: m.product_uom_qty).sorted('sequence')" t-as="move">
+                                        <td style="padding: 2px 6px;">
+                                            <span t-out="move.product_id.default_code or ''"/>
+                                            <span t-out="move.product_id.name"/>
+                                        </td>
+                                        <td class="text-end" style="padding: 2px 6px;">
+                                            <span t-out="int(move.quantity or move.product_uom_qty) if (move.quantity or move.product_uom_qty) == int(move.quantity or move.product_uom_qty) else (move.quantity or move.product_uom_qty)"/>
+                                        </td>
+                                        <td class="text-center" style="padding: 2px 6px;">
+                                            <span t-out="move.product_uom.name"/>
+                                        </td>
+                                        <td t-if="is_valued" class="text-end" style="padding: 2px 6px;">
+                                            <span t-out="move._get_conventional_report_price_unit()" t-options='{"widget": "float", "precision": 2}'/>
+                                        </td>
+                                        <td t-if="is_valued" class="text-end" style="padding: 2px 6px;">
+                                            <span t-out="move._get_conventional_report_discounted_price()" t-options='{"widget": "float", "precision": 2}'/>
+                                        </td>
+                                        <td t-if="is_valued" class="text-end" style="padding: 2px 6px;">
+                                            <span t-out="move._get_conventional_report_line_total()" t-options='{"widget": "float", "precision": 2}'/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <t t-if="is_valued">
+                                <t t-set="summary" t-value="o._tp_report_tax_summary()"/>
+                                <table style="width: 100%; border: 1px solid #1c2b5a; margin-top: 8px;">
+                                    <tr>
+                                        <th style="padding: 3px 6px;">BASE IMP.</th>
+                                        <th style="padding: 3px 6px;">% IVA</th>
+                                        <th style="padding: 3px 6px;">IMPORTE IVA</th>
+                                        <th t-if="summary['recargo']" style="padding: 3px 6px;">% RE</th>
+                                        <th t-if="summary['recargo']" style="padding: 3px 6px;">IMPORTE RE</th>
+                                        <th class="text-end" style="padding: 3px 6px;">TOT. ALBARÁN</th>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 3px 6px;"><span t-out="summary['base']" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="padding: 3px 6px;">
+                                            <t t-foreach="summary['iva']" t-as="rate_amount"><div><span t-out="rate_amount[0]" t-options='{"widget": "float", "precision": 0}'/> %</div></t>
+                                        </td>
+                                        <td style="padding: 3px 6px;">
+                                            <t t-foreach="summary['iva']" t-as="rate_amount"><div><span t-out="rate_amount[1]" t-options='{"widget": "float", "precision": 2}'/></div></t>
+                                        </td>
+                                        <td t-if="summary['recargo']" style="padding: 3px 6px;">
+                                            <t t-foreach="summary['recargo']" t-as="rate_amount"><div><span t-out="rate_amount[0]" t-options='{"widget": "float", "precision": 1}'/> %</div></t>
+                                        </td>
+                                        <td t-if="summary['recargo']" style="padding: 3px 6px;">
+                                            <t t-foreach="summary['recargo']" t-as="rate_amount"><div><span t-out="rate_amount[1]" t-options='{"widget": "float", "precision": 2}'/></div></t>
+                                        </td>
+                                        <td class="text-end" style="padding: 3px 6px; font-weight: bold;"><span t-out="summary['total']" t-options='{"widget": "float", "precision": 2}'/></td>
+                                    </tr>
+                                </table>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_albaran_todopintura" model="ir.actions.report">
+        <field name="name">Albarán Todo Pintura</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">todopintura_administration.report_albaran_todopintura_document</field>
+        <field name="report_file">todopintura_administration.report_albaran_todopintura_document</field>
+        <field name="print_report_name">'Albarán - %s' % (object.name)</field>
+        <field name="paperformat_id" ref="todopintura_administration.paperformat_todopintura_a4"/>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

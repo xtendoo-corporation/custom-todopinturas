@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Formato de papel A4 con márgenes para la cabecera y el pie de Todo Pintura -->
+    <record id="paperformat_todopintura_a4" model="report.paperformat">
+        <field name="name">A4 Todo Pintura</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">56</field>
+        <field name="margin_bottom">36</field>
+        <field name="margin_left">8</field>
+        <field name="margin_right">8</field>
+        <field name="header_spacing">4</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <template id="external_layout_todopintura">
+        <t t-if="not o" t-set="o" t-value="doc"/>
+        <t t-if="not company">
+            <t t-if="company_id" t-set="company" t-value="company_id"/>
+            <t t-elif="o and 'company_id' in o and o.company_id.sudo()" t-set="company" t-value="o.company_id.sudo()"/>
+            <t t-else="" t-set="company" t-value="res_company"/>
+        </t>
+
+        <div class="header tp_header" style="font-size: 9px; color: #1c2b5a;">
+            <table style="width: 100%; border: none;">
+                <tr>
+                    <td style="width: 46%; vertical-align: top;">
+                        <img src="/todopintura_administration/static/img/logo_todopintura.png" style="width: 290px;"/>
+                        <table style="width: 100%; border: none; margin-top: 6px;">
+                            <tr>
+                                <td style="width: 38%; vertical-align: middle;">
+                                    <img src="/todopintura_administration/static/img/sellos.png" style="width: 175px;"/>
+                                </td>
+                                <td style="width: 62%; vertical-align: middle; font-size: 10px; line-height: 1.25; padding-left: 8px;">
+                                    <strong style="font-size: 11px;">Oficinas y Almacén Central:</strong><br/>
+                                    C/ Rafael Beca Mateos, 42. 41007 Sevilla.<br/>
+                                    Tel.: 954 521 022<br/>
+                                    todopintura@todopintura.es
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style="width: 54%; vertical-align: top; font-size: 8.500px; line-height: 1.3;">
+                        <strong style="font-size: 11px;">SEVILLA</strong><br/>
+                        <strong>Pino Montano -</strong> C/ Parque Torcal de Antequera, Esq. Parque de Grazalema. 41015 Sevilla - Tel.: 954 955 012<br/>
+                        <strong>Sevilla Este -</strong> Plaza de la Acogida, Local 1-2-3. (junto Carrefour San Pablo). 41020 Sevilla - Tel.: 954 253 750<br/>
+                        <strong>Ronda de Tamarguillo -</strong> Avd. Poeta Manuel Benítez Carrasco B 10-12, Local 4-5. 41013 Sevilla - Tel.: 954 626 797<br/>
+                        <strong>Los Bermejales -</strong> Avda Alemania 46. 41012 Sevilla - Tel.: 954 617 483<br/>
+                        <strong>Cantillana -</strong> Ntra. Sra. De la Soledad, 2. 41320 Cantillana (Sevilla) - Tel.: 955 730 600<br/>
+                        <strong>Sanlúcar La Mayor -</strong> C/ Estrella Polar, 1. 41800 Sanlúcar la Mayor (Sevilla) - Tel.: 955 701 477<br/>
+                        <strong>Lora del Río -</strong> C/ Marcos Orbaneja, 3. 41440 Lora del Río (Sevilla) - Tel.: 955 549 167<br/>
+                        <strong style="font-size: 11px;">HUELVA</strong><br/>
+                        <strong>Delegación Huelva -</strong> Avda. Alemania, 116. 21002 Huelva - Tel.: 959 251 331<br/>
+                        <strong>Ayamonte -</strong> C/ Río Tinto, 1. Local, esq. C/ Punta Umbría. 21400 Ayamonte (Huelva) - Tel.: 959 101 254
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div t-attf-class="article o_report_layout_standard o_company_#{company.id}_layout"
+             t-att-data-oe-model="o and o._name"
+             t-att-data-oe-id="o and o.id"
+             t-att-data-oe-lang="o and o.env.context.get('lang')">
+            <t t-out="0"/>
+        </div>
+
+        <div class="footer tp_footer" style="font-size: 6.500px; line-height: 1.25; color: #1c2b5a;">
+            <p style="margin: 0 0 2px 0;">Sus datos personales serán usados para nuestra relación y poder prestarle nuestros servicios. Dichos datos son necesarios para poder relacionarnos con usted, lo que nos permite el uso de su información dentro de la legalidad.</p>
+            <p style="margin: 0 0 2px 0;">Asimismo, podrán tener conocimiento de su información aquellas entidades que necesiten tener acceso a la misma para que podamos prestarle nuestros servicios. Conservaremos sus datos durante nuestra relación y mientras nos obliguen las leyes aplicables. En cualquier momento puede dirigirse a nosotros para saber qué información tenemos sobre usted, rectificarla si fuese incorrecta y eliminarla una vez finalizada nuestra relación. También tiene derecho a solicitar el traspaso de su información a otra entidad (portabilidad).</p>
+            <p style="margin: 0 0 2px 0;">Para solicitar alguno de estos derechos, deberá realizar una solicitud escrita a nuestra dirección, junto con una fotocopia de su DNI: TODO PINTURA SL, C/. Rafael Beca Mateo, 42. POL. IND. CARRETERA AMARILLA, CP 41007, SEVILLA (Sevilla).</p>
+            <p style="margin: 0 0 2px 0;">En caso de que entienda que sus derechos han sido desatendidos, puede formular una reclamación en la Agencia Española de Protección de Datos (www.aepd.es).</p>
+            <p style="margin: 0 0 2px 0;">EL RESPONSABLE DE LA ENTREGA DEL RESIDUO DE ENVASE O ENVASE USADO PARA SU CORRECTA GESTIÓN AMBIENTAL SERÁ EL POSEEDOR FINAL (LEY 11/1997)</p>
+            <p style="margin: 0 0 2px 0;">Información técnica y ficha de datos de seguridad de productos TKROM disponibles en www.tkrom.com y de productos KROMACRIL en www.todopintura.es</p>
+            <p style="margin: 0; font-weight: bold;">Todo Pintura, S.L. Inscrita en el Registro Mercantil de Sevilla. Tomo 505. Libro 79. Sección 2ª de Sociedades. Folio 31. Hoja 6.425. Inscripción 1ª, 14-12-81. – C.I.F.: B-41089947
+                <span style="float: right;">Pág. <span class="page"/> / <span class="topage"/></span>
+            </p>
+        </div>
+    </template>
+
+    <!-- Bloque superior de la primera página: iconos + caja CLIENTE, caja de cliente y datos del documento -->
+    <template id="tp_document_top_boxes">
+        <table style="width: 100%; border: none; border-collapse: collapse; color: #1c2b5a;">
+            <tr>
+                <td style="width: 60%; vertical-align: bottom; padding-bottom: 4px;">
+                    <img src="/todopintura_administration/static/img/fox.png" style="height: 34px;"/>
+                </td>
+                <td style="width: 40%; border: 1px solid #1c2b5a; border-bottom: none; padding: 6px 10px; font-family: monospace; font-size: 12px;">
+                    <strong>CLIENTE</strong>
+                    <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.ref or ''"/>
+                    <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.vat or ''"/>
+                </td>
+            </tr>
+        </table>
+        <table style="width: 100%; border: 1px solid #1c2b5a; border-collapse: collapse; color: #1c2b5a; font-family: monospace; font-size: 12px;">
+            <tr>
+                <td style="width: 55%; vertical-align: top; padding: 8px 10px;">
+                    <div t-out="partner"
+                         t-options='{"widget": "contact", "fields": ["name", "address"], "no_marker": True}'/>
+                </td>
+                <td style="width: 45%; vertical-align: top; padding: 8px 10px;">
+                    <t t-out="right_block"/>
+                </td>
+            </tr>
+        </table>
+        <table style="width: 100%; border: none; color: #1c2b5a; font-family: monospace; font-size: 12px; margin-bottom: 6px;">
+            <tr>
+                <td style="width: 55%; padding: 3px 4px;"><strong t-if="copy_label" t-out="copy_label"/></td>
+                <td style="width: 45%; padding: 3px 10px;"><span t-if="salesperson" t-out="salesperson.name.upper()"/></td>
+            </tr>
+        </table>
+    </template>
+
+    <record id="report_layout_todopintura" model="report.layout">
+        <field name="name">Todo Pintura</field>
+        <field name="sequence">1</field>
+        <field name="view_id" ref="todopintura_administration.external_layout_todopintura"/>
+    </record>
+</odoo>
