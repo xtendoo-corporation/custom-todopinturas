@@ -153,6 +153,7 @@ class AccountPayment(models.Model):
             }
         )
         move._post()
+        move.payment_order_id = self.payment_order_id
         new_general_line = move.line_ids.filtered(
             lambda line, acc=general_line.account_id: line.account_id == acc
         )
@@ -213,6 +214,7 @@ class AccountPayment(models.Model):
             }
         )
         move._post()
+        move.payment_order_id = self.payment_order_id
         new_general_line = move.line_ids.filtered(
             lambda line, acc=general_line.account_id: line.account_id == acc
         )
@@ -302,6 +304,7 @@ class AccountPayment(models.Model):
             }
         )
         move._post()
+        move.payment_order_id = self.payment_order_id
         new_discount_line = move.line_ids.filtered(
             lambda line, acc=discounted_account: line.account_id == acc
         )

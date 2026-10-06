@@ -45,13 +45,30 @@ class AccountPaymentLineCreate(models.TransientModel):
         if not mode:
             return None
 
+        # With the effects chain the bridge account is known (stage 1's
+        # "efectos en cartera"), so match it directly: its account_type may
+        # well be asset_receivable (e.g. 441000 "Deudores, efectos
+        # comerciales en cartera"), which the generic filter below would
+        # wrongly discard. Otherwise fall back to "any non-receivable
+        # reconcilable account".
+        chain_account = (
+            mode.xtd_chain_receivable_account_id
+            if mode.xtd_effect_chain_enabled
+            else self.env["account.account"]
+        )
+        if chain_account:
+            account_domain = [("account_id", "=", chain_account.id)]
+        else:
+            account_domain = [
+                ("account_id.account_type", "not in", ("asset_receivable", "liability_payable")),
+                ("account_id.reconcile", "=", True),
+            ]
         candidates = self.env["account.move.line"].search(
-            [
+            account_domain
+            + [
                 ("reconciled", "=", False),
                 ("company_id", "=", order.company_id.id),
                 ("debit", ">", 0),
-                ("account_id.account_type", "not in", ("asset_receivable", "liability_payable")),
-                ("account_id.reconcile", "=", True),
                 ("payment_id", "!=", False),
                 ("payment_id.payment_type", "=", "inbound"),
             ]
