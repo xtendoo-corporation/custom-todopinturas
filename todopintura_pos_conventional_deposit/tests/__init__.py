@@ -3,3 +3,4 @@ from . import test_deposit_order
 from . import test_deposit_payment_wizard
 
 from . import test_invoice_salesperson
+from . import test_invoice_rounding

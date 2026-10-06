@@ -85,3 +85,29 @@ class TestPosConventionalAnalytic(PosConventionalTestCommon):
             self.assertEqual(line.analytic_distribution, {str(self.analytic_account.id): 100.0})
         for line in lines_b:
             self.assertEqual(line.analytic_distribution, {str(other_account.id): 100.0})
+
+    def test_invoice_lines_get_the_pos_config_analytic_account(self):
+        """Las líneas de factura creadas desde una caja con cuenta analítica
+        deben llevar esa cuenta."""
+        self.pos_config.analytic_account_id = self.analytic_account
+        session = self._open_session(self.pos_config)
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+
+        invoice_vals = order._prepare_invoice_vals()
+
+        lines = [vals for _cmd, _id, vals in invoice_vals['invoice_line_ids'] if not vals.get('display_type')]
+        self.assertTrue(lines)
+        for vals in lines:
+            self.assertEqual(vals['analytic_distribution'], {str(self.analytic_account.id): 100.0})
+
+    def test_invoice_lines_without_analytic_account_are_untouched(self):
+        self.assertFalse(self.pos_config.analytic_account_id)
+        session = self._open_session(self.pos_config)
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+
+        invoice_vals = order._prepare_invoice_vals()
+
+        for _cmd, _id, vals in invoice_vals['invoice_line_ids']:
+            self.assertFalse(vals.get('analytic_distribution'))

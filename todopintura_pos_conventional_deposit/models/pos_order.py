@@ -29,6 +29,39 @@ class PosOrder(models.Model):
             vals["invoice_user_id"] = salesperson.id
         return vals
 
+    def _create_invoice(self, move_vals):
+        invoice = super()._create_invoice(move_vals)
+        self._match_invoice_total_with_orders(invoice)
+        return invoice
+
+    def _match_invoice_total_with_orders(self, invoice):
+        """Hace que el total de la factura coincida con el de los pedidos del TPV.
+
+        El TPV calcula el total con IVA a partir de la base sin redondear, mientras
+        que la factura redondea base e IVA por separado. Con descuentos de muchos
+        decimales eso da 1-2 céntimos de diferencia y la factura queda pagada
+        parcialmente. La diferencia se absorbe en la línea de impuesto.
+        """
+        invoice = invoice.sudo()
+        if (
+            invoice.state != "draft"
+            or invoice.invoice_cash_rounding_id
+            or invoice.currency_id != invoice.company_currency_id
+        ):
+            return
+        currency = invoice.currency_id
+        expected = abs(sum(self.mapped("amount_total")))
+        diff = currency.round(expected - invoice.amount_total)
+        if currency.is_zero(diff) or abs(diff) > 0.05:
+            return
+        tax_lines = invoice.line_ids.filtered(lambda line: line.display_type == "tax")
+        if not tax_lines:
+            return
+        tax_line = max(tax_lines, key=lambda line: abs(line.balance))
+        # En una factura de cliente el impuesto es un crédito (balance negativo).
+        sign = -1 if invoice.move_type == "out_invoice" else 1
+        tax_line.balance += sign * diff
+
     partner_deposit_enabled = fields.Boolean(
         string="Cliente configurado para depósito",
         compute="_compute_partner_deposit_policy",
