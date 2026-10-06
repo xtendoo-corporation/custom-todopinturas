@@ -10,3 +10,4 @@ import_module('odoo.addons.todopintura_administration.tests.test_import_stock_mi
 import_module('odoo.addons.todopintura_administration.tests.test_import_payment_terms_wizard')
 
 
+import_module('odoo.addons.todopintura_administration.tests.test_import_salespeople_wizard')

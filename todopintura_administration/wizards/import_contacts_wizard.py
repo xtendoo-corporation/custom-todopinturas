@@ -2,6 +2,7 @@ import base64
 import io
 import logging
 import re
+import unicodedata
 
 from markupsafe import escape
 
@@ -19,6 +20,13 @@ _CONDICIONES_PAGO_RE = re.compile(
     r'Condiciones de pago:\s*(.*?)(?:<br\s*/?>|</p>|$)', re.IGNORECASE | re.DOTALL)
 _METODO_PAGO_RE = re.compile(
     r'M[eé]todo de pago:\s*(.*?)(?:</p>|$)', re.IGNORECASE | re.DOTALL)
+
+# Primera palabra de los valores de METODO PAGO (col. AA) que son realmente un
+# método de pago. El resto (notas de deuda, texto libre) no crea modo de pago.
+_PAYMENT_MODE_FIRST_WORDS = {
+    'CONTADO', 'GIRO', 'PAGARE', 'CONFIRMING', 'TRANSFERENCIA', 'RECIBO',
+    'REPOSICION', 'TALON', 'DOMICILIACION', 'EFECTIVO', 'TARJETA',
+}
 
 try:
     import xlrd
@@ -167,6 +175,45 @@ class ImportContactsWizard(models.TransientModel):
             metodo = self._normalize_payment_lookup_text(metodo_match.group(1)) if metodo_match else ''
             lookup.setdefault((condiciones, metodo), term.id)
         return lookup
+
+    @api.model
+    def _build_salesperson_lookup(self):
+        """commercial_code -> id de res.users (ver import.salespeople.wizard)."""
+        users = self.env['res.users'].with_context(active_test=False).search(
+            [('commercial_code', '!=', False)])
+        return {user.commercial_code: user.id for user in users}
+
+    @api.model
+    def _build_payment_mode_lookup(self):
+        """Nombre normalizado (sin tildes, mayúsculas) -> id de account.payment.mode."""
+        return {
+            self._payment_mode_key(mode.name): mode.id
+            for mode in self.env['account.payment.mode'].search([])
+        }
+
+    @api.model
+    def _payment_mode_key(self, value):
+        text = unicodedata.normalize('NFKD', self._normalize_payment_lookup_text(value))
+        return ''.join(char for char in text if not unicodedata.combining(char))
+
+    @api.model
+    def _get_or_create_payment_mode(self, metodo_pago, lookup):
+        """Devuelve el id del modo de pago de cobro para `metodo_pago`, creándolo si
+        no existe. Devuelve None si el texto no parece un método de pago."""
+        key = self._payment_mode_key(metodo_pago)
+        if not key or key.split()[0] not in _PAYMENT_MODE_FIRST_WORDS:
+            return None
+        if key not in lookup:
+            method = self.env['account.payment.method'].search(
+                [('code', '=', 'manual'), ('payment_type', '=', 'inbound')], limit=1)
+            if not method:
+                return None
+            lookup[key] = self.env['account.payment.mode'].create({
+                'name': self._sanitize_import_text(metodo_pago),
+                'payment_method_id': method.id,
+                'bank_account_link': 'variable',
+            }).id
+        return lookup[key]
 
     @api.model
     def _normalize_contact_vat(self, nif):
@@ -341,7 +388,8 @@ class ImportContactsWizard(models.TransientModel):
                 yield [sheet.cell(row_index, col).value for col in range(sheet.ncols)]
 
     @api.model
-    def _process_import_row(self, row, country_id, results, payment_term_lookup=None):
+    def _process_import_row(self, row, country_id, results, payment_term_lookup=None,
+                            salesperson_lookup=None, payment_mode_lookup=None):
         """Procesa una fila del Excel: crea/actualiza el cliente y registra el resultado.
 
         Devuelve False cuando la fila está completamente vacía (fin de los datos reales),
@@ -367,6 +415,8 @@ class ImportContactsWizard(models.TransientModel):
         # _build_payment_term_lookup para de dónde sale esta combinación.
         condiciones_pago = self._normalize_payment_lookup_text(cell(25))
         metodo_pago = self._normalize_payment_lookup_text(cell(26))
+        metodo_pago_raw = cell(26)
+        commercial_code = self.env['import.salespeople.wizard']._normalize_code(cell(10))
         email = self._sanitize_import_text(cell(23))
         credit_limit = self._parse_credit_limit(cell(11))
         iban = self._sanitize_import_text(cell(14))
@@ -416,6 +466,26 @@ class ImportContactsWizard(models.TransientModel):
             if payment_term_id:
                 record['property_payment_term_id'] = payment_term_id
 
+            # COMERCIAL (col. K): código != 0 -> usuario comercial con ese código.
+            if commercial_code and salesperson_lookup is not None:
+                salesperson_id = salesperson_lookup.get(commercial_code)
+                if salesperson_id:
+                    record['user_id'] = salesperson_id
+                else:
+                    results.setdefault('salesperson_unmatched', {})
+                    results['salesperson_unmatched'][commercial_code] = (
+                        results['salesperson_unmatched'].get(commercial_code, 0) + 1)
+
+            # METODO PAGO (col. AA) -> customer_payment_mode_id (se crea si no existe).
+            if payment_mode_lookup is not None and metodo_pago:
+                payment_mode_id = self._get_or_create_payment_mode(metodo_pago_raw, payment_mode_lookup)
+                if payment_mode_id:
+                    record['customer_payment_mode_id'] = payment_mode_id
+                else:
+                    results.setdefault('payment_mode_unmatched', {})
+                    results['payment_mode_unmatched'][metodo_pago] = (
+                        results['payment_mode_unmatched'].get(metodo_pago, 0) + 1)
+
             contact, status = self._create_or_update_contact(num_client, name, record, iban=iban)
             self.env.cr.flush()
             self._ensure_bank_account(contact, iban)
@@ -440,6 +510,17 @@ class ImportContactsWizard(models.TransientModel):
             for (condiciones, metodo), count in sorted(unmatched.items(), key=lambda kv: -kv[1])
         ]
 
+        salesperson_unmatched = results.get('salesperson_unmatched') or {}
+        salesperson_lines = [
+            f"Código {code} -- {count} cliente(s)"
+            for code, count in sorted(salesperson_unmatched.items(), key=lambda kv: -kv[1])
+        ]
+        payment_mode_unmatched = results.get('payment_mode_unmatched') or {}
+        payment_mode_lines = [
+            f"\"{metodo[:80]}\" -- {count} cliente(s)"
+            for metodo, count in sorted(payment_mode_unmatched.items(), key=lambda kv: -kv[1])
+        ]
+
         return (
             section('Clientes nuevos', results['created'], 'text-success')
             + section('Clientes actualizados', results['updated'], 'text-info')
@@ -447,6 +528,9 @@ class ImportContactsWizard(models.TransientModel):
             + section(
                 'Condiciones/método de pago (columnas Z/AA) sin término de pago coincidente',
                 unmatched_lines, 'text-warning')
+            + section('Códigos de comercial (col. K) sin usuario', salesperson_lines, 'text-warning')
+            + section('Método de pago (col. AA) ignorado por no parecer un método válido',
+                      payment_mode_lines, 'text-warning')
         )
 
     def _load_sheet(self):
@@ -486,8 +570,12 @@ class ImportContactsWizard(models.TransientModel):
 
         results = {'created': [], 'updated': [], 'error': [], 'payment_term_unmatched': {}}
         payment_term_lookup = self._build_payment_term_lookup()
+        salesperson_lookup = self._build_salesperson_lookup()
+        payment_mode_lookup = self._build_payment_mode_lookup()
         for row in self._iter_rows(sheet, is_xlsx):
-            if not self._process_import_row(row, country_id, results, payment_term_lookup=payment_term_lookup):
+            if not self._process_import_row(
+                    row, country_id, results, payment_term_lookup=payment_term_lookup,
+                    salesperson_lookup=salesperson_lookup, payment_mode_lookup=payment_mode_lookup):
                 break
 
         self.write({

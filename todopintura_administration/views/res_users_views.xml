@@ -8,6 +8,7 @@
             <xpath expr="//sheet" position="inside">
                 <group string="Almacén">
                     <field name="main_warehouse_id" options="{'no_create': True}"/>
+                    <field name="commercial_code"/>
                 </group>
             </xpath>
         </field>

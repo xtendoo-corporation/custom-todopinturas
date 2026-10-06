@@ -10,6 +10,13 @@ class ResUsers(models.Model):
         help='Almacén principal asociado al usuario',
     )
 
+    commercial_code = fields.Char(
+        string='Código de comercial',
+        copy=False,
+        index=True,
+        help='Código del comercial en el sistema anterior (columna COMERCIAL del Excel de clientes).',
+    )
+
     pos_can_edit_price = fields.Boolean(
         string='Puede modificar precios en TPV',
         default=False,

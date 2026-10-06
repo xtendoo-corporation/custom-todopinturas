@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_import_salespeople_wizard" model="ir.ui.view">
+        <field name="name">import.salespeople.wizard.form</field>
+        <field name="model">import.salespeople.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Importar Comerciales">
+                <group invisible="state != 'upload'">
+                    <field name="state" invisible="1"/>
+                    <field name="file" filename="file_name"/>
+                    <div class="text-muted">
+                        Columnas: A = código de comercial, B = nombre. Cada comercial se crea como
+                        usuario (sin contraseña) con login comercial_&lt;nombre&gt; y su código; si ya existe se actualiza el nombre.
+                    </div>
+                </group>
+                <group invisible="state != 'done'">
+                    <field name="created_count"/>
+                    <field name="updated_count"/>
+                    <field name="error_count"/>
+                    <field name="log" nolabel="1" colspan="2"/>
+                </group>
+                <footer>
+                    <button name="action_import_salespeople" string="Importar" type="object"
+                            class="btn-primary" invisible="state != 'upload'"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
