@@ -6,10 +6,6 @@ from odoo.exceptions import UserError
 class AccountPaymentOrder(models.Model):
     _inherit = "account.payment.order"
 
-    xtd_effect_chain_enabled = fields.Boolean(
-        related="payment_mode_id.xtd_effect_chain_enabled"
-    )
-
     # draft2open() is intentionally left untouched for every mode,
     # including xtd_effect_chain_enabled ones: "Confirmar pagos" only
     # changes state (draft -> open), it never books an entry. Stage 1
@@ -37,28 +33,6 @@ class AccountPaymentOrder(models.Model):
                 )
             )
         return original_payments
-
-    def action_open_xtd_chain_moves(self):
-        """The order's own "1 pago" smart button shows a harmless, empty
-        draft placeholder for chain-enabled modes -- the real accounting
-        (430 -> puente at validation, 4411/520 at generate, puente -> 572
-        at upload) lives on a DIFFERENT payment (see
-        _xtd_chain_original_payments()). This button is the direct path to
-        it, instead of having to go back to the invoice first."""
-        self.ensure_one()
-        payments = self._xtd_chain_original_payments()
-        moves = (
-            payments.move_id
-            | payments.xtd_chain_remesado_move_id
-            | payments.xtd_chain_close_move_id
-        )
-        return {
-            "name": self.env._("Asientos del efecto"),
-            "type": "ir.actions.act_window",
-            "res_model": "account.move",
-            "view_mode": "list,form",
-            "domain": [("id", "in", moves.ids)],
-        }
 
     def open2generated(self):
         res = super().open2generated()

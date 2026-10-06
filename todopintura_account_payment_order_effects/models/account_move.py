@@ -16,16 +16,6 @@ class AccountMove(models.Model):
         "de clientes a la cuenta puente del método de pago (p.ej. 411000).",
     )
 
-    def action_open_xtd_effect_payment(self):
-        self.ensure_one()
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "account.payment",
-            "view_mode": "form",
-            "res_id": self.xtd_effect_payment_id.id,
-            "target": "current",
-        }
-
     @api.depends("payment_mode_id")
     def _compute_preferred_payment_method_line_id(self):
         super()._compute_preferred_payment_method_line_id()

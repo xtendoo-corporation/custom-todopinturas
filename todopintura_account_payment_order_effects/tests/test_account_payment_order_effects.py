@@ -145,14 +145,6 @@ class TestAccountPaymentOrderEffects(TestXtdEffectsCommon):
             order,
         )
 
-        # The order's own "1 pago" payment is an empty placeholder for this
-        # flow -- the smart button must point to the REAL moves instead.
-        action = order.action_open_xtd_chain_moves()
-        self.assertEqual(
-            set(action["domain"][0][2]),
-            {first_payment.move_id.id, remesado_move.id, close_move.id},
-        )
-
     def test_effect_chain_disabled_mode_keeps_native_behaviour(self):
         # Sanity check: a mode without xtd_effect_chain_enabled must NOT
         # post early at draft2open() -- payment stays draft until upload,
