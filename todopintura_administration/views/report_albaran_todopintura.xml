@@ -94,6 +94,11 @@
         </t>
     </template>
 
+    <template id="report_albaran_todopintura_valorado_document">
+        <t t-set="docs" t-value="docs.with_context(force_valued_picking=True)"/>
+        <t t-call="todopintura_administration.report_albaran_todopintura_document"/>
+    </template>
+
     <record id="action_report_albaran_todopintura" model="ir.actions.report">
         <field name="name">Albarán Todo Pintura</field>
         <field name="model">stock.picking</field>
@@ -105,5 +110,18 @@
         <field name="binding_model_id" ref="stock.model_stock_picking"/>
         <field name="binding_type">report</field>
         <field name="sequence">0</field>
+    </record>
+
+    <record id="action_report_albaran_todopintura_valorado" model="ir.actions.report">
+        <field name="name">Albarán Todo Pintura Valorado</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">todopintura_administration.report_albaran_todopintura_valorado_document</field>
+        <field name="report_file">todopintura_administration.report_albaran_todopintura_valorado_document</field>
+        <field name="print_report_name">'Albarán valorado - %s' % (object.name)</field>
+        <field name="paperformat_id" ref="todopintura_administration.paperformat_todopintura_a4"/>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_type">report</field>
+        <field name="sequence">1</field>
     </record>
 </odoo>
