@@ -17,6 +17,18 @@ class PosOrder(models.Model):
 
 
 
+    def _get_partner_salesperson(self, partner=None):
+        """Comercial asignado al cliente (o a su contacto comercial), si lo tiene."""
+        partner = partner or self.partner_id
+        return partner.user_id or partner.commercial_partner_id.user_id
+
+    def _prepare_invoice_vals(self):
+        vals = super()._prepare_invoice_vals()
+        salesperson = self._get_partner_salesperson()
+        if salesperson:
+            vals["invoice_user_id"] = salesperson.id
+        return vals
+
     partner_deposit_enabled = fields.Boolean(
         string="Cliente configurado para depósito",
         compute="_compute_partner_deposit_policy",
@@ -377,7 +389,11 @@ class PosOrder(models.Model):
                 "partner_bank_id": orders.with_context(active_test=False)
                 .with_company(company)
                 ._get_partner_bank_id(),
-                "invoice_user_id": self.env.user.id,
+                "invoice_user_id": (
+                    reference_order._get_partner_salesperson(invoice_partner).id
+                    or invoice_vals.get("invoice_user_id")
+                    or self.env.user.id
+                ),
                 "ref": ", ".join(orders.mapped("name")) if len(orders) == 1 else False,
                 "journal_id": deposit_invoice_journal.id,
             }
