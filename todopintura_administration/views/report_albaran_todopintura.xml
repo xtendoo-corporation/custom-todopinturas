@@ -104,5 +104,6 @@
         <field name="paperformat_id" ref="todopintura_administration.paperformat_todopintura_a4"/>
         <field name="binding_model_id" ref="stock.model_stock_picking"/>
         <field name="binding_type">report</field>
+        <field name="sequence">0</field>
     </record>
 </odoo>

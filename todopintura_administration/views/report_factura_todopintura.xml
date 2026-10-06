@@ -96,5 +96,7 @@
         <field name="paperformat_id" ref="todopintura_administration.paperformat_todopintura_a4"/>
         <field name="binding_model_id" ref="account.model_account_move"/>
         <field name="binding_type">report</field>
+        <field name="is_invoice_report" eval="True"/>
+        <field name="sequence">0</field>
     </record>
 </odoo>
