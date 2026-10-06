@@ -49,15 +49,16 @@ class StockPicking(models.Model):
         iva, recargo = {}, {}
         for move in self.move_ids.filtered(lambda m: m.product_uom_qty):
             line = move._get_conventional_report_source_line()
-            if not line or line._name != 'sale.order.line':
+            if not line or line._name not in ('sale.order.line', 'pos.order.line'):
                 continue
             qty = move._get_conventional_report_quantity()
+            is_sale = line._name == 'sale.order.line'
             res = line.tax_ids.compute_all(
                 move._get_conventional_report_discounted_price(),
                 currency=line.order_id.currency_id,
                 quantity=qty,
                 product=line.product_id,
-                partner=line.order_id.partner_shipping_id,
+                partner=line.order_id.partner_shipping_id if is_sale else line.order_id.partner_id,
             )
             base += res['total_excluded']
             for tax_vals in res['taxes']:

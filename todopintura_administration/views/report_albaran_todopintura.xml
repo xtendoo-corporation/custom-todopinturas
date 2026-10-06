@@ -26,11 +26,11 @@
                                 <thead>
                                     <tr>
                                         <th style="padding: 4px 6px;">ARTICULO</th>
-                                        <th class="text-end" style="padding: 4px 6px;">CANTIDAD</th>
-                                        <th class="text-center" style="padding: 4px 6px;">TAMAÑO</th>
-                                        <th t-if="is_valued" class="text-end" style="padding: 4px 6px;">PRECIO</th>
-                                        <th t-if="is_valued" class="text-end" style="padding: 4px 6px;">NETO</th>
-                                        <th t-if="is_valued" class="text-end" style="padding: 4px 6px;">IMPORTE</th>
+                                        <th style="text-align: right; padding: 4px 6px;">CANTIDAD</th>
+                                        <th style="text-align: center; padding: 4px 6px;">TAMAÑO</th>
+                                        <th t-if="is_valued" style="text-align: right; padding: 4px 6px;">PRECIO</th>
+                                        <th t-if="is_valued" style="text-align: right; padding: 4px 6px;">NETO</th>
+                                        <th t-if="is_valued" style="text-align: right; padding: 4px 6px;">IMPORTE</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -39,19 +39,19 @@
                                             <span t-out="move.product_id.default_code or ''"/>
                                             <span t-out="move.product_id.name"/>
                                         </td>
-                                        <td class="text-end" style="padding: 2px 6px;">
+                                        <td style="text-align: right; padding: 2px 6px;">
                                             <span t-out="int(move.quantity or move.product_uom_qty) if (move.quantity or move.product_uom_qty) == int(move.quantity or move.product_uom_qty) else (move.quantity or move.product_uom_qty)"/>
                                         </td>
-                                        <td class="text-center" style="padding: 2px 6px;">
-                                            <span t-out="move.product_uom.name"/>
+                                        <td style="text-align: center; padding: 2px 6px;">
+                                            <span t-out="move.product_id.size_id.name or ''"/>
                                         </td>
-                                        <td t-if="is_valued" class="text-end" style="padding: 2px 6px;">
+                                        <td t-if="is_valued" style="text-align: right; padding: 2px 6px;">
                                             <span t-out="move._get_conventional_report_price_unit()" t-options='{"widget": "float", "precision": 2}'/>
                                         </td>
-                                        <td t-if="is_valued" class="text-end" style="padding: 2px 6px;">
+                                        <td t-if="is_valued" style="text-align: right; padding: 2px 6px;">
                                             <span t-out="move._get_conventional_report_discounted_price()" t-options='{"widget": "float", "precision": 2}'/>
                                         </td>
-                                        <td t-if="is_valued" class="text-end" style="padding: 2px 6px;">
+                                        <td t-if="is_valued" style="text-align: right; padding: 2px 6px;">
                                             <span t-out="move._get_conventional_report_line_total()" t-options='{"widget": "float", "precision": 2}'/>
                                         </td>
                                     </tr>
@@ -60,30 +60,30 @@
 
                             <t t-if="is_valued">
                                 <t t-set="summary" t-value="o._tp_report_tax_summary()"/>
-                                <table class="tp_box" style="width: 100%; margin-top: 8px;">
+                                <table class="tp_box" style="width: 100%; margin-top: 8px; table-layout: fixed;">
                                     <tr>
-                                        <th style="padding: 3px 6px;">BASE IMP.</th>
-                                        <th style="padding: 3px 6px;">% IVA</th>
-                                        <th style="padding: 3px 6px;">IMPORTE IVA</th>
-                                        <th t-if="summary['recargo']" style="padding: 3px 6px;">% RE</th>
-                                        <th t-if="summary['recargo']" style="padding: 3px 6px;">IMPORTE RE</th>
-                                        <th class="text-end" style="padding: 3px 6px;">TOT. ALBARÁN</th>
+                                        <th style="text-align: right; padding: 3px 6px;">BASE IMP.</th>
+                                        <th style="text-align: right; padding: 3px 6px;">% IVA</th>
+                                        <th style="text-align: right; padding: 3px 6px;">IMPORTE IVA</th>
+                                        <th t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">% RE</th>
+                                        <th t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">IMPORTE RE</th>
+                                        <th style="text-align: right; padding: 3px 6px;">TOT. ALBARÁN</th>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 3px 6px;"><span t-out="summary['base']" t-options='{"widget": "float", "precision": 2}'/></td>
-                                        <td style="padding: 3px 6px;">
+                                        <td style="text-align: right; padding: 3px 6px;"><span t-out="summary['base']" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 3px 6px;">
                                             <t t-foreach="summary['iva']" t-as="rate_amount"><div><span t-out="rate_amount[0]" t-options='{"widget": "float", "precision": 0}'/> %</div></t>
                                         </td>
-                                        <td style="padding: 3px 6px;">
+                                        <td style="text-align: right; padding: 3px 6px;">
                                             <t t-foreach="summary['iva']" t-as="rate_amount"><div><span t-out="rate_amount[1]" t-options='{"widget": "float", "precision": 2}'/></div></t>
                                         </td>
-                                        <td t-if="summary['recargo']" style="padding: 3px 6px;">
+                                        <td t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">
                                             <t t-foreach="summary['recargo']" t-as="rate_amount"><div><span t-out="rate_amount[0]" t-options='{"widget": "float", "precision": 1}'/> %</div></t>
                                         </td>
-                                        <td t-if="summary['recargo']" style="padding: 3px 6px;">
+                                        <td t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">
                                             <t t-foreach="summary['recargo']" t-as="rate_amount"><div><span t-out="rate_amount[1]" t-options='{"widget": "float", "precision": 2}'/></div></t>
                                         </td>
-                                        <td class="text-end" style="padding: 3px 6px; font-weight: bold;"><span t-out="summary['total']" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 3px 6px; font-weight: bold;"><span t-out="summary['total']" t-options='{"widget": "float", "precision": 2}'/></td>
                                     </tr>
                                 </table>
                             </t>

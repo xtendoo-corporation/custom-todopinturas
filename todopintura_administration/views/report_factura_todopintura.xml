@@ -12,7 +12,7 @@
                             <t t-set="copy_label" t-value="False"/>
                             <t t-set="salesperson" t-value="o.invoice_user_id"/>
                             <t t-set="right_block">
-                                <div><span t-out="o.invoice_date or o.date" t-options='{"widget": "date", "format": "dd/MM/yy"}'/></div>
+                                <div t-out="o._tp_report_date_str()"/>
                                 <div style="margin-top: 8px;">
                                     <strong t-out="o._tp_report_title()"/>
                                     <span style="margin-left: 10px;" t-out="o.name if o.name and o.name != '/' else 'BORRADOR'"/>
@@ -28,12 +28,12 @@
                             <thead>
                                 <tr>
                                     <th style="padding: 4px 6px;">CONCEPTO</th>
-                                    <th class="text-end" style="padding: 4px 6px;">CANTIDAD</th>
-                                    <th class="text-center" style="padding: 4px 6px;">TAMAÑO</th>
-                                    <th class="text-end" style="padding: 4px 6px;">PRECIO</th>
-                                    <th class="text-end" style="padding: 4px 6px;">DTO.</th>
-                                    <th class="text-end" style="padding: 4px 6px;">NETO</th>
-                                    <th class="text-end" style="padding: 4px 6px;">IMPORTE</th>
+                                    <th style="text-align: right; padding: 4px 6px;">CANTIDAD</th>
+                                    <th style="text-align: center; padding: 4px 6px;">TAMAÑO</th>
+                                    <th style="text-align: right; padding: 4px 6px;">PRECIO</th>
+                                    <th style="text-align: right; padding: 4px 6px;">DTO.</th>
+                                    <th style="text-align: right; padding: 4px 6px;">NETO</th>
+                                    <th style="text-align: right; padding: 4px 6px;">IMPORTE</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -43,41 +43,41 @@
                                     </tr>
                                     <tr t-elif="line.display_type == 'product'">
                                         <td style="padding: 2px 6px;"><span t-out="line.name"/></td>
-                                        <td class="text-end" style="padding: 2px 6px;"><span t-out="line.quantity" t-options='{"widget": "float", "precision": 0}' t-if="line.quantity == int(line.quantity)"/><span t-else="" t-out="line.quantity"/></td>
-                                        <td class="text-center" style="padding: 2px 6px;"><span t-out="line.product_uom_id.name or ''"/></td>
-                                        <td class="text-end" style="padding: 2px 6px;"><span t-out="line.price_unit" t-options='{"widget": "float", "precision": 2}'/></td>
-                                        <td class="text-end" style="padding: 2px 6px;"><span t-if="line.discount" t-out="line.discount" t-options='{"widget": "float", "precision": 2}'/></td>
-                                        <td class="text-end" style="padding: 2px 6px;"><span t-out="line.price_unit * (1 - (line.discount or 0.0) / 100.0)" t-options='{"widget": "float", "precision": 2}'/></td>
-                                        <td class="text-end" style="padding: 2px 6px;"><span t-out="line.price_subtotal" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-out="line.quantity" t-options='{"widget": "float", "precision": 0}' t-if="line.quantity == int(line.quantity)"/><span t-else="" t-out="line.quantity"/></td>
+                                        <td style="text-align: center; padding: 2px 6px;"><span t-out="line.product_id.size_id.name or ''"/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-out="line.price_unit" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-if="line.discount" t-out="line.discount" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-out="line.price_unit * (1 - (line.discount or 0.0) / 100.0)" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-out="line.price_subtotal" t-options='{"widget": "float", "precision": 2}'/></td>
                                     </tr>
                                 </t>
                             </tbody>
                         </table>
 
-                        <table class="tp_box" style="width: 100%; margin-top: 8px;">
+                        <table class="tp_box" style="width: 100%; margin-top: 8px; table-layout: fixed;">
                             <tr>
-                                <th style="padding: 3px 6px;">BASE</th>
-                                <th style="padding: 3px 6px;">IVA</th>
-                                <th style="padding: 3px 6px;">IMPORTE IVA</th>
-                                <th t-if="summary['recargo']" style="padding: 3px 6px;">% RE</th>
-                                <th t-if="summary['recargo']" style="padding: 3px 6px;">IMPORTE RE</th>
-                                <th class="text-end" style="padding: 3px 6px;">TOTAL FACTURA</th>
+                                <th style="text-align: right; padding: 3px 6px;">BASE</th>
+                                <th style="text-align: right; padding: 3px 6px;">IVA</th>
+                                <th style="text-align: right; padding: 3px 6px;">IMPORTE IVA</th>
+                                <th t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">% RE</th>
+                                <th t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">IMPORTE RE</th>
+                                <th style="text-align: right; padding: 3px 6px;">TOTAL FACTURA</th>
                             </tr>
                             <tr>
-                                <td style="padding: 3px 6px;"><span t-out="summary['base']" t-options='{"widget": "float", "precision": 2}'/></td>
-                                <td style="padding: 3px 6px;">
+                                <td style="text-align: right; padding: 3px 6px;"><span t-out="summary['base']" t-options='{"widget": "float", "precision": 2}'/></td>
+                                <td style="text-align: right; padding: 3px 6px;">
                                     <t t-foreach="summary['iva']" t-as="rate_amount"><div><span t-out="rate_amount[0]" t-options='{"widget": "float", "precision": 0}'/> %</div></t>
                                 </td>
-                                <td style="padding: 3px 6px;">
+                                <td style="text-align: right; padding: 3px 6px;">
                                     <t t-foreach="summary['iva']" t-as="rate_amount"><div><span t-out="rate_amount[1]" t-options='{"widget": "float", "precision": 2}'/></div></t>
                                 </td>
-                                <td t-if="summary['recargo']" style="padding: 3px 6px;">
+                                <td t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">
                                     <t t-foreach="summary['recargo']" t-as="rate_amount"><div><span t-out="rate_amount[0]" t-options='{"widget": "float", "precision": 1}'/> %</div></t>
                                 </td>
-                                <td t-if="summary['recargo']" style="padding: 3px 6px;">
+                                <td t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">
                                     <t t-foreach="summary['recargo']" t-as="rate_amount"><div><span t-out="rate_amount[1]" t-options='{"widget": "float", "precision": 2}'/></div></t>
                                 </td>
-                                <td class="text-end" style="padding: 3px 6px; font-weight: bold;"><span t-out="summary['total']" t-options='{"widget": "float", "precision": 2}'/></td>
+                                <td style="text-align: right; padding: 3px 6px; font-weight: bold;"><span t-out="summary['total']" t-options='{"widget": "float", "precision": 2}'/></td>
                             </tr>
                         </table>
                     </div>

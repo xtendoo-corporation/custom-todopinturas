@@ -90,7 +90,7 @@
     <template id="tp_document_top_boxes">
         <table style="width: 100%; border: none; border-collapse: collapse; color: #1c2b5a;">
             <tr>
-                <td style="width: 60%; vertical-align: bottom; padding-bottom: 4px;">
+                <td style="width: 60%; vertical-align: bottom; text-align: right; padding: 0 8px 4px 0;">
                     <img src="/todopintura_administration/static/img/fox.png" width="84" height="34" style="width: 84px; height: 34px;"/>
                 </td>
                 <td class="tp_cellbox" style="width: 40%; padding: 6px 10px; font-family: monospace; font-size: 12px;">
