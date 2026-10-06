@@ -7,6 +7,9 @@
             <xpath expr="//group[@name='group_general']" position="inside">
                 <field name="invoice_description"/>
             </xpath>
+            <xpath expr="//group[@name='group_lots_and_weight']//div[@name='volume']" position="after">
+                <field name="size_id" options="{'no_create': True}"/>
+            </xpath>
         </field>
     </record>
 </odoo>

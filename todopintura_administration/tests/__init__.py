@@ -11,3 +11,4 @@ import_module('odoo.addons.todopintura_administration.tests.test_import_payment_
 
 
 import_module('odoo.addons.todopintura_administration.tests.test_import_salespeople_wizard')
+import_module('odoo.addons.todopintura_administration.tests.test_import_sizes_wizard')

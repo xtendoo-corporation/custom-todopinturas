@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Los tamaños de producto traen pesos de gramos y volúmenes de litros
+         (en m³): con 2 decimales se redondearían a 0. Los registros de
+         product están en noupdate, por eso se escribe con <function>. -->
+    <function model="decimal.precision" name="write">
+        <value eval="[ref('product.decimal_stock_weight')]"/>
+        <value eval="{'digits': 3}"/>
+    </function>
+    <function model="decimal.precision" name="write">
+        <value eval="[ref('product.decimal_volume')]"/>
+        <value eval="{'digits': 6}"/>
+    </function>
+</odoo>

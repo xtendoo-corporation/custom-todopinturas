@@ -63,6 +63,18 @@
               action="action_import_products_wizard"
               sequence="110"/>
 
+    <record id="action_import_sizes_wizard" model="ir.actions.act_window">
+        <field name="name">Importar Tamaños</field>
+        <field name="res_model">import.sizes.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+    <menuitem id="menu_import_sizes"
+              name="Importar Tamaños"
+              parent="todopintura_administration.menu_imports_stock"
+              action="action_import_sizes_wizard"
+              sequence="105"/>
+
     <record id="action_import_client_tariffs_wizard" model="ir.actions.act_window">
         <field name="name">Importar Tarifas de clientes</field>
         <field name="res_model">import.client.tariffs.wizard</field>

@@ -4,6 +4,7 @@ class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
     invoice_description = fields.Char(string="Invoice description", help="Invoice description")
+    size_id = fields.Many2one('product.size', string='Tamaño', index=True)
 
     @api.model
     def default_get(self, fields_list):

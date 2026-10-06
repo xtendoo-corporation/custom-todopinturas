@@ -129,6 +129,9 @@ class ImportProductsWizard(models.TransientModel):
         art_prov = str(get_cell(row, 22)).strip() if get_cell(row, 22) is not None else ''
         pos_categ_ref = self._safe_int(get_cell(row, 28), default=None)
         num_prov = self._safe_int(get_cell(row, 30), default=None)
+        # El tamaño lo indican los 3 últimos dígitos del código de artículo
+        # (la columna TAMAÑO del Excel no es fiable); 000 = sin tamaño.
+        size_code = num_prod % 1000
         price_last_buy = self._safe_float(get_cell(row, 24), default=None)
         invoice_description = str(get_cell(row, 20)).strip() if get_cell(row, 20) is not None else ''
 
@@ -162,6 +165,7 @@ class ImportProductsWizard(models.TransientModel):
             'coste': coste,
             'pos_categ_ref': pos_categ_ref,
             'num_prov': num_prov,
+            'size_code': size_code,
             'price_last_buy': price_last_buy,
             'invoice_description': invoice_description,
             'notes': notes,
@@ -239,6 +243,15 @@ class ImportProductsWizard(models.TransientModel):
         if tax_id:
             record['taxes_id'] = [(6, 0, [tax_id])]
 
+        # Tamaño: últimos 3 dígitos del código de artículo = código de product.size (catálogo UTAMA).
+        size = values.get('size')
+        if size:
+            record['size_id'] = size.id
+            if size.weight:
+                record['weight'] = size.weight
+            if size.volume:
+                record['volume'] = size.volume
+
         if product_categ:
             record['categ_id'] = product_categ.id
         elif partner and not values['pos_categ_ref']:
@@ -282,6 +295,7 @@ class ImportProductsWizard(models.TransientModel):
             raise UserError("Formato de archivo no soportado. Usa .xls o .xlsx")
 
         errors = []
+        sizes_by_code = {size.code: size for size in self.env['product.size'].search([])}
         tariff_names = [f"Tarifa {i}" for i in range(1, 8)]
         tariffs = self._ensure_default_tariffs()
         print(f"Procesando filas con {'openpyxl' if is_xlsx else 'xlrd'}...")
@@ -328,6 +342,9 @@ class ImportProductsWizard(models.TransientModel):
             print(f"Producto: {values['name']} (ID: {values['num_prod']})")
             print("*" * 40)
 
+            values['size'] = sizes_by_code.get(values['size_code'])
+            if values['size_code'] and not values['size']:
+                errors.append(f"Fila {excel_row}: el tamaño con código {values['size_code']} no existe (importa antes los tamaños).")
             supplier_partner = partner if (values['num_prov'] and values['price_last_buy']) else None
             record, pos_categ, category = self._build_product_record(
                 values,

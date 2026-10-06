@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_product_size_list" model="ir.ui.view">
+        <field name="name">product.size.list</field>
+        <field name="model">product.size</field>
+        <field name="arch" type="xml">
+            <list string="Tamaños" editable="bottom">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="weight"/>
+                <field name="volume"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_product_size_search" model="ir.ui.view">
+        <field name="name">product.size.search</field>
+        <field name="model">product.size</field>
+        <field name="arch" type="xml">
+            <search string="Tamaños">
+                <field name="name"/>
+                <field name="code"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_product_size" model="ir.actions.act_window">
+        <field name="name">Tamaños</field>
+        <field name="res_model">product.size</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <menuitem id="menu_product_size"
+              name="Tamaños"
+              parent="stock.menu_stock_config_settings"
+              action="action_product_size"
+              sequence="40"/>
+</odoo>
