@@ -25,7 +25,7 @@
                             <table class="tp_box" style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr>
-                                        <th style="padding: 4px 6px;">ARTICULO</th>
+                                        <th style="text-align: left; padding: 4px 6px;">ARTICULO</th>
                                         <th style="text-align: right; padding: 4px 6px;">CANTIDAD</th>
                                         <th style="text-align: center; padding: 4px 6px;">TAMAÑO</th>
                                         <th t-if="is_valued" style="text-align: right; padding: 4px 6px;">PRECIO</th>

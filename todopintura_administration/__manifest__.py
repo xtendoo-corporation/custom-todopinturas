@@ -42,6 +42,7 @@
         'views/stock_min_date_views.xml',
         'views/report_layout_todopintura.xml',
         'views/report_albaran_todopintura.xml',
+        'views/stock_picking_views.xml',
         'views/report_factura_todopintura.xml',
         'views/report_invoice_document_custom.xml',
         'views/report_delivery_document.xml',

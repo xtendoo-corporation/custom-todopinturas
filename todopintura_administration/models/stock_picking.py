@@ -1,8 +1,26 @@
 from odoo import models, tools
+from odoo.addons.web.controllers.utils import clean_action
 
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
+
+    def _get_autoprint_report_actions(self):
+        """La impresión automática del albarán usa el albarán Todo Pintura."""
+        actions = super()._get_autoprint_report_actions()
+        report = self.env.ref(
+            'todopintura_administration.action_report_albaran_todopintura',
+            raise_if_not_found=False,
+        )
+        pickings = self.filtered(lambda p: p.picking_type_id.auto_print_delivery_slip)
+        if not report or not pickings:
+            return actions
+        for index, action in enumerate(actions):
+            if action.get('report_name') == 'stock.report_deliveryslip':
+                new_action = report.report_action(pickings.ids, config=False)
+                clean_action(new_action, self.env)
+                actions[index] = new_action
+        return actions
 
     def _tp_report_copies(self):
         """Etiquetas de cada copia a imprimir; False = copia sin texto."""
