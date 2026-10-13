@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="report_pedido_todopintura_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="o" t-value="o.with_context(lang=o.partner_id.lang or o.env.lang)"/>
+                <t t-set="partner" t-value="o.partner_id"/>
+                <t t-set="summary" t-value="o._tp_report_tax_summary()"/>
+                <t t-call="todopintura_administration.external_layout_todopintura">
+                    <div class="page tp_doc tp_pedido" style="font-size: 11px; color: #1c2b5a;">
+                        <t t-call="todopintura_administration.tp_document_top_boxes">
+                            <t t-set="copy_label" t-value="False"/>
+                            <t t-set="salesperson" t-value="o.user_id"/>
+                            <t t-set="right_block">
+                                <div t-out="o._tp_report_date_str()"/>
+                                <div style="margin-top: 8px;">
+                                    <strong t-out="o._tp_report_title()"/>
+                                    <span style="margin-left: 10px;" t-out="o.name"/>
+                                </div>
+                                <div style="margin-top: 4px;"><strong>Forma de pago:</strong> <span t-out="o.payment_term_id.name or ''"/></div>
+                                <div t-if="o.client_order_ref"><strong>REFERENCIA:</strong> <span t-out="o.client_order_ref"/></div>
+                            </t>
+                        </t>
+
+                        <table class="tp_box" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 4px 6px;">CONCEPTO</th>
+                                    <th style="text-align: right; padding: 4px 6px;">CANTIDAD</th>
+                                    <th style="text-align: center; padding: 4px 6px;">TAMAÑO</th>
+                                    <th style="text-align: right; padding: 4px 6px;">PRECIO</th>
+                                    <th style="text-align: right; padding: 4px 6px;">DTO.</th>
+                                    <th style="text-align: right; padding: 4px 6px;">NETO</th>
+                                    <th style="text-align: right; padding: 4px 6px;">IMPORTE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="o.order_line.sorted('sequence')" t-as="line">
+                                    <tr t-if="line.display_type">
+                                        <td colspan="7" style="padding: 2px 6px;"><strong t-out="line.name"/></td>
+                                    </tr>
+                                    <tr t-else="">
+                                        <td style="padding: 2px 6px;"><span t-out="line.name"/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-out="line.product_uom_qty" t-options='{"widget": "float", "precision": 0}' t-if="line.product_uom_qty == int(line.product_uom_qty)"/><span t-else="" t-out="line.product_uom_qty"/></td>
+                                        <td style="text-align: center; padding: 2px 6px;"><span t-out="line.product_id.size_id.name or ''"/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-out="line.price_unit" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-if="line.discount" t-out="line.discount" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-out="line.price_unit * (1 - (line.discount or 0.0) / 100.0)" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td style="text-align: right; padding: 2px 6px;"><span t-out="line.price_subtotal" t-options='{"widget": "float", "precision": 2}'/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <table class="tp_box" style="width: 100%; margin-top: 8px; table-layout: fixed;">
+                            <tr>
+                                <th style="text-align: right; padding: 3px 6px;">BASE</th>
+                                <th style="text-align: right; padding: 3px 6px;">IVA</th>
+                                <th style="text-align: right; padding: 3px 6px;">IMPORTE IVA</th>
+                                <th t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">% RE</th>
+                                <th t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">IMPORTE RE</th>
+                                <th style="text-align: right; padding: 3px 6px;">TOTAL PEDIDO</th>
+                            </tr>
+                            <tr>
+                                <td style="text-align: right; padding: 3px 6px;"><span t-out="summary['base']" t-options='{"widget": "float", "precision": 2}'/></td>
+                                <td style="text-align: right; padding: 3px 6px;">
+                                    <t t-foreach="summary['iva']" t-as="rate_amount"><div><span t-out="rate_amount[0]" t-options='{"widget": "float", "precision": 0}'/> %</div></t>
+                                </td>
+                                <td style="text-align: right; padding: 3px 6px;">
+                                    <t t-foreach="summary['iva']" t-as="rate_amount"><div><span t-out="rate_amount[1]" t-options='{"widget": "float", "precision": 2}'/></div></t>
+                                </td>
+                                <td t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">
+                                    <t t-foreach="summary['recargo']" t-as="rate_amount"><div><span t-out="rate_amount[0]" t-options='{"widget": "float", "precision": 1}'/> %</div></t>
+                                </td>
+                                <td t-if="summary['recargo']" style="text-align: right; padding: 3px 6px;">
+                                    <t t-foreach="summary['recargo']" t-as="rate_amount"><div><span t-out="rate_amount[1]" t-options='{"widget": "float", "precision": 2}'/></div></t>
+                                </td>
+                                <td style="text-align: right; padding: 3px 6px; font-weight: bold;"><span t-out="summary['total']" t-options='{"widget": "float", "precision": 2}'/></td>
+                            </tr>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_pedido_todopintura" model="ir.actions.report">
+        <field name="name">Pedido Todo Pintura</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">todopintura_administration.report_pedido_todopintura_document</field>
+        <field name="report_file">todopintura_administration.report_pedido_todopintura_document</field>
+        <field name="print_report_name">'Pedido - %s' % (object.name)</field>
+        <field name="paperformat_id" ref="todopintura_administration.paperformat_todopintura_a4"/>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="sequence">0</field>
+    </record>
+</odoo>
