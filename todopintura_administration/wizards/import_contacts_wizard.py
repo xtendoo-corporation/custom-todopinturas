@@ -216,6 +216,25 @@ class ImportContactsWizard(models.TransientModel):
         return lookup[key]
 
     @api.model
+    def _is_yes(self, value):
+        """Columnas S/N del Excel: solo 'S' (con o sin espacios) es afirmativo."""
+        return self._sanitize_import_text(value).upper() == 'S'
+
+    @api.model
+    def _prepare_sn_flags(self, partner_model, valued, needs_voucher, deposit):
+        """Valores de res.partner para ALBARÁN VALORADO / NECESITA VALE / VENTA DEPOSITO.
+
+        Los campos de vale y depósito viven en módulos POS que este módulo no
+        declara como dependencia, así que solo se rellenan si existen.
+        """
+        vals = {'delivery_report_print_type': 'valued' if valued else 'standard'}
+        if 'pos_requires_voucher' in partner_model._fields:
+            vals['pos_requires_voucher'] = needs_voucher
+        if deposit and 'pos_conventional_sale_mode' in partner_model._fields:
+            vals['pos_conventional_sale_mode'] = 'deposit'
+        return vals
+
+    @api.model
     def _normalize_contact_vat(self, nif):
         nif = self._sanitize_import_text(nif).upper()
         if not nif:
@@ -424,6 +443,10 @@ class ImportContactsWizard(models.TransientModel):
         observation2 = self._sanitize_import_text(cell(20))
         observation3 = self._sanitize_import_text(cell(21))
         observation4 = self._sanitize_import_text(cell(22))
+        # Columnas AB/AC/AD: ALBARÁN VALORADO S/N, NECESITA VALE S/N, VENTA DEPOSITO S/N.
+        valued = self._is_yes(cell(27))
+        needs_voucher = self._is_yes(cell(28))
+        deposit = self._is_yes(cell(29))
 
         if not (name or address or cp or telefono or nif):
             return False
@@ -434,6 +457,9 @@ class ImportContactsWizard(models.TransientModel):
             notes = "<br/>".join(filter(None, [observation1, observation2, observation3, observation4]))
             vat, _country_code = self._normalize_contact_vat(nif)
             record = self._prepare_contact_record(num_client, name, address, cp, telefono, vat, email, notes, country_id)
+
+            record.update(self._prepare_sn_flags(
+                self.env['res.partner'], valued, needs_voucher, deposit))
 
             if credit_limit is not None:
                 record['use_partner_credit_limit'] = True
@@ -487,6 +513,10 @@ class ImportContactsWizard(models.TransientModel):
                         results['payment_mode_unmatched'].get(metodo_pago, 0) + 1)
 
             contact, status = self._create_or_update_contact(num_client, name, record, iban=iban)
+            if (not deposit and 'pos_conventional_sale_mode' in contact._fields
+                    and contact.pos_conventional_sale_mode == 'deposit'):
+                # Ya no es cliente de depósito; no se toca si es 'credit'.
+                contact.pos_conventional_sale_mode = 'none'
             self.env.cr.flush()
             self._ensure_bank_account(contact, iban)
             results[status].append(row_label)

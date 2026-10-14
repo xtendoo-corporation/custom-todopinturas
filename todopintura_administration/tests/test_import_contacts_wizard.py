@@ -244,12 +244,13 @@ class TestImportContactsWizard(TransactionCase):
     @staticmethod
     def _build_row(num_client, name, address='', cp='', telefono='', nif='',
                     forma_pago='', credit_limit='', iban='', email='',
-                    condiciones_pago='', metodo_pago=''):
+                    condiciones_pago='', metodo_pago='', valued='', needs_voucher='',
+                    deposit=''):
         """Construye una fila con el mismo layout posicional que
         _process_import_row espera (ver cell(idx) ahí), rellenando con
         cadenas vacías las columnas que no nos interesan para estos tests.
         """
-        row = [''] * 27
+        row = [''] * 30
         row[0] = num_client
         row[1] = name
         row[2] = address
@@ -262,6 +263,9 @@ class TestImportContactsWizard(TransactionCase):
         row[23] = email
         row[25] = condiciones_pago
         row[26] = metodo_pago
+        row[27] = valued
+        row[28] = needs_voucher
+        row[29] = deposit
         return row
 
     def _make_payment_term(self, name, condiciones, metodo=None):
@@ -328,6 +332,31 @@ class TestImportContactsWizard(TransactionCase):
         contact = self.env['res.partner'].search([('ref', '=', '7003')], limit=1)
         self.assertFalse(contact.property_payment_term_id)
         self.assertEqual(results['payment_term_unmatched'].get(('ALGO RARO', 'OTRA COSA')), 1)
+
+    def test_process_import_row_sets_valued_voucher_and_deposit_flags(self):
+        country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        partner_fields = self.env['res.partner']._fields
+        results = {'created': [], 'updated': [], 'error': [], 'payment_term_unmatched': {}}
+
+        self.wizard._process_import_row(
+            self._build_row(8001, 'CLIENTE SI', nif='55555555K',
+                            valued=' S', needs_voucher=' S', deposit=' S'),
+            country, results)
+        self.wizard._process_import_row(
+            self._build_row(8002, 'CLIENTE NO', nif='66666666Q',
+                            valued=' N', needs_voucher=' ', deposit=' N'),
+            country, results)
+
+        yes = self.env['res.partner'].search([('ref', '=', '8001')], limit=1)
+        no = self.env['res.partner'].search([('ref', '=', '8002')], limit=1)
+        self.assertEqual(yes.delivery_report_print_type, 'valued')
+        self.assertEqual(no.delivery_report_print_type, 'standard')
+        if 'pos_requires_voucher' in partner_fields:
+            self.assertTrue(yes.pos_requires_voucher)
+            self.assertFalse(no.pos_requires_voucher)
+        if 'pos_conventional_sale_mode' in partner_fields:
+            self.assertEqual(yes.pos_conventional_sale_mode, 'deposit')
+            self.assertNotEqual(no.pos_conventional_sale_mode, 'deposit')
 
     def test_action_reset_clears_state_and_file(self):
         xlsx_data = self._build_xlsx([[6001, 'CLIENTE RESET', 'CALLE RESET', 41003, 954000003, 0, '33333333K']])
