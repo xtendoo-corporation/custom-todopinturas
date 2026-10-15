@@ -29,6 +29,7 @@
         'views/credit_cashier_warning_wizard_views.xml',
         'views/stock_quant_pos_views.xml',
         'views/credit_override_wizard_views.xml',
+        'views/quick_partner_wizard_views.xml',
         'views/stock_location_views.xml',
         'report/albaran_receipt.xml',
         'report/report_factura_simplificada_inherit.xml',
