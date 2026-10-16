@@ -20,8 +20,7 @@ patch(PosReceiptClientAction.prototype, {
         const params = this.props.action.params || {};
 
         if (params.is_a4_invoice) {
-            const A4_REPORT_XMLID = "account.report_invoice_with_payments";
-            const url = `/report/html/${A4_REPORT_XMLID}/${moveId}`;
+            const url = `/todopintura_extend_pos_conventional/invoice_a4/${moveId}`;
 
             const iframe = document.body.appendChild(document.createElement("iframe"));
             iframe.style.cssText = "position:fixed;left:-2000px;width:1px;height:1px;";

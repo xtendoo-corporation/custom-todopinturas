@@ -2,7 +2,13 @@
 
 import { registry } from "@web/core/registry";
 
-function printReceiptInBackground(url, env, { reportAutoprints = false } = {}) {
+function printReceiptInBackground(url, env, { reportAutoprints = false, isPdf = false, printTitle = "" } = {}) {
+    // Al imprimir desde un iframe, Chrome propone como nombre de archivo el titulo
+    // de la pagina principal; lo cambiamos mientras dura la impresion.
+    const previousTitle = document.title;
+    if (printTitle) {
+        document.title = printTitle;
+    }
     return new Promise((resolve) => {
         const iframe = document.createElement("iframe");
         iframe.style.cssText = "position:fixed;left:-2000px;width:1px;height:1px;opacity:0;pointer-events:none;";
@@ -16,6 +22,7 @@ function printReceiptInBackground(url, env, { reportAutoprints = false } = {}) {
             }
             isSettled = true;
             iframe.remove();
+            document.title = previousTitle;
             window.focus();
             resolve();
         };
@@ -28,6 +35,10 @@ function printReceiptInBackground(url, env, { reportAutoprints = false } = {}) {
                 }
                 try {
                     iframe.contentWindow.focus();
+                    if (printTitle) {
+                        // El servicio de titulo de Odoo puede haberlo cambiado mientras cargaba
+                        document.title = printTitle;
+                    }
                     iframe.contentWindow.print();
                 } catch (error) {
                     console.error("[PosPrintReceiptWindowAction] Error imprimiendo ticket:", error);
@@ -37,7 +48,7 @@ function printReceiptInBackground(url, env, { reportAutoprints = false } = {}) {
                     });
                 }
                 setTimeout(cleanup, 1200);
-            }, 500);
+            }, isPdf ? 1500 : 500); // el visor PDF tarda mas en estar listo
         };
 
         iframe.onerror = () => {
@@ -71,6 +82,8 @@ async function posPrintReceiptWindowAction(env, action) {
     try {
         await printReceiptInBackground(absoluteUrl, env, {
             reportAutoprints: !!params.report_autoprints,
+            isPdf: !!params.is_pdf,
+            printTitle: params.print_title || "",
         });
 
         if (params.next_action) {

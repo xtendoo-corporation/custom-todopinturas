@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import re
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
@@ -30,7 +32,15 @@ class PosMakePaymentConventional(models.TransientModel):
             if params["is_a4_invoice"]
             else "pos_conventional_receipt_custom.report_factura_simplificada_80mm"
         )
-        params["url"] = f"/report/html/{report_xmlid}/{move_id}?download=false"
+        if params["is_a4_invoice"]:
+            # PDF real (cabecera/pie fijos y nombre de archivo legible), no HTML
+            params["url"] = f"/todopintura_extend_pos_conventional/invoice_a4/{move_id}"
+            params["is_pdf"] = True
+            # Chrome nombra el archivo con el titulo de la pagina que imprime
+            move_name = self.env["account.move"].browse(move_id).name
+            params["print_title"] = re.sub(r'[\\/:*?"<>|]+', "-", f"Factura {move_name or ''}").strip()
+        else:
+            params["url"] = f"/report/html/{report_xmlid}/{move_id}?download=false"
         params["report_autoprints"] = (
             report_xmlid == "pos_conventional_receipt_custom.report_factura_simplificada_80mm"
         )

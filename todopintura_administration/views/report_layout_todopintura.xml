@@ -69,6 +69,10 @@
                 .tp_doc table.tp_box { border: 1px solid #1c2b5a !important; }
                 .tp_doc td.tp_cellbox { border: 1px solid #1c2b5a !important; border-bottom: 0 !important; }
                 .tp_doc table.tp_box thead th { border-bottom: 1px solid #1c2b5a !important; }
+                /* Factura estandar de Odoo: tabla de lineas con cabecera y separadores */
+                .article[data-oe-model="account.move"] table.o_main_table { border: 1px solid #1c2b5a !important; border-collapse: collapse !important; width: 100%; }
+                .article[data-oe-model="account.move"] table.o_main_table thead th { background-color: #e8ecf5 !important; color: #1c2b5a !important; border-bottom: 1.5px solid #1c2b5a !important; padding: 6px 8px !important; }
+                .article[data-oe-model="account.move"] table.o_main_table tbody td { border-top: 0 !important; border-bottom: 1px solid #c9d0e3 !important; padding: 6px 8px !important; }
             </style>
             <t t-out="0"/>
         </div>

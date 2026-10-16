@@ -345,9 +345,12 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         self.assertTrue(action["params"]["is_a4_invoice"])
         self.assertFalse(action["params"]["report_autoprints"])
         self.assertIn(
-            "/report/html/account.report_invoice_with_payments/",
+            "/todopintura_extend_pos_conventional/invoice_a4/",
             action["params"]["url"],
         )
+        self.assertTrue(action["params"]["is_pdf"])
+        # titulo de la ventana al imprimir = nombre del archivo, sin separadores de ruta
+        self.assertRegex(action["params"]["print_title"], r"^Factura [^/\\]+$")
 
     def test_cash_payment_validation_keeps_receipt_printing_when_customer_has_credit(self):
         session = self._open_session()
@@ -422,9 +425,12 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         self.assertTrue(action["params"]["is_a4_invoice"])
         self.assertFalse(action["params"]["report_autoprints"])
         self.assertIn(
-            "/report/html/account.report_invoice_with_payments/",
+            "/todopintura_extend_pos_conventional/invoice_a4/",
             action["params"]["url"],
         )
+        self.assertTrue(action["params"]["is_pdf"])
+        # titulo de la ventana al imprimir = nombre del archivo, sin separadores de ruta
+        self.assertRegex(action["params"]["print_title"], r"^Factura [^/\\]+$")
 
     def test_paid_order_reprint_invoice_uses_custom_a4_report(self):
         session = self._open_session()
