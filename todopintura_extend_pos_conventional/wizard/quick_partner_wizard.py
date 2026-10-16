@@ -34,7 +34,15 @@ class PosConventionalQuickPartnerWizard(models.TransientModel):
             "is_company": True,
             "company_type": "company",
         })
-        self.order_id.partner_id = partner
+        # Asignar por código no dispara los onchange del formulario: hay que
+        # aplicar a mano la tarifa del cliente y recalcular las líneas, igual
+        # que al elegir el cliente en el campo Cliente.
+        order = self.order_id.with_context(
+            skip_completeness_check=True, pricelist_update=True
+        )
+        order.partner_id = partner
+        order._onchange_partner_id()
+        order._onchange_partner_id_update_pricelist()
         # Cerrar el diálogo basta: el menú de acciones recarga el formulario al
         # cerrarse. soft_reload dispararía el bloqueo de salida de pedidos con líneas.
         return {"type": "ir.actions.act_window_close"}

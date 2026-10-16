@@ -1,9 +1,62 @@
-from odoo import models
+from itertools import groupby
+
+from odoo import api, models
 from odoo.tools.float_utils import float_compare
 
 
 class StockPicking(models.Model):
     _inherit = "stock.picking"
+
+    @api.model
+    def _create_picking_from_pos_order_lines(self, location_dest_id, lines, picking_type, partner=False):
+        """Con el contexto `pos_defer_picking_validation` (recogida en otro almacén)
+        el albarán se deja reservado pero SIN validar: el stock sale del almacén
+        cuando el cliente recoge. Las líneas negativas (devoluciones) siguen el
+        flujo estándar."""
+        if not self.env.context.get("pos_defer_picking_validation"):
+            return super()._create_picking_from_pos_order_lines(
+                location_dest_id, lines, picking_type, partner=partner
+            )
+        pickings = self.env["stock.picking"]
+        stockable = lines.filtered(
+            lambda l: l.product_id.type == "consu" and not l.product_id.uom_id.is_zero(l.qty)
+        )
+        deferred_lines = stockable.filtered(lambda l: l.qty > 0)
+        other_lines = lines - deferred_lines
+        if deferred_lines:
+            picking = self.create(
+                self._prepare_picking_vals(
+                    partner,
+                    picking_type,
+                    picking_type.default_location_src_id.id,
+                    location_dest_id,
+                )
+            )
+            picking._create_deferred_moves_from_pos_order_lines(deferred_lines)
+            pickings |= picking
+        if other_lines:
+            pickings |= self.with_context(
+                pos_defer_picking_validation=False
+            )._create_picking_from_pos_order_lines(
+                location_dest_id, other_lines, picking_type, partner=partner
+            )
+        return pickings
+
+    def _create_deferred_moves_from_pos_order_lines(self, lines):
+        """Como `_create_move_from_pos_order_lines` pero sin marcar cantidades
+        como hechas: confirma y reserva, dejando el albarán en 'Listo'."""
+        self.ensure_one()
+
+        def get_grouping_key(line):
+            return (line.product_id.id, tuple(sorted(line.attribute_value_ids.ids)))
+
+        move_vals = []
+        for _key, olines in groupby(sorted(lines, key=get_grouping_key), key=get_grouping_key):
+            order_lines = self.env["pos.order.line"].concat(*olines)
+            move_vals.append(self._prepare_stock_move_vals(order_lines[0], order_lines))
+        moves = self.env["stock.move"].create(move_vals)
+        moves._action_confirm()
+        moves._action_assign()
 
     def _get_conventional_source_pos_order(self):
         self.ensure_one()

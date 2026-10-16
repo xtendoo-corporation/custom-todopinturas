@@ -31,12 +31,14 @@
         <field name="name">pos.order.form.inherit.pickup.lines</field>
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form" />
+        <field name="active" eval="True" />
         <field name="arch" type="xml">
             <xpath
                 expr="//page[@name='products']//field[@name='lines']/list//field[@name='product_id']"
                 position="after">
                 <field name="pickup_warehouse_id"
-                    string="Tienda recogida"
+                    string="Almacén"
+                    readonly="parent.state != 'draft'"
                     domain="['|', ('company_id', '=', False), ('company_id', '=', parent.company_id)]"
                     options="{'no_create': True, 'no_open': True}" />
             </xpath>

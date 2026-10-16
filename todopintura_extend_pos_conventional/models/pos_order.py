@@ -429,6 +429,11 @@ class PosOrder(models.Model):
                 warehouses |= warehouse
         return warehouses
 
+    def _is_remote_pickup_warehouse(self, warehouse):
+        """True si la mercancía se recoge en un almacén distinto al de la tienda de venta."""
+        self.ensure_one()
+        return bool(warehouse and self.origin_warehouse_id and warehouse != self.origin_warehouse_id)
+
     def _get_fulfillment_picking_type(self, warehouse):
         self.ensure_one()
         return warehouse.out_type_id or self.config_id.picking_type_id
@@ -675,7 +680,10 @@ class PosOrder(models.Model):
                     else:
                         destination_id = picking_type.default_location_dest_id.id
 
-                    pickings = self.env['stock.picking']._create_picking_from_pos_order_lines(
+                    # Recogida en otro almacén: albarán reservado pero sin validar
+                    pickings = self.env['stock.picking'].with_context(
+                        pos_defer_picking_validation=self._is_remote_pickup_warehouse(group["warehouse"]),
+                    )._create_picking_from_pos_order_lines(
                         destination_id, group["lines"], picking_type, self.partner_id
                     )
                     pickings.write({
@@ -753,14 +761,22 @@ class PosOrder(models.Model):
             for picking in created_pickings:
                 if picking.state == "draft":
                     picking.action_confirm()
-                if picking.state != "done":
-                    picking.action_assign()
-                    for move in picking.move_ids:
-                        move.quantity = move.product_uom_qty
-                    picking.button_validate()
+                if picking.state == "done":
+                    continue
+                picking.action_assign()
+                if self._is_remote_pickup_warehouse(picking.picking_type_id.warehouse_id):
+                    # Recogida en otra tienda: se deja reservado hasta que el cliente recoja
                     _logger.info(
-                        "POS Order %s: Picking %s validado", self.name, picking.name
+                        "POS Order %s: Picking %s pendiente de recogida en %s",
+                        self.name, picking.name, picking.picking_type_id.warehouse_id.display_name,
                     )
+                    continue
+                for move in picking.move_ids:
+                    move.quantity = move.product_uom_qty
+                picking.button_validate()
+                _logger.info(
+                    "POS Order %s: Picking %s validado", self.name, picking.name
+                )
 
         except Exception as e:
             _logger.exception("Error al crear sale.order desde POS: %s", str(e))
