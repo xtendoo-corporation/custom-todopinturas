@@ -45,6 +45,7 @@
         'views/stock_picking_views.xml',
         'views/report_factura_todopintura.xml',
         'views/report_pedido_todopintura.xml',
+        'views/sale_order_views.xml',
         'views/report_invoice_document_custom.xml',
         'views/report_delivery_document.xml',
         'views/stock_count.xml',

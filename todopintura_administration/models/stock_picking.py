@@ -5,6 +5,17 @@ from odoo.addons.web.controllers.utils import clean_action
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
+    def do_print_picking(self):
+        """El botón Imprimir de un albarán pendiente también usa el albarán Todo Pintura."""
+        report = self.env.ref(
+            'todopintura_administration.action_report_albaran_todopintura',
+            raise_if_not_found=False,
+        )
+        if not report:
+            return super().do_print_picking()
+        self.write({'printed': True})
+        return report.report_action(self)
+
     def _get_autoprint_report_actions(self):
         """La impresión automática del albarán usa el albarán Todo Pintura."""
         actions = super()._get_autoprint_report_actions()

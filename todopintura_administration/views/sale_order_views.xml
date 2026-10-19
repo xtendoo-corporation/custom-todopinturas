@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- El botón Imprimir del pedido/presupuesto usa el Pedido Todo Pintura en lugar del estándar -->
+    <record id="view_order_form_print_pedido_todopintura" model="ir.ui.view">
+        <field name="name">sale.order.form.print.pedido.todopintura</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='sale.action_report_saleorder']" position="attributes">
+                <attribute name="name">todopintura_administration.action_report_pedido_todopintura</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
