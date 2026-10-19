@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="todopintura_sales_report_view_list" model="ir.ui.view">
+        <field name="name">todopintura.sales.report.list</field>
+        <field name="model">todopintura.sales.report</field>
+        <field name="arch" type="xml">
+            <list string="Ventas y rentabilidad" create="0" edit="0" delete="0">
+                <field name="date"/>
+                <field name="doc_type"/>
+                <field name="document_name"/>
+                <field name="partner_id" optional="show"/>
+                <field name="warehouse_id" optional="show"/>
+                <field name="product_id"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="user_id" optional="hide"/>
+                <field name="delivery_status" optional="show"/>
+                <field name="qty" sum="Total"/>
+                <field name="amount" sum="Total"/>
+                <field name="cost" sum="Total"/>
+                <field name="margin" sum="Total"/>
+                <field name="margin_percent" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="todopintura_sales_report_view_pivot" model="ir.ui.view">
+        <field name="name">todopintura.sales.report.pivot</field>
+        <field name="model">todopintura.sales.report</field>
+        <field name="arch" type="xml">
+            <pivot string="Ventas y rentabilidad" display_quantity="1">
+                <field name="doc_type" type="row"/>
+                <field name="date" interval="day" type="col"/>
+                <field name="amount" type="measure"/>
+                <field name="cost" type="measure"/>
+                <field name="margin" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="todopintura_sales_report_view_graph" model="ir.ui.view">
+        <field name="name">todopintura.sales.report.graph</field>
+        <field name="model">todopintura.sales.report</field>
+        <field name="arch" type="xml">
+            <graph string="Ventas y rentabilidad" type="bar">
+                <field name="warehouse_id"/>
+                <field name="margin" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="todopintura_sales_report_view_search" model="ir.ui.view">
+        <field name="name">todopintura.sales.report.search</field>
+        <field name="model">todopintura.sales.report</field>
+        <field name="arch" type="xml">
+            <search string="Ventas y rentabilidad">
+                <field name="document_name" string="Referencia"/>
+                <field name="partner_id"/>
+                <field name="product_id"/>
+                <field name="categ_id"/>
+                <field name="warehouse_id"/>
+                <field name="user_id"/>
+                <filter name="filter_pos" string="Pedidos TPV" domain="[('doc_type', '=', 'pos')]"/>
+                <filter name="filter_sale" string="Pedidos de venta" domain="[('doc_type', '=', 'sale')]"/>
+                <filter name="filter_invoice_a4" string="Facturas A4" domain="[('doc_type', '=', 'invoice_a4')]"/>
+                <filter name="filter_invoice_simplified" string="Facturas simplificadas" domain="[('doc_type', '=', 'invoice_simplified')]"/>
+                <separator/>
+                <filter name="filter_delivered" string="Entregado" domain="[('delivery_status', '=', 'delivered')]"/>
+                <filter name="filter_pending" string="Pendiente de entrega" domain="[('delivery_status', '=', 'pending')]"/>
+                <separator/>
+                <filter name="filter_last_week" string="Últimos 7 días"
+                        domain="[('date', '&gt;=', (context_today() - relativedelta(days=6)).strftime('%Y-%m-%d')), ('date', '&lt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_date" string="Fecha" date="date"/>
+                <group>
+                    <filter name="group_doc_type" string="Tipo de documento" context="{'group_by': 'doc_type'}"/>
+                    <filter name="group_document" string="Referencia (pedido / factura)" context="{'group_by': 'document_name'}"/>
+                    <filter name="group_warehouse" string="Almacén / Tienda" context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_product" string="Producto" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_categ" string="Categoría" context="{'group_by': 'categ_id'}"/>
+                    <filter name="group_user" string="Comercial / Cajero" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_date_day" string="Día" context="{'group_by': 'date:day'}"/>
+                    <filter name="group_date_week" string="Semana" context="{'group_by': 'date:week'}"/>
+                    <filter name="group_date_month" string="Mes" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="todopintura_sales_report_action" model="ir.actions.act_window">
+        <field name="name">Ventas y rentabilidad</field>
+        <field name="res_model">todopintura.sales.report</field>
+        <field name="view_mode">pivot,list,graph</field>
+        <field name="context">{'search_default_filter_last_week': 1, 'search_default_group_doc_type': 1, 'search_default_group_document': 2}</field>
+        <field name="search_view_id" ref="todopintura_sales_report_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin datos de ventas</p>
+            <p>Pedidos del TPV, pedidos de venta confirmados y facturas publicadas, con coste estándar y margen por línea.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_todopintura_sales_report"
+              name="Ventas y rentabilidad"
+              parent="point_of_sale.menu_point_rep"
+              action="todopintura_sales_report_action"
+              groups="point_of_sale.group_pos_manager,sales_team.group_sale_manager"
+              sequence="50"/>
+</odoo>
