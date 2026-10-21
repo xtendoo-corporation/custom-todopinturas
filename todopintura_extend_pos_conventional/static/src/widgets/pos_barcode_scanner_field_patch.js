@@ -2,10 +2,8 @@
 
 import { patch } from "@web/core/utils/patch";
 import { barcodeService } from "@barcodes/barcode_service";
-import { onMounted, onPatched, onWillUnmount } from "@odoo/owl";
 import { PosConventionalBarcodeScannerField } from "@pos_conventional_barcode_scanner/js/pos_conventional_barcode_scanner_field";
 
-const BARCODE_ONLY_BODY_CLASS = "o_pos_barcode_only_lines";
 const EDITABLE_SELECTOR = 'input, textarea, [contenteditable="true"]';
 const MIN_BARCODE_LENGTH = 3;
 // Un lector teclea mucho más rápido que una persona.
@@ -16,24 +14,6 @@ const SCANNER_FLUSH_DELAY = 250; // ms sin teclas para dar por terminada la ráf
 const cleanBarcode = (barcode) => barcodeService.cleanBarcode(barcode);
 
 patch(PosConventionalBarcodeScannerField.prototype, {
-    setup() {
-        super.setup(...arguments);
-        // Sin el check "Puede buscar/escribir productos en TPV" se oculta el enlace
-        // "Añadir una línea": las líneas solo se crean escaneando códigos de barras.
-        // La clase va en <body> porque OWL repinta (y pisa) las clases de los campos.
-        onMounted(() => this._applyBarcodeOnlyLines());
-        onPatched(() => this._applyBarcodeOnlyLines());
-        onWillUnmount(() => document.body.classList.remove(BARCODE_ONLY_BODY_CLASS));
-    },
-
-    _applyBarcodeOnlyLines() {
-        const data = this.props.record?.data;
-        if (!data || !("can_manual_product_entry" in data)) {
-            return;
-        }
-        document.body.classList.toggle(BARCODE_ONLY_BODY_CLASS, !data.can_manual_product_entry);
-    },
-
     /**
      * Sustituye la captura original, que solo admitía códigos numéricos: un
      * código con letras se dejaba escribir en el campo con el foco. Aquí se

@@ -39,7 +39,6 @@
     'assets': {
         'web.assets_backend': [
             'todopintura_extend_pos_conventional/static/src/widgets/**/*',
-            'todopintura_extend_pos_conventional/static/src/css/barcode_only_lines.css',
         ],
         'point_of_sale._assets_pos': [
             'todopintura_extend_pos_conventional/static/src/app/**/*',

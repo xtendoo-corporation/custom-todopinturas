@@ -13,29 +13,19 @@
         </field>
     </record>
 
-    <!-- Solo códigos de barras salvo que el usuario tenga pos_can_manual_product_entry -->
+    <!-- Líneas: el producto solo se puede localizar por código de barras salvo que
+         el usuario tenga pos_can_manual_product_entry (ver models/product_product.py) -->
     <record id="view_pos_order_form_barcode_only_products" model="ir.ui.view">
         <field name="name">pos.order.form.barcode.only.products</field>
         <field name="model">pos.order</field>
         <field name="priority">131</field>
         <field name="inherit_id" ref="pos_conventional_core.view_pos_pos_form_inherit_pos_conventional_core" />
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='has_order_lines']" position="after">
-                <field name="can_manual_product_entry" invisible="1"/>
-            </xpath>
             <xpath expr="//page[@name='products']//field[@name='lines']/list//field[@name='product_id']" position="attributes">
-                <attribute name="readonly">not can_manual_product_entry</attribute>
-                <attribute name="force_save">1</attribute>
-            </xpath>
-            <xpath expr="//page[@name='products']//field[@name='lines']/list//field[@name='product_id']" position="after">
-                <field name="can_manual_product_entry" column_invisible="True"/>
+                <attribute name="context">{'display_default_code': True, 'pos_conventional_line_product': True}</attribute>
             </xpath>
             <xpath expr="//page[@name='products']//field[@name='lines']/form//field[@name='product_id']" position="attributes">
-                <attribute name="readonly">not can_manual_product_entry</attribute>
-                <attribute name="force_save">1</attribute>
-            </xpath>
-            <xpath expr="//page[@name='products']//field[@name='lines']/form//field[@name='product_id']" position="after">
-                <field name="can_manual_product_entry" invisible="1"/>
+                <attribute name="context">{'display_default_code': True, 'pos_conventional_line_product': True}</attribute>
             </xpath>
         </field>
     </record>

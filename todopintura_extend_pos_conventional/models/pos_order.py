@@ -16,15 +16,14 @@ class PosOrder(models.Model):
 
     _CONVENTIONAL_PAID_PRINTABLE_STATES = ("paid", "done", "invoiced")
 
-    can_manual_product_entry = fields.Boolean(
-        string="Puede introducir productos a mano",
-        compute="_compute_can_manual_product_entry",
-    )
-
-    def _compute_can_manual_product_entry(self):
-        allowed = bool(self.env.user.pos_can_manual_product_entry)
-        for order in self:
-            order.can_manual_product_entry = allowed
+    def _get_barcode_scan_product_domain(self, barcode):
+        # Escaneo/tecleo de códigos sin distinguir mayúsculas de minúsculas
+        self.ensure_one()
+        return [
+            self.env["product.product"]._pos_barcode_domain((barcode or "").strip()),
+            ("sale_ok", "=", True),
+            ("available_in_pos", "=", True),
+        ]
 
     def _normalize_conventional_payment_method(self, payment_method=None):
         self.ensure_one()
