@@ -1,0 +1,5 @@
+/* Líneas de pedido solo por código de barras (usuario sin pos_can_manual_product_entry) */
+body.o_pos_barcode_only_lines .o_field_widget[name="lines"] .o_field_x2many_list_row_add,
+body.o_pos_barcode_only_lines .o_field_widget[name="lines"] .o_group_field_row_add {
+    display: none !important;
+}

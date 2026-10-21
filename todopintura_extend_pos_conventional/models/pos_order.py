@@ -16,6 +16,16 @@ class PosOrder(models.Model):
 
     _CONVENTIONAL_PAID_PRINTABLE_STATES = ("paid", "done", "invoiced")
 
+    can_manual_product_entry = fields.Boolean(
+        string="Puede introducir productos a mano",
+        compute="_compute_can_manual_product_entry",
+    )
+
+    def _compute_can_manual_product_entry(self):
+        allowed = bool(self.env.user.pos_can_manual_product_entry)
+        for order in self:
+            order.can_manual_product_entry = allowed
+
     def _normalize_conventional_payment_method(self, payment_method=None):
         self.ensure_one()
         if not payment_method:
@@ -309,7 +319,7 @@ class PosOrder(models.Model):
         if not pickings:
             raise UserError(_("Este pedido no tiene albaranes disponibles para imprimir."))
         return self.env.ref(
-            "todopintura_administration.action_custom_delivery_report"
+            "todopintura_administration.action_report_albaran_todopintura"
         ).report_action(pickings)
 
     def action_print_paid_albaran_valued(self):
@@ -327,7 +337,7 @@ class PosOrder(models.Model):
         if self.is_a4_invoice:
             return (
                 self.env.ref(
-                    "todopintura_administration.action_report_invoice_custom",
+                    "todopintura_administration.action_report_factura_todopintura",
                     raise_if_not_found=False,
                 )
                 or self.env.ref("account.account_invoices")
@@ -783,15 +793,19 @@ class PosOrder(models.Model):
             raise UserError(_("Error al crear el albarán: %s") % str(e))
 
         if created_pickings and not self.env.context.get("skip_conventional_picking_print"):
+            # Albarán Todo Pintura en PDF (mismo visor que la factura A4)
             report_url = (
-                "/report/html/pos_conventional_picking_integration.report_albaran_80mm/%s"
+                "/todopintura_extend_pos_conventional/albaran_pdf/%s"
                 % ",".join(str(picking_id) for picking_id in created_pickings.ids)
             )
             return {
                 "type": "ir.actions.client",
-                "tag": "pos_conventional_print_iframe",
+                "tag": "pos_conventional_print_receipt_window",
                 "params": {
                     "url": report_url,
+                    "is_pdf": True,
+                    "clear_breadcrumbs": False,
+                    "print_title": "Albarán %s" % (self.name or ""),
                     "next_action": self._get_post_validation_action()
                     or {
                         "type": "ir.actions.act_window",

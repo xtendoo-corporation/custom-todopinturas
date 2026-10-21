@@ -1,4 +1,4 @@
-from odoo import api, models
+from odoo import api, fields, models
 from odoo.exceptions import AccessError
 from odoo.tools.translate import _
 from odoo.tools import float_compare
@@ -6,6 +6,16 @@ from odoo.tools import float_compare
 
 class PosOrderLinePermissions(models.Model):
     _inherit = 'pos.order.line'
+
+    can_manual_product_entry = fields.Boolean(
+        string="Puede introducir productos a mano",
+        compute="_compute_can_manual_product_entry",
+    )
+
+    def _compute_can_manual_product_entry(self):
+        allowed = bool(self.env.user.pos_can_manual_product_entry)
+        for line in self:
+            line.can_manual_product_entry = allowed
 
     def write(self, vals):
         # Campos de precio que queremos proteger

@@ -13,3 +13,4 @@ from . import stock_picking
 from . import pos_session
 from . import pos_order_line_permissions
 
+from . import res_users

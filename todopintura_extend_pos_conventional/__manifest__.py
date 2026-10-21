@@ -12,6 +12,7 @@
         'account',
         'pos_conventional_core',
         'pos_conventional_order_barcode',
+        'pos_conventional_barcode_scanner',
         'pos_conventional_payment_wizard',
         'pos_conventional_picking_integration',
         'pos_conventional_receipt_custom',
@@ -23,6 +24,7 @@
         'views/product_template_views.xml',
         'views/res_config_settings_views.xml',
         'views/res_partner_views.xml',
+        'views/res_users_views.xml',
         'views/pos_order_views.xml',
         'views/sale_order_observations_views.xml',
         'views/pos_make_payment_wizard_views.xml',
@@ -37,6 +39,7 @@
     'assets': {
         'web.assets_backend': [
             'todopintura_extend_pos_conventional/static/src/widgets/**/*',
+            'todopintura_extend_pos_conventional/static/src/css/barcode_only_lines.css',
         ],
         'point_of_sale._assets_pos': [
             'todopintura_extend_pos_conventional/static/src/app/**/*',

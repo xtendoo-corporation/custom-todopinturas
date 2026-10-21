@@ -28,7 +28,7 @@ class PosMakePaymentWizard(models.TransientModel):
             return action
 
         report_xmlid = (
-            "account.report_invoice_with_payments"
+            "todopintura_administration.report_factura_todopintura_document"
             if params["is_a4_invoice"]
             else "pos_conventional_receipt_custom.report_factura_simplificada_80mm"
         )

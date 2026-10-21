@@ -7,7 +7,8 @@ from pypdf import PdfReader, PdfWriter
 from odoo import http
 from odoo.http import request
 
-A4_INVOICE_REPORT = "account.report_invoice_with_payments"
+A4_INVOICE_REPORT = "todopintura_administration.report_factura_todopintura_document"
+ALBARAN_REPORT = "todopintura_administration.report_albaran_todopintura_document"
 
 
 class TodopinturaExtendPosConventionalController(http.Controller):
@@ -38,6 +39,34 @@ class TodopinturaExtendPosConventionalController(http.Controller):
         pdf, _fmt = report._render_qweb_pdf(A4_INVOICE_REPORT, [move.id])
         label = move.name if move.name and move.name != '/' else 'borrador'
         filename = re.sub(r'[\\/:*?"<>|]+', '-', 'Factura %s' % label).strip() + '.pdf'
+        pdf = self._set_pdf_title(pdf, filename[:-len('.pdf')])
+        headers = [
+            ('Content-Type', 'application/pdf'),
+            ('Content-Length', len(pdf)),
+            ('Content-Disposition', "inline; filename*=UTF-8''%s" % quote(filename)),
+        ]
+        return request.make_response(pdf, headers=headers)
+
+    @http.route(
+        '/todopintura_extend_pos_conventional/albaran_pdf/<string:picking_ids>',
+        type='http',
+        auth='user',
+        methods=['GET'],
+    )
+    def albaran_pdf(self, picking_ids, **kwargs):
+        """Albarán Todo Pintura en PDF para imprimir desde el TPV."""
+        try:
+            ids = [int(i) for i in picking_ids.split(',') if i]
+        except ValueError:
+            return request.not_found()
+        pickings = request.env['stock.picking'].browse(ids).exists()
+        if not pickings:
+            return request.not_found()
+        pickings.check_access('read')
+        report = request.env['ir.actions.report']._get_report_from_name(ALBARAN_REPORT)
+        pdf, _fmt = report._render_qweb_pdf(ALBARAN_REPORT, pickings.ids)
+        title = 'Albaran %s' % ', '.join(pickings.mapped('name'))
+        filename = re.sub(r'[\\/:*?"<>|]+', '-', title).strip() + '.pdf'
         pdf = self._set_pdf_title(pdf, filename[:-len('.pdf')])
         headers = [
             ('Content-Type', 'application/pdf'),

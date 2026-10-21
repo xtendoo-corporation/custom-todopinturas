@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Vista movida a todopintura_administration/res_users_views.xml
-         para asegurar que el campo pos_can_edit_price (definido en
-         todopintura_administration) se muestre correctamente en el formulario
-         de usuarios. Mantengo este archivo como marcador.
-    -->
+    <record id="view_res_users_form_pos_can_manual_product_entry" model="ir.ui.view">
+        <field name="name">res.users.form.pos.can.manual.product.entry</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="todopintura_administration.view_res_users_form_inherit_pos_can_edit_price_admin"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pos_can_edit_price']" position="after">
+                <field name="pos_can_manual_product_entry"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>
-
