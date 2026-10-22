@@ -8,7 +8,6 @@ from odoo import http
 from odoo.http import request
 
 A4_INVOICE_REPORT = "todopintura_administration.report_factura_todopintura_document"
-ALBARAN_REPORT = "todopintura_administration.report_albaran_todopintura_document"
 
 
 class TodopinturaExtendPosConventionalController(http.Controller):
@@ -63,8 +62,9 @@ class TodopinturaExtendPosConventionalController(http.Controller):
         if not pickings:
             return request.not_found()
         pickings.check_access('read')
-        report = request.env['ir.actions.report']._get_report_from_name(ALBARAN_REPORT)
-        pdf, _fmt = report._render_qweb_pdf(ALBARAN_REPORT, pickings.ids)
+        # Valorado si el cliente lo tiene marcado (o se fuerza con ?valued=1)
+        report = pickings._tp_albaran_report(valued=True if kwargs.get('valued') == '1' else None)
+        pdf, _fmt = report._render_qweb_pdf(report.report_name, pickings.ids)
         title = 'Albaran %s' % ', '.join(pickings.mapped('name'))
         filename = re.sub(r'[\\/:*?"<>|]+', '-', title).strip() + '.pdf'
         pdf = self._set_pdf_title(pdf, filename[:-len('.pdf')])

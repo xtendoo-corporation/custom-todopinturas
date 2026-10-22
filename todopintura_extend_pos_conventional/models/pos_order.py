@@ -335,9 +335,7 @@ class PosOrder(models.Model):
         pickings = self._get_conventional_reprint_pickings()
         if not pickings:
             raise UserError(_("Este pedido no tiene albaranes disponibles para imprimir."))
-        return self.env.ref(
-            "todopintura_administration.action_report_albaran_todopintura"
-        ).report_action(pickings)
+        return pickings._tp_albaran_report().report_action(pickings)
 
     def action_print_paid_albaran_valued(self):
         self.ensure_one()
@@ -345,9 +343,7 @@ class PosOrder(models.Model):
         pickings = self._get_conventional_reprint_pickings()
         if not pickings:
             raise UserError(_("Este pedido no tiene albaranes disponibles para imprimir."))
-        return self.env.ref(
-            "todopintura_extend_pos_conventional.action_custom_delivery_report_valued"
-        ).report_action(pickings)
+        return pickings._tp_albaran_report(valued=True).report_action(pickings)
 
     def _get_conventional_paid_invoice_report(self):
         self.ensure_one()
@@ -815,6 +811,8 @@ class PosOrder(models.Model):
                 "/todopintura_extend_pos_conventional/albaran_pdf/%s"
                 % ",".join(str(picking_id) for picking_id in created_pickings.ids)
             )
+            if self.env.context.get("force_valued_picking"):
+                report_url += "?valued=1"
             return {
                 "type": "ir.actions.client",
                 "tag": "pos_conventional_print_receipt_window",

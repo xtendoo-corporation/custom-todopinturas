@@ -11,6 +11,8 @@
                     <t t-foreach="o._tp_report_copies()" t-as="copy_label">
                         <div class="page tp_doc tp_albaran"
                              t-attf-style="font-size: 11px; color: #1c2b5a; #{'page-break-before: always;' if not copy_label_first else ''}">
+                            <table class="tp_page_table">
+                            <tr><td class="tp_page_top">
                             <t t-call="todopintura_administration.tp_document_top_boxes">
                                 <t t-set="right_block">
                                     <div t-out="o._tp_report_date_str()"/>
@@ -21,8 +23,9 @@
                                     <div t-if="o.note" style="margin-top: 6px;" t-field="o.note"/>
                                 </t>
                             </t>
-
-                            <table class="tp_box" style="width: 100%; border-collapse: collapse;">
+                            </td></tr>
+                            <tr><td class="tp_page_items">
+                            <table class="tp_box tp_items" style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr>
                                         <th style="text-align: left; padding: 4px 6px;">ARTICULO</th>
@@ -55,9 +58,11 @@
                                             <span t-out="move._get_conventional_report_line_total()" t-options='{"widget": "float", "precision": 2}'/>
                                         </td>
                                     </tr>
+                                    <tr class="tp_filler"><td t-att-colspan="6 if is_valued else 3"></td></tr>
                                 </tbody>
                             </table>
-
+                            </td></tr>
+                            <tr><td class="tp_page_bottom">
                             <t t-if="is_valued">
                                 <t t-set="summary" t-value="o._tp_report_tax_summary()"/>
                                 <table class="tp_box" style="width: 100%; margin-top: 8px; table-layout: fixed;">
@@ -87,6 +92,8 @@
                                     </tr>
                                 </table>
                             </t>
+                            </td></tr>
+                            </table>
                         </div>
                     </t>
                 </t>

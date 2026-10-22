@@ -5,12 +5,21 @@ from odoo.addons.web.controllers.utils import clean_action
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
+    def _tp_albaran_report(self, valued=None):
+        """Informe de albarán Todo Pintura: valorado si el cliente tiene el albarán
+        valorado marcado (o se fuerza con `valued=True`), estándar en otro caso."""
+        if valued is None:
+            valued = bool(self) and all(picking._tp_report_is_valued() for picking in self)
+        xmlid = (
+            'todopintura_administration.action_report_albaran_todopintura_valorado'
+            if valued
+            else 'todopintura_administration.action_report_albaran_todopintura'
+        )
+        return self.env.ref(xmlid, raise_if_not_found=False)
+
     def do_print_picking(self):
         """El botón Imprimir de un albarán pendiente también usa el albarán Todo Pintura."""
-        report = self.env.ref(
-            'todopintura_administration.action_report_albaran_todopintura',
-            raise_if_not_found=False,
-        )
+        report = self._tp_albaran_report()
         if not report:
             return super().do_print_picking()
         self.write({'printed': True})
@@ -19,11 +28,8 @@ class StockPicking(models.Model):
     def _get_autoprint_report_actions(self):
         """La impresión automática del albarán usa el albarán Todo Pintura."""
         actions = super()._get_autoprint_report_actions()
-        report = self.env.ref(
-            'todopintura_administration.action_report_albaran_todopintura',
-            raise_if_not_found=False,
-        )
         pickings = self.filtered(lambda p: p.picking_type_id.auto_print_delivery_slip)
+        report = pickings._tp_albaran_report()
         if not report or not pickings:
             return actions
         for index, action in enumerate(actions):

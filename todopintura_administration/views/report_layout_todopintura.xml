@@ -66,6 +66,13 @@
              t-att-data-oe-lang="o and o.env.context.get('lang')">
             <style>
                 .tp_doc table, .tp_doc thead, .tp_doc tbody, .tp_doc tr, .tp_doc td, .tp_doc th { border: 0 !important; }
+                /* La tabla de articulos ocupa hasta el final de la hoja (sobre el pie): la tabla envolvente
+                   mide lo que el cuerpo de la pagina (wkhtmltopdf escala el CSS ~0.78: 248mm ≈ 194mm reales) y la fila de articulos absorbe el espacio libre. */
+                .tp_doc table.tp_page_table { width: 100%; height: 248mm; border-collapse: collapse; }
+                .tp_doc table.tp_page_table > tbody > tr > td, .tp_doc table.tp_page_table > tr > td { padding: 0; vertical-align: top; }
+                .tp_doc td.tp_page_items { height: 100%; }
+                .tp_doc table.tp_items { height: 100%; }
+                .tp_doc table.tp_items tr.tp_filler { height: 100%; }
                 .tp_doc table.tp_box { border: 1px solid #1c2b5a !important; }
                 .tp_doc td.tp_cellbox { border: 1px solid #1c2b5a !important; border-bottom: 0 !important; }
                 .tp_doc table.tp_box thead th { border-bottom: 1px solid #1c2b5a !important; }

@@ -8,6 +8,8 @@
                 <t t-set="summary" t-value="o._tp_report_tax_summary()"/>
                 <t t-call="todopintura_administration.external_layout_todopintura">
                     <div class="page tp_doc tp_factura" style="font-size: 11px; color: #1c2b5a;">
+                        <table class="tp_page_table">
+                        <tr><td class="tp_page_top">
                         <t t-call="todopintura_administration.tp_document_top_boxes">
                             <t t-set="copy_label" t-value="False"/>
                             <t t-set="salesperson" t-value="o.invoice_user_id"/>
@@ -23,8 +25,9 @@
                                 <div t-if="o.narration" style="margin-top: 4px;" t-field="o.narration"/>
                             </t>
                         </t>
-
-                        <table class="tp_box" style="width: 100%; border-collapse: collapse;">
+                        </td></tr>
+                        <tr><td class="tp_page_items">
+                        <table class="tp_box tp_items" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr>
                                     <th style="padding: 4px 6px;">CONCEPTO</th>
@@ -51,9 +54,11 @@
                                         <td style="text-align: right; padding: 2px 6px;"><span t-out="line.price_subtotal" t-options='{"widget": "float", "precision": 2}'/></td>
                                     </tr>
                                 </t>
+                                <tr class="tp_filler"><td colspan="7"></td></tr>
                             </tbody>
                         </table>
-
+                        </td></tr>
+                        <tr><td class="tp_page_bottom">
                         <table class="tp_box" style="width: 100%; margin-top: 8px; table-layout: fixed;">
                             <tr>
                                 <th style="text-align: right; padding: 3px 6px;">BASE</th>
@@ -79,6 +84,8 @@
                                 </td>
                                 <td style="text-align: right; padding: 3px 6px; font-weight: bold;"><span t-out="summary['total']" t-options='{"widget": "float", "precision": 2}'/></td>
                             </tr>
+                        </table>
+                        </td></tr>
                         </table>
                     </div>
                 </t>
