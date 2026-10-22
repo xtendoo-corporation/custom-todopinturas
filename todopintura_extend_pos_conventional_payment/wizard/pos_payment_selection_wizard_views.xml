@@ -86,14 +86,14 @@
                         <!-- Izquierda: Selecciones -->
                         <div class="col-md-5 border-end">
                             <group string="¿Qué desea hacer?">
-                                <field name="operation_type" widget="radio" nolabel="1"
+                                <field name="operation_type" widget="radio" nolabel="1" colspan="2"
                                        invisible="deposit_wizard_id"/>
-                                <field name="operation_type_deposit" widget="radio" nolabel="1"
+                                <field name="operation_type_deposit" widget="radio" nolabel="1" colspan="2"
                                        invisible="not deposit_wizard_id"/>
                             </group>
 
                             <group string="Método de Pago" invisible="operation_type != 'ticket' and operation_type != 'invoice'">
-                                <field name="payment_type" widget="radio" nolabel="1"/>
+                                <field name="payment_type" widget="radio" nolabel="1" colspan="2"/>
                             </group>
 
                         </div>

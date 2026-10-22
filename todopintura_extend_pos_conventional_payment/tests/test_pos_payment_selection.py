@@ -173,6 +173,7 @@ class TestPosPaymentSelection(PosConventionalTestCommon):
             field = doc.xpath(f"//field[@name='{field_name}']")[0]
             self.assertEqual(field.get('widget'), 'radio')
             self.assertNotIn('horizontal', field.get('options') or '')
+            self.assertEqual(field.get('colspan'), '2')
 
         banner = doc.xpath("//div[hasclass('o_todopintura_wizard_alerts')]")
         self.assertEqual(len(banner), 1)
