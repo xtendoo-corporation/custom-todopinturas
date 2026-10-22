@@ -186,6 +186,24 @@ class PosOrder(models.Model):
     def action_view_settled_orders(self):
         return True
 
+    def _generate_pos_order_invoice(self):
+        """Una factura A4 nunca es simplificada.
+
+        Los asistentes de pago de POS Conventional marcan siempre el pedido como
+        factura simplificada al cobrar, lo que mandaba las facturas A4 al diario
+        de simplificadas. Si el cajero eligió factura A4, se quita el flag antes
+        de facturar para que se use el diario de facturas normal.
+        """
+        if "is_l10n_es_simplified_invoice" in self._fields:
+            a4_simplified = self.filtered(
+                lambda o: o.is_a4_invoice and o.is_l10n_es_simplified_invoice and not o.account_move
+            )
+            if a4_simplified:
+                a4_simplified.with_context(skip_completeness_check=True).write(
+                    {"is_l10n_es_simplified_invoice": False}
+                )
+        return super()._generate_pos_order_invoice()
+
     is_a4_invoice = fields.Boolean(
         string="Factura A4",
         default=False,

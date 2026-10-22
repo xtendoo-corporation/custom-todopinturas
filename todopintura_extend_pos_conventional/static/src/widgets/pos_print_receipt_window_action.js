@@ -2,6 +2,13 @@
 
 import { registry } from "@web/core/registry";
 
+// El visor PDF de Chrome no bloquea en print(): la previsualizacion sigue
+// abierta despues de que la llamada vuelva, y `afterprint` no se emite al
+// guardar. Quitar el iframe (o esperar un evento que no llega) cortaba la
+// previsualizacion o dejaba el asistente de pago colgado. Con PDF se deja el
+// iframe oculto vivo y se retira al imprimir el siguiente documento.
+let lastPdfPrintIframe = null;
+
 function printReceiptInBackground(url, env, { reportAutoprints = false, isPdf = false, printTitle = "" } = {}) {
     // Al imprimir desde un iframe, Chrome propone como nombre de archivo el titulo
     // de la pagina principal; lo cambiamos mientras dura la impresion.
@@ -10,6 +17,10 @@ function printReceiptInBackground(url, env, { reportAutoprints = false, isPdf = 
         document.title = printTitle;
     }
     return new Promise((resolve) => {
+        if (isPdf && lastPdfPrintIframe) {
+            lastPdfPrintIframe.remove();
+            lastPdfPrintIframe = null;
+        }
         const iframe = document.createElement("iframe");
         iframe.style.cssText = "position:fixed;left:-2000px;width:1px;height:1px;opacity:0;pointer-events:none;";
         document.body.appendChild(iframe);
@@ -21,7 +32,11 @@ function printReceiptInBackground(url, env, { reportAutoprints = false, isPdf = 
                 return;
             }
             isSettled = true;
-            iframe.remove();
+            if (isPdf) {
+                lastPdfPrintIframe = iframe;
+            } else {
+                iframe.remove();
+            }
             document.title = previousTitle;
             window.focus();
             resolve();

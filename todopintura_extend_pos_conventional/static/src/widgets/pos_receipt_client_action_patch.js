@@ -5,6 +5,10 @@ import { patch } from "@web/core/utils/patch";
 
 const THERMAL_REPORT_XMLID = "pos_conventional_receipt_custom.report_factura_simplificada_80mm";
 
+// Ver pos_print_receipt_window_action.js: con PDF no se destruye el iframe
+// mientras la previsualizacion de impresion puede seguir abierta.
+let lastPdfPrintIframe = null;
+
 patch(PosReceiptClientAction.prototype, {
     _buildReceiptReportUrl(moveId) {
         const params = this.props.action.params || {};
@@ -19,6 +23,11 @@ patch(PosReceiptClientAction.prototype, {
 
         const url = this._buildReceiptReportUrl(moveId);
         this._receiptPrintPromise = new Promise((resolve, reject) => {
+            const isPdf = !!(this.props.action.params || {}).is_a4_invoice;
+            if (isPdf && lastPdfPrintIframe) {
+                lastPdfPrintIframe.remove();
+                lastPdfPrintIframe = null;
+            }
             const iframe = document.createElement("iframe");
             iframe.style.cssText = "position:fixed;left:-2000px;width:1px;height:1px;opacity:0;pointer-events:none;";
             document.body.appendChild(iframe);
@@ -34,7 +43,11 @@ patch(PosReceiptClientAction.prototype, {
                             }
                             iframe.contentWindow.print();
                             setTimeout(() => {
-                                iframe.remove();
+                                if (isPdf) {
+                                    lastPdfPrintIframe = iframe;
+                                } else {
+                                    iframe.remove();
+                                }
                                 resolve(true);
                             }, 1200);
                         } catch (error) {

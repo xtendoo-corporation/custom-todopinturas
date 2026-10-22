@@ -11,6 +11,8 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        if "pos_can_edit_price" in cls.env.user._fields:
+            cls.env.user.pos_can_edit_price = True
         cls.pay_later_pm = cls.env["pos.payment.method"].create(
             {
                 "name": "Cuenta cliente test",
@@ -432,6 +434,34 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
         # titulo de la ventana al imprimir = nombre del archivo, sin separadores de ruta
         self.assertRegex(action["params"]["print_title"], r"^Factura [^/\\]+$")
 
+    def test_a4_invoice_goes_to_invoice_journal_not_simplified(self):
+        """Los asistentes de pago marcan el pedido como simplificado; si el
+        cajero eligió factura A4 la factura debe ir al diario de facturas."""
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        order.write({"is_a4_invoice": True})
+        if "is_l10n_es_simplified_invoice" in order._fields:
+            order.write({"is_l10n_es_simplified_invoice": True})
+        wizard = self.env["pos.make.payment.wizard"].with_context(
+            active_id=order.id,
+            cash_only=True,
+            cash_quick_mode=True,
+            default_payment_method_id=self.cash_pm.id,
+            default_amount_tendered=order.amount_total,
+        ).create(
+            {
+                "order_id": order.id,
+                "payment_method_id": self.cash_pm.id,
+                "amount_tendered": order.amount_total,
+            }
+        )
+        wizard.action_validate()
+        self.assertTrue(order.account_move)
+        self.assertEqual(order.account_move.journal_id, order.config_id.invoice_journal_id)
+        if "is_l10n_es_simplified_invoice" in order._fields:
+            self.assertFalse(order.is_l10n_es_simplified_invoice)
+
     def test_paid_order_reprint_invoice_uses_custom_a4_report(self):
         session = self._open_session()
         order = self._make_draft_order(session, partner=self.partner)
@@ -445,7 +475,7 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
 
         action = order.action_print_paid_invoice()
 
-        self.assertEqual(action["report_name"], "todopintura_administration.report_invoice_custom")
+        self.assertEqual(action["report_name"], "todopintura_administration.report_factura_todopintura_document")
         self.assertEqual(action["report_type"], "qweb-pdf")
 
     def test_paid_order_reprint_albaran_available_with_existing_pickings(self):
@@ -474,7 +504,7 @@ class TestConventionalCreditPolicy(PosConventionalTestCommon):
 
         action = order.action_print_paid_albaran()
 
-        self.assertEqual(action["report_name"], "todopintura_administration.report_deliveryslip_custom")
+        self.assertEqual(action["report_name"], "todopintura_administration.report_albaran_todopintura_document")
         self.assertEqual(action["report_type"], "qweb-pdf")
 
     def test_conventional_config_exposes_source_location(self):
