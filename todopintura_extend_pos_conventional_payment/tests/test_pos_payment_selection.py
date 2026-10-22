@@ -254,3 +254,25 @@ class TestPosPaymentSelection(PosConventionalTestCommon):
 
         self.assertFalse(order.payment_ids.action_delete_payment_from_wizard())
         self.assertAlmostEqual(order.amount_paid, 0.0, places=2)
+
+    def test_pay_deposit_prints_deposit_albaran_then_new_order(self):
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order, self.product)
+        location = order.config_id.picking_type_id.default_location_src_id
+        self.partner.commercial_partner_id.write({
+            'pos_conventional_sale_mode': 'deposit',
+            'pos_credit_location_ids': [(6, 0, location.ids)],
+        })
+
+        action = order.action_pay_deposit()
+
+        self.assertEqual(order.state, 'deposit')
+        self.assertEqual(action['tag'], 'pos_conventional_print_receipt_window')
+        params = action['params']
+        self.assertTrue(params['is_pdf'])
+        picking_ids = ','.join(str(p) for p in order.picking_ids.ids)
+        self.assertEqual(
+            params['url'], '/todopintura_extend_pos_conventional/albaran_pdf/%s' % picking_ids
+        )
+        self.assertEqual(params['next_action']['tag'], 'pos_conventional_new_order')

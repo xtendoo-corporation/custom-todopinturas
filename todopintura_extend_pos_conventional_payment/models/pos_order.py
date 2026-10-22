@@ -35,8 +35,29 @@ class PosOrder(models.Model):
         return res
 
     def action_pay_deposit(self):
-        """Sobrescribimos para asegurar que retorne la acción de nuevo pedido tras enviar a depósito"""
+        """Tras enviar a depósito se imprime el albarán del depósito (como en el
+        albarán normal) y se pasa al nuevo pedido."""
         res = super(PosOrder, self).action_pay_deposit()
         if isinstance(res, dict) and res.get('res_model') == 'pos.order' and res.get('res_id') == self.id:
-            return self._get_post_validation_action()
+            next_action = self._get_post_validation_action() or res
+            pickings = self.env['stock.picking'].search([
+                ('pos_order_id', '=', self.id),
+                ('state', '!=', 'cancel'),
+            ])
+            if pickings and not self.env.context.get('skip_conventional_picking_print'):
+                report_url = "/todopintura_extend_pos_conventional/albaran_pdf/%s" % ",".join(
+                    str(picking_id) for picking_id in pickings.ids
+                )
+                return {
+                    "type": "ir.actions.client",
+                    "tag": "pos_conventional_print_receipt_window",
+                    "params": {
+                        "url": report_url,
+                        "is_pdf": True,
+                        "clear_breadcrumbs": False,
+                        "print_title": _("Albarán %s", self.name or ""),
+                        "next_action": next_action,
+                    },
+                }
+            return next_action
         return res

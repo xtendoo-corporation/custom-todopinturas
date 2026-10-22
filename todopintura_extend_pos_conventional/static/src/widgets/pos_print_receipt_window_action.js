@@ -78,6 +78,23 @@ function printReceiptInBackground(url, env, { reportAutoprints = false, isPdf = 
     });
 }
 
+// Un pedido sin factura (albarán, depósito) encadena "imprimir ticket" -> "nuevo
+// pedido". Sin move_id no hay nada que imprimir y esa acción intermedia, lanzada
+// desde otra acción de cliente con un diálogo abierto, no llegaba a montarse:
+// el diálogo se quedaba abierto y no se abría el nuevo pedido (ni el PIN).
+function skipEmptyReceiptStep(action) {
+    let next = action;
+    while (
+        next &&
+        next.tag === "pos_conventional_print_receipt_client" &&
+        !(next.params || {}).move_id &&
+        (next.params || {}).next_action
+    ) {
+        next = next.params.next_action;
+    }
+    return next;
+}
+
 async function posPrintReceiptWindowAction(env, action) {
     const params = action.params || {};
     const url = params.url;
@@ -102,7 +119,12 @@ async function posPrintReceiptWindowAction(env, action) {
         });
 
         if (params.next_action) {
-            return await env.services.action.doAction(params.next_action, { clearBreadcrumbs });
+            // El servicio de acciones del TPV apaga bypassPosLeave a los 5 s de lanzar
+            // esta accion; con el dialogo de impresion abierto ese tiempo se agota y
+            // al salir del pedido saltaba "Pedido pendiente de pago". Se rearma justo
+            // antes de pasar al nuevo pedido.
+            window.bypassPosLeave = true;
+            return await env.services.action.doAction(skipEmptyReceiptStep(params.next_action), { clearBreadcrumbs });
         }
         return { type: "ir.actions.act_window_close" };
     } finally {

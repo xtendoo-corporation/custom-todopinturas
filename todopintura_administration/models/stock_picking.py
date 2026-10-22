@@ -47,9 +47,20 @@ class StockPicking(models.Model):
             return [False, 'COPIA INTERNA', 'COPIA PARA EL CLIENTE']
         return ['COPIA INTERNA', 'COPIA PARA EL CLIENTE']
 
-    def _tp_report_title(self):
-        """VTA CUENTA para clientes en modo depósito; ALBARAN en el resto."""
+    def _tp_is_deposit_picking(self):
+        """Albarán de un pedido enviado a depósito (destino: ubicación virtual Depósito)."""
         self.ensure_one()
+        return bool(
+            self.location_dest_id.usage == 'transit'
+            and self.location_dest_id.name == 'Depósito'
+        )
+
+    def _tp_report_title(self):
+        """DEPÓSITO para los albaranes de depósito; VTA CUENTA para clientes en modo
+        depósito; ALBARAN en el resto."""
+        self.ensure_one()
+        if self._tp_is_deposit_picking():
+            return 'DEPÓSITO Nº'
         partner = self.partner_id.commercial_partner_id
         if partner and 'pos_conventional_sale_mode' in partner._fields \
                 and partner.pos_conventional_sale_mode == 'deposit':

@@ -49,9 +49,10 @@
                 <field name="partner_credit_available_at_open" invisible="1"/>
                 <field name="partner_credit_limit_exceeded" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
+                <field name="order_processed" invisible="1"/>
 
                 <!-- Avisos: banner a todo el ancho bajo el título del diálogo -->
-                <div class="o_todopintura_wizard_alerts">
+                <div class="o_todopintura_wizard_alerts" invisible="order_processed">
                     <div invisible="partner_id" class="alert alert-warning d-flex align-items-center gap-3" role="alert">
                         <span class="fa fa-exclamation-triangle" title="Aviso"/>
                         <div><strong>Aviso:</strong> Para Albarán o Depósito es necesario seleccionar un cliente.</div>

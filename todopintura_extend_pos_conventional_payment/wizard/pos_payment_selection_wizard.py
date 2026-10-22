@@ -68,19 +68,29 @@ class PosPaymentSelectionWizard(models.TransientModel):
     partner_id = fields.Many2one("res.partner", compute="_compute_basic_fields", store=True, readonly=False)
     config_id = fields.Many2one("pos.config", compute="_compute_basic_fields", store=True, readonly=False)
     payment_method_ids = fields.Many2many("pos.payment.method", compute="_compute_basic_fields", store=True, readonly=False)
-    show_deposit_button = fields.Boolean(compute="_compute_basic_fields", store=True)
-    partner_deposit_enabled = fields.Boolean(compute="_compute_basic_fields", store=True)
-    partner_deposit_available = fields.Boolean(compute="_compute_basic_fields", store=True)
-    partner_deposit_warning_message = fields.Text(compute="_compute_basic_fields", store=True)
-    partner_credit_available = fields.Boolean(compute="_compute_basic_fields", store=True)
+    show_deposit_button = fields.Boolean(compute="_compute_basic_fields")
+    partner_deposit_enabled = fields.Boolean(compute="_compute_basic_fields")
+    partner_deposit_available = fields.Boolean(compute="_compute_basic_fields")
+    partner_deposit_warning_message = fields.Text(compute="_compute_basic_fields")
+    partner_credit_available = fields.Boolean(compute="_compute_basic_fields")
     partner_credit_limit_exceeded = fields.Boolean(compute="_compute_credit_status")
     # Guardamos el estado de crédito en el momento de apertura del wizard
     partner_credit_available_at_open = fields.Boolean(string="Partner credit available at open", default=False, copy=False)
 
     # Campos de detalle de crédito para avisos
-    partner_credit_limit = fields.Monetary(compute="_compute_basic_fields", store=True)
-    partner_current_due = fields.Monetary(compute="_compute_basic_fields", store=True)
-    partner_total_due_after = fields.Monetary(compute="_compute_basic_fields", store=True)
+    partner_credit_limit = fields.Monetary(compute="_compute_basic_fields")
+    partner_current_due = fields.Monetary(compute="_compute_basic_fields")
+    partner_total_due_after = fields.Monetary(compute="_compute_basic_fields")
+
+    order_processed = fields.Boolean(compute="_compute_order_processed")
+
+    @api.depends('order_id.state')
+    def _compute_order_processed(self):
+        """Una vez procesado el pedido (depósito, albarán...) el diálogo sigue abierto
+        mientras carga la impresión; los avisos se calculan con el estado nuevo del
+        pedido y mostrarían falsos errores (p. ej. "no tiene depósitos habilitados")."""
+        for wizard in self:
+            wizard.order_processed = bool(wizard.order_id and wizard.order_id.state != 'draft')
 
     @api.depends('order_id', 'deposit_wizard_id')
     def _compute_basic_fields(self):

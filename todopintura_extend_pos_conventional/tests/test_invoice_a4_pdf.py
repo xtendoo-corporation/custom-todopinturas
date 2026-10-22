@@ -107,3 +107,13 @@ class TestInvoiceA4Pdf(HttpCase):
         self.authenticate("usuario_factura_a4", "usuario_factura_a4_pwd")
         response = self.url_open(f"/todopintura_extend_pos_conventional/albaran_pdf/{picking.id}")
         self.assertEqual(response.status_code, 200, response.text[:300])
+
+    def test_albaran_title_is_deposito_for_deposit_pickings(self):
+        partner = self.env["res.partner"].create({"name": "Cliente Deposito"})
+        picking = self._make_picking(partner)
+        self.assertEqual(picking._tp_report_title(), "ALBARAN Nº")
+        deposit_location = self.env["stock.location"].create(
+            {"name": "Depósito", "usage": "transit"}
+        )
+        picking.location_dest_id = deposit_location
+        self.assertEqual(picking._tp_report_title(), "DEPÓSITO Nº")
