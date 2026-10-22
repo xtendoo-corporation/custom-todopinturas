@@ -76,6 +76,17 @@ $o-todopintura-primary: $o-brand-primary;
         }
     }
 
+    .o_todopintura_total_due_row {
+        margin-top: .5rem;
+        padding-top: .75rem;
+        border-top: 1px dashed #dee2e6;
+
+        .o_todopintura_amount_label,
+        .o_todopintura_amount_value {
+            color: $blue;
+        }
+    }
+
     .o_todopintura_total_due {
         margin-top: .5rem;
         padding-top: 1rem;

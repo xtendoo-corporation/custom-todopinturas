@@ -184,3 +184,58 @@ class TestPosPaymentSelection(PosConventionalTestCommon):
             'depósitos habilitados',
             etree.tostring(banner[0], encoding='unicode'),
         )
+
+    def test_delete_combined_payment_refreshes_amount_paid(self):
+        """Al eliminar un pago combinado, Pagado y Total a pagar se recalculan."""
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+
+        wizard = self._make_wizard(order, operation_type='ticket', payment_type='combined')
+        wizard.write({'selected_payment_method_id': self.cash_pm.id, 'payment_amount': 10.0})
+        wizard.action_add_payment()
+        self.assertAlmostEqual(order.amount_paid, 10.0, places=2)
+        self.assertAlmostEqual(wizard.amount_due, order.amount_total - 10.0, places=2)
+
+        action = wizard.payment_line_ids.action_delete_payment_from_wizard()
+        wizard.invalidate_recordset()
+
+        self.assertEqual(action['res_model'], 'pos.payment.selection.wizard')
+        self.assertEqual(action['res_id'], wizard.id)
+        self.assertEqual(action['target'], 'new')
+        self.assertEqual(action['name'], 'Seleccione tipo de pago')
+        self.assertAlmostEqual(wizard.payment_amount, order.amount_total, places=2)
+
+        self.assertFalse(order.payment_ids)
+        self.assertAlmostEqual(order.amount_paid, 0.0, places=2)
+        self.assertAlmostEqual(wizard.amount_paid, 0.0, places=2)
+        self.assertAlmostEqual(wizard.amount_due, order.amount_total, places=2)
+
+    def test_delete_payment_legacy_action_refreshes_amount_paid(self):
+        """action_delete_payment (vía contexto) también recalcula el importe pagado."""
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+
+        wizard = self._make_wizard(order, operation_type='ticket', payment_type='combined')
+        wizard.write({'selected_payment_method_id': self.cash_pm.id, 'payment_amount': 10.0})
+        wizard.action_add_payment()
+
+        wizard.with_context(payment_id=order.payment_ids.id).action_delete_payment()
+
+        self.assertAlmostEqual(order.amount_paid, 0.0, places=2)
+        self.assertAlmostEqual(wizard.amount_due, order.amount_total, places=2)
+
+    def test_delete_payment_without_wizard_returns_nothing(self):
+        """Sin wizard abierto para el pedido no se reabre nada, pero el importe se recalcula igual."""
+        session = self._open_session()
+        order = self._make_draft_order(session, partner=self.partner)
+        self._add_line(order)
+        order.add_payment({
+            'pos_order_id': order.id,
+            'amount': 10.0,
+            'payment_method_id': self.cash_pm.id,
+        })
+
+        self.assertFalse(order.payment_ids.action_delete_payment_from_wizard())
+        self.assertAlmostEqual(order.amount_paid, 0.0, places=2)

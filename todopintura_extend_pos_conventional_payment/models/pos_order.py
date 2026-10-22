@@ -4,6 +4,12 @@ from odoo import api, fields, models, _
 class PosOrder(models.Model):
     _inherit = "pos.order"
 
+    def _todopintura_sync_amount_paid(self):
+        """amount_paid is a plain stored field that core only refreshes in
+        add_payment(); removing a payment must refresh it as well."""
+        for order in self:
+            order.amount_paid = order._compute_amount_paid()
+
     def action_open_payment_selection_wizard(self):
         self.ensure_one()
         view = self.env.ref('todopintura_extend_pos_conventional_payment.view_pos_payment_selection_wizard_form')

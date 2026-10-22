@@ -2,7 +2,7 @@
 {
     'name': 'Todopintura - POS Conventional Payment Selection',
     'summary': 'Selección de tipo de documento al pagar en POS Conventional',
-    'version': '19.0.1.0.2',
+    'version': '19.0.1.0.3',
     'category': 'Point of Sale',
     'author': 'Xtendoo',
     'website': 'https://xtendoo.es',

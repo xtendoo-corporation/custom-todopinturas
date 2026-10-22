@@ -108,17 +108,23 @@
                                          silently forcing everything nested inside (rows, labels, values) to
                                          stack as blocks no matter what layout technique (flex/grid/table/
                                          absolute/float) was tried on them. -->
-                                    <div class="o_todopintura_amount_row" invisible="amount_paid == 0">
+                                    <div class="o_todopintura_amount_row" invisible="amount_paid == 0 and payment_type != 'combined'">
                                         <span class="o_todopintura_amount_label">Total Pedido:</span>
                                         <field name="amount_total" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}"
                                                readonly="1" class="o_todopintura_amount_value"/>
                                     </div>
-                                    <div class="o_todopintura_amount_row" invisible="amount_paid == 0">
+                                    <div class="o_todopintura_amount_row" invisible="amount_paid == 0 and payment_type != 'combined'">
                                         <span class="o_todopintura_amount_label text-success">Pagado:</span>
                                         <field name="amount_paid" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}"
                                                readonly="1" class="o_todopintura_amount_value text-success"/>
                                     </div>
-                                    <div class="o_todopintura_amount_block o_todopintura_total_due">
+                                    <!-- Same row style as Total Pedido / Pagado whenever those are shown -->
+                                    <div class="o_todopintura_amount_row o_todopintura_total_due_row" invisible="amount_paid == 0 and payment_type != 'combined'">
+                                        <span class="o_todopintura_amount_label">Total a Pagar:</span>
+                                        <field name="amount_due" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               readonly="1" class="o_todopintura_amount_value"/>
+                                    </div>
+                                    <div class="o_todopintura_amount_block o_todopintura_total_due" invisible="amount_paid != 0 or payment_type == 'combined'">
                                         <div class="o_todopintura_amount_label">Total a Pagar:</div>
                                         <div class="input-group o_todopintura_cash_input_group">
                                             <span class="input-group-text">€</span>

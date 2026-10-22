@@ -11,14 +11,23 @@ class PosPayment(models.Model):
 
     def action_delete_payment_from_wizard(self):
         self.ensure_one()
+        order = self.pos_order_id
         self.unlink()
+        order._todopintura_sync_amount_paid()
+        return self.env["pos.payment.selection.wizard"]._todopintura_reopen_after_delete(
+            [("order_id", "=", order.id)]
+        )
 
 class PosDepositPaymentWizardPaymentLine(models.TransientModel):
     _inherit = "pos.deposit.payment.wizard.payment.line"
 
     def action_delete_payment_from_wizard(self):
         self.ensure_one()
+        deposit_wizard = self.wizard_id
         self.unlink()
+        return self.env["pos.payment.selection.wizard"]._todopintura_reopen_after_delete(
+            [("deposit_wizard_id", "=", deposit_wizard.id)]
+        )
 
 class PosPaymentSelectionWizard(models.TransientModel):
     _name = "pos.payment.selection.wizard"
@@ -492,6 +501,7 @@ class PosPaymentSelectionWizard(models.TransientModel):
         self.payment_amount = self.amount_due
         return {
             'type': 'ir.actions.act_window',
+            'name': _("Seleccione tipo de pago"),
             'res_model': self._name,
             'res_id': self.id,
             'view_mode': 'form',
@@ -511,6 +521,26 @@ class PosPaymentSelectionWizard(models.TransientModel):
                 wizard.amount_paid = wizard.deposit_wizard_id.amount_paid_total
                 wizard.currency_id = wizard.deposit_wizard_id.currency_id
 
+    @api.model
+    def _todopintura_reopen_after_delete(self, domain):
+        """Keep the payment dialog open (and refreshed) after deleting a
+        combined payment line; returning nothing would close it."""
+        wizard = self.search(
+            domain + [("create_uid", "=", self.env.uid)], order="id desc", limit=1
+        )
+        if not wizard:
+            return False
+        wizard._compute_amounts()
+        wizard.payment_amount = wizard.amount_due
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _("Seleccione tipo de pago"),
+            'res_model': self._name,
+            'res_id': wizard.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
     def action_delete_payment(self):
         # Este método ya no es accesible desde el tree si no está en el modelo pos.payment
         payment_id = self.env.context.get('payment_id')
@@ -519,6 +549,7 @@ class PosPaymentSelectionWizard(models.TransientModel):
             payment = self.env['pos.payment'].browse(payment_id)
             if payment.exists() and payment.pos_order_id == self.order_id:
                 payment.unlink()
+                self.order_id._todopintura_sync_amount_paid()
         elif dep_payment_id:
             payment = self.env['pos.deposit.payment.wizard.payment.line'].browse(dep_payment_id)
             if payment.exists() and payment.wizard_id == self.deposit_wizard_id:
@@ -530,6 +561,7 @@ class PosPaymentSelectionWizard(models.TransientModel):
 
         return {
             'type': 'ir.actions.act_window',
+            'name': _("Seleccione tipo de pago"),
             'res_model': self._name,
             'res_id': self.id,
             'view_mode': 'form',
