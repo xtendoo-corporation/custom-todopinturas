@@ -12,56 +12,19 @@ $o-todopintura-primary: $o-brand-primary;
         color: $o-todopintura-primary;
     }
 
-    // Radio groups rendered as compact, standard-looking toggle buttons
-    .o_horizontal {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 4px;
+    // Standard Odoo radio buttons, just with some breathing room between
+    // options so they are easy to hit on a touch screen.
+    .o_field_radio .o_radio_item {
+        margin-bottom: .5rem;
+
+        .o_form_label {
+            cursor: pointer;
+        }
     }
 
-    .o_radio_item {
-        position: relative;
-        margin: 0;
-
-        .o_radio_input {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        // Same box model as a standard Bootstrap/Odoo .btn (see Confirmar/Cancelar
-        // in this same dialog's footer): no icons, no oversized padding. The
-        // selected state uses a light tint (like Odoo's own filter/tag chips)
-        // instead of a solid fill, which reads as much more "native".
-        .o_form_label {
-            display: inline-block;
-            margin: 0;
-            padding: .375rem .75rem;
-            border: 1px solid #dee2e6;
-            border-radius: .25rem;
-            background-color: #fff;
-            color: #212529;
-            font-weight: 400;
-            line-height: 1.5;
-            cursor: pointer;
-            transition: background-color .15s ease-in-out, border-color .15s ease-in-out, color .15s ease-in-out;
-        }
-
-        .o_radio_input:hover + .o_form_label {
-            border-color: $o-todopintura-primary;
-        }
-
-        .o_radio_input:checked + .o_form_label {
-            border-color: $o-todopintura-primary;
-            background-color: rgba($o-todopintura-primary, .12);
-            color: $o-todopintura-primary;
-            font-weight: 600;
-        }
+    // Warnings banner right below the dialog title, full width.
+    .o_todopintura_wizard_alerts > .alert {
+        margin-bottom: 1rem;
     }
 
     // Payment summary panel

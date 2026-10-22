@@ -50,16 +50,45 @@
                 <field name="partner_credit_limit_exceeded" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
 
+                <!-- Avisos: banner a todo el ancho bajo el título del diálogo -->
+                <div class="o_todopintura_wizard_alerts">
+                    <div invisible="partner_id" class="alert alert-warning d-flex align-items-center gap-3" role="alert">
+                        <span class="fa fa-exclamation-triangle" title="Aviso"/>
+                        <div><strong>Aviso:</strong> Para Albarán o Depósito es necesario seleccionar un cliente.</div>
+                    </div>
+                    <div invisible="not partner_id or partner_deposit_enabled or operation_type != 'deposit'" class="alert alert-warning d-flex align-items-center gap-3" role="alert">
+                        <span class="fa fa-exclamation-triangle" title="Aviso"/>
+                        <div><strong>Aviso:</strong> El cliente no tiene depósitos habilitados.</div>
+                    </div>
+                    <div invisible="not partner_id or not partner_deposit_enabled or partner_deposit_available or operation_type != 'deposit'" class="alert alert-warning d-flex align-items-center gap-3" role="alert">
+                        <span class="fa fa-exclamation-triangle" title="Aviso"/>
+                        <field name="partner_deposit_warning_message"/>
+                    </div>
+                    <div invisible="not partner_id or partner_credit_available_at_open or operation_type != 'delivery'" class="alert alert-warning d-flex align-items-center gap-3" role="alert">
+                        <span class="fa fa-exclamation-triangle" title="Aviso"/>
+                        <div><strong>Aviso:</strong> El cliente no tiene crédito habilitado en esta caja.</div>
+                    </div>
+                    <div invisible="not partner_id or not partner_credit_limit_exceeded or operation_type != 'delivery'" class="alert alert-danger d-flex align-items-start gap-3" role="alert">
+                        <span class="fa fa-exclamation-triangle mt-1" title="Atención"/>
+                        <div class="flex-grow-1">
+                            <strong>Atención: Límite de crédito superado</strong>
+                            <p class="mb-2 text-muted">El cliente ha excedido su límite de riesgo y no se permite confirmar la venta.</p>
+                            <div class="d-flex flex-wrap gap-4 small">
+                                <div>Límite de riesgo: <strong><field name="partner_credit_limit"/></strong></div>
+                                <div>Total tras pedido: <strong class="text-danger"><field name="partner_total_due_after"/></strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="container-fluid">
                     <div class="row">
                         <!-- Izquierda: Selecciones -->
                         <div class="col-md-5 border-end">
                             <group string="¿Qué desea hacer?">
                                 <field name="operation_type" widget="radio" nolabel="1"
-                                       options="{'horizontal': true}"
                                        invisible="deposit_wizard_id"/>
                                 <field name="operation_type_deposit" widget="radio" nolabel="1"
-                                       options="{'horizontal': true}"
                                        invisible="not deposit_wizard_id"/>
                             </group>
 
@@ -67,30 +96,6 @@
                                 <field name="payment_type" widget="radio" nolabel="1"/>
                             </group>
 
-                            <div invisible="partner_id" class="alert alert-warning py-1 mt-3" role="alert">
-                                <strong>Aviso:</strong> Para Albarán o Depósito es necesario seleccionar un cliente.
-                            </div>
-                            <div invisible="not partner_id or partner_deposit_enabled or operation_type != 'deposit'" class="alert alert-warning py-1" role="alert">
-                                <strong>Aviso:</strong> El cliente no tiene depósitos habilitados.
-                            </div>
-                            <div invisible="not partner_id or not partner_deposit_enabled or partner_deposit_available or operation_type != 'deposit'" class="alert alert-warning py-1" role="alert">
-                                <field name="partner_deposit_warning_message"/>
-                            </div>
-                            <div invisible="not partner_id or partner_credit_available_at_open or operation_type != 'delivery'" class="alert alert-warning py-1" role="alert">
-                                <strong>Aviso:</strong> El cliente no tiene crédito habilitado en esta caja.
-                            </div>
-                            <div invisible="not partner_id or not partner_credit_limit_exceeded or operation_type != 'delivery'" class="alert alert-danger py-2" role="alert">
-                                <strong>Atención: Límite de crédito superado</strong>
-                                <p class="mb-2 text-muted">El cliente ha excedido su límite de riesgo y no se permite confirmar la venta.</p>
-                                <div class="row g-1 small">
-                                    <div class="col-7 text-start">Límite de riesgo:</div>
-                                    <div class="col-5 text-end"><strong><field name="partner_credit_limit"/></strong></div>
-                                    <div class="col-7 text-start border-top pt-1 mt-1">Total tras pedido:</div>
-                                    <div class="col-5 text-end border-top pt-1 mt-1 text-danger font-weight-bold">
-                                        <field name="partner_total_due_after"/>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Derecha: Detalles del Pago -->

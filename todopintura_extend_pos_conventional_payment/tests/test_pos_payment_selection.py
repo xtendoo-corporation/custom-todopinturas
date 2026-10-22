@@ -2,6 +2,7 @@
 from odoo.addons.pos_conventional_core.tests.common import PosConventionalTestCommon
 from odoo.tests import tagged
 from odoo.exceptions import UserError
+from lxml import etree
 
 
 @tagged('post_install', '-at_install')
@@ -160,3 +161,25 @@ class TestPosPaymentSelection(PosConventionalTestCommon):
             self.assertIn('crédito', str(exc).lower())
         else:
             self.assertIn(order.state, self.PAID_STATES + ('linked',))
+
+    def test_wizard_form_layout(self):
+        """Opciones como radio estándar (vertical) y avisos en un banner superior a todo el ancho."""
+        arch = self.env['pos.payment.selection.wizard'].get_view(
+            self.env.ref('todopintura_extend_pos_conventional_payment.view_pos_payment_selection_wizard_form').id,
+        )['arch']
+        doc = etree.fromstring(arch)
+
+        for field_name in ('operation_type', 'operation_type_deposit', 'payment_type'):
+            field = doc.xpath(f"//field[@name='{field_name}']")[0]
+            self.assertEqual(field.get('widget'), 'radio')
+            self.assertNotIn('horizontal', field.get('options') or '')
+
+        banner = doc.xpath("//div[hasclass('o_todopintura_wizard_alerts')]")
+        self.assertEqual(len(banner), 1)
+        self.assertEqual(banner[0].getparent().tag, 'form')
+        self.assertEqual(len(banner[0].xpath("./div[hasclass('alert')]")), 5)
+        self.assertFalse(doc.xpath("//div[hasclass('container-fluid')]//div[hasclass('alert')]"))
+        self.assertIn(
+            'depósitos habilitados',
+            etree.tostring(banner[0], encoding='unicode'),
+        )
