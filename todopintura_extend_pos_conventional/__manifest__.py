@@ -16,6 +16,7 @@
         'pos_conventional_payment_wizard',
         'pos_conventional_picking_integration',
         'pos_conventional_receipt_custom',
+        'pos_conventional_users_pin',
         'sale_stock',
         'todopintura_administration',
     ],
