@@ -77,10 +77,6 @@ $o-todopintura-primary: $o-brand-primary;
     }
 
     .o_todopintura_total_due_row {
-        margin-top: .5rem;
-        padding-top: .75rem;
-        border-top: 1px dashed #dee2e6;
-
         .o_todopintura_amount_label,
         .o_todopintura_amount_value {
             color: $blue;
@@ -167,6 +163,43 @@ $o-todopintura-primary: $o-brand-primary;
         font-size: 1.25rem;
         font-weight: 600;
         text-align: right;
+    }
+
+    // Combined payment: method selector + amount input + add button
+    .o_todopintura_combined {
+        margin-top: 1rem;
+
+        // Odoo 19 renders widget="selection" as a borderless SelectMenu;
+        // give it a full-width, clearly visible input box.
+        .o_todopintura_method_select .o_select_menu {
+            width: 100% !important;
+            height: 2.75rem;
+            background-color: #fff;
+            border: 1px solid $border-color !important;
+            border-radius: $border-radius;
+
+            .o_select_menu_toggler {
+                height: 2.6rem;
+                padding: 0 .75rem;
+                font-size: 1.1rem;
+                border: 0;
+                cursor: pointer;
+            }
+
+            .o_select_menu_caret {
+                margin-right: .75rem;
+            }
+        }
+
+        .o_todopintura_cash_input_group {
+            width: auto;
+        }
+
+        .o_todopintura_add_payment {
+            height: 2.75rem;
+            min-width: 3.25rem;
+            font-size: 1.1rem;
+        }
     }
 
     // Combined payment add-line card

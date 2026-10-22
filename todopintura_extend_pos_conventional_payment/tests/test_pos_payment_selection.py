@@ -185,6 +185,21 @@ class TestPosPaymentSelection(PosConventionalTestCommon):
             etree.tostring(banner[0], encoding='unicode'),
         )
 
+        combined = doc.xpath("//div[hasclass('o_todopintura_combined')]")[0]
+        method = combined.xpath(".//field[@name='selected_payment_method_id']")[0]
+        self.assertEqual(method.get('widget'), 'selection')
+        amount = combined.xpath(".//div[hasclass('o_todopintura_cash_input_group')]/field")[0]
+        self.assertEqual(amount.get('name'), 'payment_amount')
+        ordered = [
+            node.get('name')
+            for node in combined.iter()
+            if node.get('name') in ('selected_payment_method_id', 'payment_amount', 'action_add_payment', 'payment_line_ids')
+        ]
+        self.assertEqual(
+            ordered,
+            ['selected_payment_method_id', 'payment_amount', 'action_add_payment', 'payment_line_ids'],
+        )
+
     def test_delete_combined_payment_refreshes_amount_paid(self):
         """Al eliminar un pago combinado, Pagado y Total a pagar se recalculan."""
         session = self._open_session()
