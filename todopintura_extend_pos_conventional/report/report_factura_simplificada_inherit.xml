@@ -1,40 +1,132 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Ticket de factura simplificada (80 mm): formato de ticket de texto, con la referencia y el
+         nombre del producto ocupando toda la línea y, debajo, cantidad / precio / dto. / importe.
+         Se conserva un div.dashed-line como hijo directo de .page (antes del cierre) porque
+         pos_conventional_verifactu inserta ahí su bloque. -->
     <template id="report_factura_simplificada_80mm_inherit_wrap" inherit_id="pos_conventional_receipt_custom.report_factura_simplificada_80mm">
-        <xpath expr="//style" position="after">
-            <style>
-                .col-name { 
-                    white-space: normal !important; 
-                    word-break: break-word !important; 
-                    overflow: visible !important; 
-                    text-overflow: clip !important; 
-                }
-            </style>
-        </xpath>
-        
-        <!-- Añadimos el nombre de la ubicación (desde el almacén de la línea) -->
-        <xpath expr="//td[hasclass('col-name')]/*[last()]" position="after">
-            <t t-set="default_warehouse" t-value="line.move_id.pos_order_ids[0].config_id.warehouse_id if line.move_id.pos_order_ids else False"/>
-            <t t-if="line.pickup_warehouse_id and line.pickup_warehouse_id != default_warehouse">
-                <div style="font-size: 0.8em; color: #000; margin-top: 2px;">
-                    <t t-set="location" t-value="line.pickup_warehouse_id.lot_stock_id"/>
-                    <t t-if="location and location.pos_receipt_name">
-                         - <span t-out="location.pos_receipt_name"/>
+        <xpath expr="//div[hasclass('page')]" position="replace">
+            <div class="page tp-ticket">
+                <style>
+                    .tp-ticket { font-family: "Courier New", Courier, monospace; font-size: 12px; line-height: 1.25; color: #000; }
+                    .tp-ticket .tp-center { text-align: center; }
+                    .tp-ticket .tp-title { text-align: center; font-weight: bold; font-size: 1.2em; letter-spacing: .18em; text-transform: uppercase; }
+                    .tp-ticket .tp-stars { overflow: hidden; white-space: nowrap; margin: 3px 0; text-align: center; }
+                    .tp-ticket .dashed-line.tp-stars { border: none; width: auto; }
+                    .tp-ticket .tp-addr { text-transform: uppercase; text-align: left; }
+                    .tp-ticket table.tp-row { table-layout: auto; }
+                    .tp-ticket table.tp-row td { white-space: nowrap; }
+                    .tp-ticket table.tp-row td.r { text-align: right; }
+                    .tp-ticket .tp-line { margin: 3px 0; }
+                    .tp-ticket .tp-name { white-space: normal; word-break: break-word; text-transform: uppercase; }
+                    .tp-ticket table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                    .tp-ticket td { padding: 0; font-size: inherit; vertical-align: baseline; }
+                    .tp-ticket .tp-nums td { text-align: right; white-space: nowrap; }
+                    .tp-ticket .tp-nums .q { width: 12%; text-align: left; }
+                    .tp-ticket .tp-nums .p { width: 28%; }
+                    .tp-ticket .tp-nums .d { width: 30%; }
+                    .tp-ticket .tp-nums .t { width: 30%; }
+                    .tp-ticket table.tp-total { table-layout: auto; font-weight: bold; font-size: 1.15em; margin-top: 4px; }
+                    .tp-ticket table.tp-total td.lbl, .tp-ticket table.tp-total td.amt { width: 1%; white-space: nowrap; }
+                    .tp-ticket table.tp-total td.amt { text-align: right; }
+                    .tp-ticket table.tp-total td.dots { border: none !important; border-bottom: 2px dotted #000 !important; }
+                    .tp-ticket .tp-sum { width: 30%; margin: 3px -0.35em 0 auto; text-align: right; white-space: nowrap; overflow: hidden; letter-spacing: .35em; line-height: 1.05; font-weight: bold; }
+                    .tp-ticket .tp-small { font-size: .95em; }
+                    .tp-ticket .tp-wh { font-size: .9em; }
+                </style>
+                <t t-set="tp_num" t-value="lambda v: ('{:,.2f}'.format(v)).replace(',', '_').replace('.', ',').replace('_', '.')"/>
+                <t t-set="tp_stars" t-value="'*' * 80"/>
+
+                <!-- Cabecera -->
+                <t t-if="o.pos_order_ids and len(o.pos_order_ids) &gt; 0 and o.pos_order_ids[0].config_id and o.pos_order_ids[0].config_id.receipt_header">
+                    <div class="tp-center" style="white-space: pre-line; margin-bottom: 4px;"><span t-out="o.pos_order_ids[0].config_id.receipt_header"/></div>
+                </t>
+                <div class="tp-title" t-out="res_company.name"/>
+                <div class="tp-center" t-if="res_company.vat">CIF .: <span t-out="res_company.vat"/></div>
+                <div class="tp-addr" t-if="res_company.street" t-out="res_company.street"/>
+                <div class="tp-addr" t-if="res_company.street2" t-out="res_company.street2"/>
+                <table class="tp-addr tp-row"><tr>
+                    <td><span t-out="res_company.zip"/> <span t-out="res_company.city"/></td>
+                    <td class="r"><t t-if="res_company.phone">TF.: <span t-out="res_company.phone[4:].strip() if res_company.phone.startswith('+34') else res_company.phone"/></t></td>
+                </tr></table>
+
+                <div style="font-weight: bold; margin-top: 4px; text-align: left;">
+                    <t t-if="o.move_type == 'out_refund'">FACTURA SIMPLIFICADA RECTIFICATIVA</t>
+                    <t t-else="">FACTURA SIMPLIFICADA</t>
+                </div>
+                <table class="tp-row"><tr>
+                    <td><span t-field="o.invoice_date" t-options='{"format": "dd/MM/yy"}'/></td>
+                    <td class="r">Nº.: <span t-out="o.name"/></td>
+                </tr></table>
+
+                <div class="tp-stars" t-out="tp_stars"/>
+
+                <!-- Líneas: referencia + nombre a todo el ancho; debajo, cantidad / precio / dto. / importe -->
+                <t t-foreach="o.invoice_line_ids.filtered(lambda l: l.display_type == 'product')" t-as="line">
+                    <t t-set="tp_name" t-value="(line.name or '')"/>
+                    <t t-set="tp_name" t-value="(tp_name[1:].replace('] ', ' ', 1) if tp_name.startswith('[') else tp_name).replace('\n', ' ')"/>
+                    <t t-set="tp_factor" t-value="(line.quantity or 0.0) * (1 - (line.discount or 0.0) / 100.0)"/>
+                    <t t-set="tp_price" t-value="(line.price_total / tp_factor) if tp_factor else line.price_unit"/>
+                    <div class="tp-line">
+                        <div class="tp-name" t-out="tp_name"/>
+                        <t t-set="default_warehouse" t-value="line.move_id.pos_order_ids[0].config_id.warehouse_id if line.move_id.pos_order_ids else False"/>
+                        <div class="tp-wh" t-if="'pickup_warehouse_id' in line._fields and line.pickup_warehouse_id and line.pickup_warehouse_id != default_warehouse and line.pickup_warehouse_id.lot_stock_id.pos_receipt_name">
+                            - <span t-out="line.pickup_warehouse_id.lot_stock_id.pos_receipt_name"/>
+                        </div>
+                        <table class="tp-nums"><tr>
+                            <td class="q" t-out="('%g' % line.quantity).replace('.', ',')"/>
+                            <td class="p" t-out="tp_num(tp_price)"/>
+                            <td class="d"><t t-if="line.discount"><t t-out="('%g' % line.discount).replace('.', ',')"/> %</t></td>
+                            <td class="t" t-out="tp_num(line.price_total)"/>
+                        </tr></table>
+                    </div>
+                </t>
+
+                <!-- Totales: raya doble de suma sobre la última columna, encima del importe -->
+                <div class="tp-sum"><div>--------</div><div>--------</div></div>
+                <table class="tp-total"><tr><td class="lbl">IMPORTE TOTAL</td><td class="dots">&#160;</td><td class="amt" t-out="tp_num(o.amount_total)"/></tr></table>
+                <div style="margin-top: 5px;">IVA INCLUIDO</div>
+                <t t-foreach="o.tax_totals['subtotals']" t-as="subtotal">
+                    <t t-foreach="subtotal['tax_groups']" t-as="tax_group">
+                        <div class="tp-small">
+                            <span t-out="tax_group['group_name']"/>:
+                            BASE <span t-out="tp_num(tax_group['base_amount_currency'])"/>
+                            CUOTA <span t-out="tp_num(tax_group['tax_amount_currency'])"/>
+                        </div>
+                    </t>
+                </t>
+
+                <div class="tp-small" style="margin-top: 4px;">
+                    PAGADO:
+                    <t t-set="pago_encontrado" t-value="False"/>
+                    <t t-if="o.pos_order_ids">
+                        <t t-foreach="o.pos_order_ids" t-as="pos_order">
+                            <t t-foreach="pos_order.payment_ids" t-as="payment">
+                                <t t-set="pago_encontrado" t-value="True"/>
+                                <span t-out="payment.payment_method_id.name"/>
+                            </t>
+                        </t>
+                    </t>
+                    <t t-if="not pago_encontrado and o.invoice_payments_widget">
+                        <t t-set="payments" t-value="o.sudo().invoice_payments_widget and o.sudo().invoice_payments_widget['content'] or []"/>
+                        <t t-foreach="payments" t-as="payment">
+                            <span t-out="payment['journal_name']"/>
+                        </t>
                     </t>
                 </div>
-            </t>
-        </xpath>
 
-        <!-- Añadimos el nombre de la caja al final -->
-        <xpath expr="//div[hasclass('page')]" position="inside">
-            <t t-if="o.pos_order_ids and len(o.pos_order_ids) &gt; 0">
-                <div class="text-center" style="font-size: 1em; margin-top: 4px;">
-                    Caja: <span t-field="o.pos_order_ids[0].config_id.name"/>
-                </div>
-            </t>
+                <!-- Último div.dashed-line hijo directo de .page: ancla del bloque Veri*Factu -->
+                <div class="dashed-line tp-stars" t-out="tp_stars"/>
+                <div class="tp-center" style="font-weight: bold;">GRACIAS POR SU VISITA</div>
+                <div class="tp-stars" t-out="tp_stars"/>
+
+                <t t-if="o.pos_order_ids and len(o.pos_order_ids) &gt; 0 and o.pos_order_ids[0].config_id and o.pos_order_ids[0].config_id.receipt_footer">
+                    <div class="tp-center" style="white-space: pre-line;"><span t-out="o.pos_order_ids[0].config_id.receipt_footer"/></div>
+                </t>
+            </div>
         </xpath>
     </template>
-    
+
     <template id="report_pos_order_80mm_inherit" inherit_id="pos_conventional_receipt_custom.report_pos_order_80mm">
         <!-- Añadimos el nombre de la ubicación en el ticket de pedido -->
         <xpath expr="//span[@t-field='line.product_id.name']" position="after">
