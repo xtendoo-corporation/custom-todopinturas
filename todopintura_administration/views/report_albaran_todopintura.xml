@@ -39,7 +39,7 @@
                                 <tbody>
                                     <tr t-foreach="o.move_ids.filtered(lambda m: m.product_uom_qty).sorted('sequence')" t-as="move">
                                         <td style="padding: 2px 6px;">
-                                            <span t-out="move.product_id.default_code or ''"/>
+                                            <span t-out="move.product_id.default_code or ''" style="margin-right: 6px;"/>
                                             <span t-out="move.product_id.name"/>
                                         </td>
                                         <td style="text-align: right; padding: 2px 6px;">

@@ -30,7 +30,7 @@
                         <table class="tp_box tp_items" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr>
-                                    <th style="padding: 4px 6px;">CONCEPTO</th>
+                                    <th style="text-align: left; padding: 4px 6px;">ARTICULO</th>
                                     <th style="text-align: right; padding: 4px 6px;">CANTIDAD</th>
                                     <th style="text-align: center; padding: 4px 6px;">TAMAÑO</th>
                                     <th style="text-align: right; padding: 4px 6px;">PRECIO</th>
@@ -45,7 +45,7 @@
                                         <td colspan="7" style="padding: 2px 6px;"><strong t-out="line.name"/></td>
                                     </tr>
                                     <tr t-elif="line.display_type == 'product'">
-                                        <td style="padding: 2px 6px;"><span t-out="line.name"/></td>
+                                        <td style="padding: 2px 6px;"><span t-out="(line.name or '')[1:].replace('] ', '&#8195;', 1) if (line.name or '').startswith('[') else (line.name or '')"/></td>
                                         <td style="text-align: right; padding: 2px 6px;"><span t-out="line.quantity" t-options='{"widget": "float", "precision": 0}' t-if="line.quantity == int(line.quantity)"/><span t-else="" t-out="line.quantity"/></td>
                                         <td style="text-align: center; padding: 2px 6px;"><span t-out="line.product_id.size_id.name or ''"/></td>
                                         <td style="text-align: right; padding: 2px 6px;"><span t-out="line.price_unit" t-options='{"widget": "float", "precision": 2}'/></td>
