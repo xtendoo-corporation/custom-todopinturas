@@ -40,6 +40,46 @@ const CORE_BYPASS_BUTTON_SELECTOR =
     '.o_pos_conventional_payment_wizard_form button[name="action_validate"], ' +
     '.o_pos_conventional_payment_wizard_form button[name="action_validate_print"]';
 
+// Mientras se confirma el pago y se carga la impresión, el diálogo del wizard
+// debe quedar en solo lectura. `inert` bloquea ratón, teclado y foco. Si la
+// confirmación falla, Odoo abre un diálogo de error: entonces se desbloquea
+// para que se pueda corregir. LOCK_FALLBACK_MS evita que quede bloqueado para
+// siempre si algo no cierra el diálogo.
+const LOCK_FALLBACK_MS = 30000;
+const LOCKABLE_SELECTOR = ".modal-body, .modal-footer";
+
+function lockPaymentWizard(modal) {
+    if (!modal || modal.classList.contains("o_todopintura_payment_locked")) {
+        return;
+    }
+    const parts = modal.querySelectorAll(LOCKABLE_SELECTOR);
+    modal.classList.add("o_todopintura_payment_locked");
+    parts.forEach((el) => el.setAttribute("inert", ""));
+
+    let timer = null;
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType === 1 && node !== modal && node.matches?.(".modal")) {
+                    unlock();
+                    return;
+                }
+            }
+        }
+        if (!modal.isConnected) {
+            unlock();
+        }
+    });
+    function unlock() {
+        observer.disconnect();
+        clearTimeout(timer);
+        modal.classList.remove("o_todopintura_payment_locked");
+        parts.forEach((el) => el.removeAttribute("inert"));
+    }
+    observer.observe(document.body, { childList: true, subtree: true });
+    timer = setTimeout(unlock, LOCK_FALLBACK_MS);
+}
+
 patch(PosConventionalOrderFormController.prototype, {
     /**
      * @override
@@ -52,6 +92,9 @@ patch(PosConventionalOrderFormController.prototype, {
         );
 
         if (selectionWizardBtn) {
+            const wizardModal = selectionWizardBtn.closest(".modal");
+            // Diferido: el clic debe llegar antes al propio botón.
+            setTimeout(() => lockPaymentWizard(wizardModal), 0);
             activateNavigationBypass(this.model.root);
             scheduleBypassBackstop();
         }

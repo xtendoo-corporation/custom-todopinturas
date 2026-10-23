@@ -210,3 +210,13 @@ $o-todopintura-primary: $o-brand-primary;
         background-color: #fff;
     }
 }
+
+// Wizard en solo lectura mientras se confirma el pago y carga la impresión.
+.modal.o_todopintura_payment_locked {
+    .modal-body,
+    .modal-footer {
+        opacity: .6;
+        cursor: wait;
+        user-select: none;
+    }
+}
