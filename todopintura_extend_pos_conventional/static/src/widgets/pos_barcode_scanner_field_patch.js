@@ -11,9 +11,36 @@ const SCANNER_MAX_KEY_GAP = 80; // ms entre teclas para sospechar de un lector
 const SCANNER_ACTIVE_KEY_GAP = 250; // ms tolerados una vez confirmada la ráfaga
 const SCANNER_FLUSH_DELAY = 250; // ms sin teclas para dar por terminada la ráfaga
 
+// Campos de texto libre (Observaciones, notas...): nunca son destino de un lector
+// de códigos. Una persona que teclea deprisa en ellos produce ráfagas de teclas
+// indistinguibles de un lector, y el texto se borraba y se buscaba como código.
+const FREE_TEXT_SELECTOR = 'textarea, [contenteditable="true"]';
+const BARCODE_EVENTS_ATTR = "barcode_events";
+const MANAGED_DATASET_KEY = "posConventionalBarcodeScannerManaged";
+const ORIGINAL_DATASET_KEY = "posConventionalBarcodeScannerOriginal";
+
+const isFreeText = (element) => !!element?.matches?.(FREE_TEXT_SELECTOR);
+
 const cleanBarcode = (barcode) => barcodeService.cleanBarcode(barcode);
 
 patch(PosConventionalBarcodeScannerField.prototype, {
+    /**
+     * Igual que el original, pero sin marcar los campos de texto libre con
+     * `barcode_events`: así el servicio de códigos de Odoo tampoco interpreta
+     * lo que se teclea en ellos como un escaneo.
+     */
+    _markEditableElements() {
+        for (const element of this.formElement.querySelectorAll(EDITABLE_SELECTOR)) {
+            if (element.dataset[MANAGED_DATASET_KEY] || isFreeText(element)) {
+                continue;
+            }
+            element.dataset[MANAGED_DATASET_KEY] = "1";
+            element.dataset[ORIGINAL_DATASET_KEY] =
+                element.getAttribute(BARCODE_EVENTS_ATTR) ?? "__none__";
+            element.setAttribute(BARCODE_EVENTS_ATTR, "true");
+        }
+    },
+
     /**
      * Sustituye la captura original, que solo admitía códigos numéricos: un
      * código con letras se dejaba escribir en el campo con el foco. Aquí se
@@ -24,6 +51,11 @@ patch(PosConventionalBarcodeScannerField.prototype, {
      */
     _handleKeydownCapture(event) {
         const target = event.target;
+        if (isFreeText(target)) {
+            this._clearBurst();
+            this._clearPendingBarcodeCapture();
+            return; // se escribe con normalidad, sin detección de lector
+        }
         if (
             !(target instanceof HTMLElement) ||
             !this.formElement?.contains(target) ||
@@ -115,6 +147,9 @@ patch(PosConventionalBarcodeScannerField.prototype, {
         // Escaneo emitido por el servicio de códigos (p. ej. con el foco fuera de
         // los campos). Si ya lo ha tratado la detección por ráfaga, se ignora.
         const { barcode: rawBarcode, target } = event.detail;
+        if (isFreeText(target)) {
+            return;
+        }
         const barcode = cleanBarcode(rawBarcode || "").trim();
         if (barcode.length < MIN_BARCODE_LENGTH) {
             return;
