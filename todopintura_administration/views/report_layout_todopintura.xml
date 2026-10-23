@@ -5,11 +5,11 @@
         <field name="name">A4 Todo Pintura</field>
         <field name="format">A4</field>
         <field name="orientation">Portrait</field>
-        <field name="margin_top">56</field>
+        <field name="margin_top">52</field>
         <field name="margin_bottom">36</field>
         <field name="margin_left">8</field>
         <field name="margin_right">8</field>
-        <field name="header_spacing">4</field>
+        <field name="header_spacing">0</field>
         <field name="dpi">96</field>
     </record>
 
@@ -67,8 +67,8 @@
             <style>
                 .tp_doc table, .tp_doc thead, .tp_doc tbody, .tp_doc tr, .tp_doc td, .tp_doc th { border: 0 !important; }
                 /* La tabla de articulos ocupa hasta el final de la hoja (sobre el pie): la tabla envolvente
-                   mide lo que el cuerpo de la pagina (wkhtmltopdf escala el CSS ~0.78: 248mm ≈ 194mm reales) y la fila de articulos absorbe el espacio libre. */
-                .tp_doc table.tp_page_table { width: 100%; height: 248mm; border-collapse: collapse; }
+                   mide lo que el cuerpo de la pagina (wkhtmltopdf escala el CSS ~0.78: 251mm ≈ 196mm reales) y la fila de articulos absorbe el espacio libre. */
+                .tp_doc table.tp_page_table { width: 100%; height: 251mm; border-collapse: collapse; }
                 .tp_doc table.tp_page_table > tbody > tr > td, .tp_doc table.tp_page_table > tr > td { padding: 0; vertical-align: top; }
                 .tp_doc td.tp_page_items { height: 100%; }
                 .tp_doc table.tp_items { height: 100%; }
