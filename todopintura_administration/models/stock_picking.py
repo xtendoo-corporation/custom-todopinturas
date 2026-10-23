@@ -39,6 +39,17 @@ class StockPicking(models.Model):
                 actions[index] = new_action
         return actions
 
+    def _tp_report_observations(self):
+        """Observaciones escritas en el pedido de TPV (o en el pedido de venta creado
+        desde el TPV) que originó este albarán, para imprimirlas bajo su número."""
+        self.ensure_one()
+        texts = []
+        if 'pos_order_id' in self._fields:
+            texts.append(self.pos_order_id.pos_observations if 'pos_observations' in self.pos_order_id._fields else False)
+        if 'sale_id' in self._fields and 'pos_observations' in self.sale_id._fields:
+            texts.append(self.sale_id.pos_observations)
+        return '\n\n'.join(dict.fromkeys(t.strip() for t in texts if t and t.strip()))
+
     def _tp_report_copies(self):
         """Etiquetas de cada copia a imprimir; False = copia sin texto."""
         self.ensure_one()

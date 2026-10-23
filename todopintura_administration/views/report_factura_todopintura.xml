@@ -22,6 +22,8 @@
                                 <div style="margin-top: 4px;"><strong>Forma de pago:</strong> <span t-out="o.invoice_payment_term_id.name or ''"/></div>
                                 <div><strong>Domicilio de pago:</strong> <span t-out="o.partner_bank_id.acc_number or ''"/></div>
                                 <div t-if="o.ref or o.payment_reference"><strong>REFERENCIA:</strong> <span t-out="o.ref or o.payment_reference"/></div>
+                                <t t-set="tp_observations" t-value="o._tp_report_observations()"/>
+                                <div t-if="tp_observations" style="margin-top: 6px; white-space: pre-line;" t-out="tp_observations"/>
                                 <div t-if="o.narration" style="margin-top: 4px;" t-field="o.narration"/>
                             </t>
                         </t>

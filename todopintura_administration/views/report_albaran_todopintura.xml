@@ -20,6 +20,8 @@
                                         <strong t-out="o._tp_report_title()"/>
                                         <span style="margin-left: 10px;" t-out="o.name.split('/')[-1] if o.name else ''"/>
                                     </div>
+                                    <t t-set="tp_observations" t-value="o._tp_report_observations()"/>
+                                    <div t-if="tp_observations" style="margin-top: 6px; white-space: pre-line;" t-out="tp_observations"/>
                                     <div t-if="o.note" style="margin-top: 6px;" t-field="o.note"/>
                                 </t>
                             </t>

@@ -21,6 +21,21 @@ class AccountMove(models.Model):
             date_format="d 'DE' MMMM 'DE' y",
         ).upper()
 
+    def _tp_report_observations(self):
+        """Observaciones de los pedidos de TPV (o de los pedidos de venta creados desde
+        el TPV) que originaron esta factura, para imprimirlas bajo su número."""
+        self.ensure_one()
+        orders = self.env['pos.order']
+        if 'pos_order_ids' in self._fields:
+            orders |= self.pos_order_ids
+        texts = []
+        if 'pos_observations' in orders._fields:
+            texts += orders.mapped('pos_observations')
+        sale_orders = self.invoice_line_ids.sale_line_ids.order_id if 'sale_line_ids' in self.invoice_line_ids._fields else self.env['sale.order']
+        if 'pos_observations' in sale_orders._fields:
+            texts += sale_orders.mapped('pos_observations')
+        return '\n\n'.join(dict.fromkeys(t.strip() for t in texts if t and t.strip()))
+
     def _tp_report_tax_summary(self):
         """Base, IVA por tipo y recargo de equivalencia por tipo."""
         self.ensure_one()
