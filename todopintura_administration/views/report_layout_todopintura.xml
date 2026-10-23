@@ -5,7 +5,7 @@
         <field name="name">A4 Todo Pintura</field>
         <field name="format">A4</field>
         <field name="orientation">Portrait</field>
-        <field name="margin_top">52</field>
+        <field name="margin_top">51</field>
         <field name="margin_bottom">36</field>
         <field name="margin_left">8</field>
         <field name="margin_right">8</field>
@@ -21,11 +21,20 @@
             <t t-else="" t-set="company" t-value="res_company"/>
         </t>
 
-        <div class="header tp_header" style="font-size: 9px; color: #1c2b5a; height: 190px; overflow: hidden; position: relative;">
+        <div class="header tp_header" style="font-size: 9px; color: #1c2b5a; height: 187px; overflow: hidden; position: relative;">
             <!-- wkhtmltopdf crea la página de cabecera con <html style="height:0">; con el CSS de informes cargado
                  su altura se mide como 0 y la cabecera se desplaza sobre el cuerpo. -->
-            <style>html, body { height: auto !important; } .tp_header, .tp_header * { border: 0 !important; box-shadow: none !important; outline: 0 !important; } .tp_header td, .tp_header th { padding: 0; }</style>
-            <table style="width: 100%; height: 188px; border: none;">
+            <style>html, body { height: auto !important; } .tp_header, .tp_header *:not(.tp_clientbox) { border: 0 !important; box-shadow: none !important; outline: 0 !important; } .tp_header td, .tp_header th { padding: 0; } .tp_header .tp_clientbox { border: 1px solid #1c2b5a !important; border-bottom: 0 !important; }</style>
+            <!-- Fila de iconos de redes + caja CLIENTE: dentro de la cabecera, abajo, a la altura del correo.
+                 La caja CLIENTE queda pegada a la tabla de datos del cuerpo. -->
+            <img src="/todopintura_administration/static/img/fox.png" width="114" height="34"
+                 style="position: absolute; left: 46%; bottom: 4px; width: 114px; height: 34px;"/>
+            <div class="tp_clientbox" style="position: absolute; right: 0; bottom: 0; width: 40%; height: 34px; line-height: 34px; box-sizing: border-box; padding: 0 10px; font-family: monospace; font-size: 12px; color: #1c2b5a;">
+                <strong>CLIENTE</strong>
+                <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.ref or ''" t-if="partner"/>
+                <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.vat or ''" t-if="partner"/>
+            </div>
+            <table style="width: 100%; height: 185px; border: none;">
                 <tr>
                     <td style="width: 46%; vertical-align: top;">
                         <img src="/todopintura_administration/static/img/logo_todopintura.png" width="290" height="94" style="width: 290px; height: 94px;"/>
@@ -67,8 +76,8 @@
             <style>
                 .tp_doc table, .tp_doc thead, .tp_doc tbody, .tp_doc tr, .tp_doc td, .tp_doc th { border: 0 !important; }
                 /* La tabla de articulos ocupa hasta el final de la hoja (sobre el pie): la tabla envolvente
-                   mide lo que el cuerpo de la pagina (wkhtmltopdf escala el CSS ~0.78: 251mm ≈ 196mm reales) y la fila de articulos absorbe el espacio libre. */
-                .tp_doc table.tp_page_table { width: 100%; height: 251mm; border-collapse: collapse; }
+                   mide lo que el cuerpo de la pagina (wkhtmltopdf escala el CSS ~0.78: 252mm ≈ 197mm reales) y la fila de articulos absorbe el espacio libre. */
+                .tp_doc table.tp_page_table { width: 100%; height: 252mm; border-collapse: collapse; }
                 .tp_doc table.tp_page_table > tbody > tr > td, .tp_doc table.tp_page_table > tr > td { padding: 0; vertical-align: top; }
                 .tp_doc td.tp_page_items { height: 100%; }
                 .tp_doc table.tp_items { height: 100%; }
@@ -99,18 +108,6 @@
 
     <!-- Bloque superior de la primera página: iconos + caja CLIENTE, caja de cliente y datos del documento -->
     <template id="tp_document_top_boxes">
-        <table style="width: 100%; border: none; border-collapse: collapse; color: #1c2b5a;">
-            <tr>
-                <td style="width: 60%; vertical-align: bottom; text-align: right; padding: 0 8px 4px 0;">
-                    <img src="/todopintura_administration/static/img/fox.png" width="114" height="34" style="width: 114px; height: 34px;"/>
-                </td>
-                <td class="tp_cellbox" style="width: 40%; padding: 6px 10px; font-family: monospace; font-size: 12px;">
-                    <strong>CLIENTE</strong>
-                    <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.ref or ''"/>
-                    <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.vat or ''"/>
-                </td>
-            </tr>
-        </table>
         <table class="tp_box" style="width: 100%; border-collapse: collapse; color: #1c2b5a; font-family: monospace; font-size: 12px;">
             <tr>
                 <td style="width: 55%; vertical-align: top; padding: 8px 10px;">
