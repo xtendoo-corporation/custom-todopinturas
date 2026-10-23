@@ -8,6 +8,8 @@ class TestPartnerSaleMode(PosConventionalTestCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        if "pos_can_edit_price" in cls.env.user._fields:
+            cls.env.user.pos_can_edit_price = True
         cls.pay_later_pm = cls.env["pos.payment.method"].create(
             {
                 "name": "Cuenta cliente depósito test",
@@ -67,8 +69,9 @@ class TestPartnerSaleMode(PosConventionalTestCommon):
 
         self.assertEqual(self.partner.commercial_partner_id._get_pos_conventional_sale_mode(), "deposit")
         self.assertFalse(self.partner.commercial_partner_id.pos_credit_sale_enabled)
+        self.assertTrue(self.partner.commercial_partner_id.pos_deposit_sale_enabled)
         self.assertEqual(
-            self.partner.commercial_partner_id._get_conventional_credit_locations(),
+            self.partner.commercial_partner_id._get_pos_deposit_locations(),
             current_location,
         )
         self.assertFalse(policy["credit_sale_allowed"])
@@ -111,6 +114,7 @@ class TestPartnerSaleMode(PosConventionalTestCommon):
 
         self.assertEqual(self.partner.commercial_partner_id.pos_conventional_sale_mode, "deposit")
         self.assertFalse(self.partner.commercial_partner_id.pos_credit_sale_enabled)
+        self.assertTrue(self.partner.commercial_partner_id.pos_deposit_sale_enabled)
 
     def test_legacy_boolean_create_is_mapped_to_sale_mode(self):
         partner = self.env["res.partner"].create(

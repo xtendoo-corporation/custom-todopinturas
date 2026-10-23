@@ -230,8 +230,8 @@ class ImportContactsWizard(models.TransientModel):
         vals = {'delivery_report_print_type': 'valued' if valued else 'standard'}
         if 'pos_requires_voucher' in partner_model._fields:
             vals['pos_requires_voucher'] = needs_voucher
-        if deposit and 'pos_conventional_sale_mode' in partner_model._fields:
-            vals['pos_conventional_sale_mode'] = 'deposit'
+        if deposit and 'pos_deposit_sale_enabled' in partner_model._fields:
+            vals['pos_deposit_sale_enabled'] = True
         return vals
 
     @api.model
@@ -513,10 +513,10 @@ class ImportContactsWizard(models.TransientModel):
                         results['payment_mode_unmatched'].get(metodo_pago, 0) + 1)
 
             contact, status = self._create_or_update_contact(num_client, name, record, iban=iban)
-            if (not deposit and 'pos_conventional_sale_mode' in contact._fields
-                    and contact.pos_conventional_sale_mode == 'deposit'):
-                # Ya no es cliente de depósito; no se toca si es 'credit'.
-                contact.pos_conventional_sale_mode = 'none'
+            if (not deposit and 'pos_deposit_sale_enabled' in contact._fields
+                    and contact.pos_deposit_sale_enabled):
+                # Ya no es cliente de depósito; el crédito no se toca.
+                contact.pos_deposit_sale_enabled = False
             self.env.cr.flush()
             self._ensure_bank_account(contact, iban)
             results[status].append(row_label)

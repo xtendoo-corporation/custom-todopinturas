@@ -97,7 +97,7 @@ class PosOrder(models.Model):
         if not (partner and evaluate_as_credit_sale):
             return policy
 
-        if partner._get_pos_conventional_sale_mode() == "deposit":
+        if partner._is_pos_deposit_enabled() and not partner._is_pos_credit_enabled():
             policy["credit_sale_allowed"] = False
             policy["needs_limit_override"] = False
             policy["error_message"] = _(
@@ -111,11 +111,9 @@ class PosOrder(models.Model):
 
         partner = self._get_partner_credit_policy_partner()
         source_location = self._get_credit_source_location()
-        deposit_enabled = bool(
-            partner and partner._get_pos_conventional_sale_mode() == "deposit"
-        )
+        deposit_enabled = bool(partner and partner._is_pos_deposit_enabled())
         allowed_locations = (
-            partner._get_conventional_credit_locations()
+            partner._get_pos_deposit_locations()
             if deposit_enabled and partner
             else self.env["stock.location"]
         )
@@ -147,7 +145,7 @@ class PosOrder(models.Model):
     @api.depends(
         "partner_id",
         "partner_id.commercial_partner_id",
-        "partner_id.commercial_partner_id.pos_conventional_sale_mode",
+        "partner_id.commercial_partner_id.pos_deposit_sale_enabled",
         "partner_id.commercial_partner_id.pos_credit_location_ids",
         "partner_id.commercial_partner_id.pos_credit_location_ids.display_name",
         "config_id",
@@ -239,7 +237,7 @@ class PosOrder(models.Model):
             )
 
         partner = self._get_partner_credit_policy_partner()
-        if not partner or partner._get_pos_conventional_sale_mode() != "deposit":
+        if not partner or not partner._is_pos_deposit_enabled():
             raise UserError(
                 _("El cliente seleccionado no está configurado para ventas en depósito.")
             )

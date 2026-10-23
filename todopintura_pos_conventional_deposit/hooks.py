@@ -13,4 +13,3 @@ def post_init_hook(env):
             OR pos_conventional_sale_mode = ''
         """
     )
-

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Todopintura POS Conventional Deposit",
-    "summary": "Selector crédito/depósito para POS convencional",
-    "version": "19.0.1.0.0",
+    "summary": "Crédito y/o depósito (no excluyentes) para POS convencional",
+    "version": "19.0.1.1.0",
     "category": "Point of Sale",
     "author": "Xtendoo",
     "website": "https://xtendoo.es",

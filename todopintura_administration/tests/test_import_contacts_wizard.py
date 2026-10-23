@@ -354,9 +354,9 @@ class TestImportContactsWizard(TransactionCase):
         if 'pos_requires_voucher' in partner_fields:
             self.assertTrue(yes.pos_requires_voucher)
             self.assertFalse(no.pos_requires_voucher)
-        if 'pos_conventional_sale_mode' in partner_fields:
-            self.assertEqual(yes.pos_conventional_sale_mode, 'deposit')
-            self.assertNotEqual(no.pos_conventional_sale_mode, 'deposit')
+        if 'pos_deposit_sale_enabled' in partner_fields:
+            self.assertTrue(yes.pos_deposit_sale_enabled)
+            self.assertFalse(no.pos_deposit_sale_enabled)
 
     def test_action_reset_clears_state_and_file(self):
         xlsx_data = self._build_xlsx([[6001, 'CLIENTE RESET', 'CALLE RESET', 41003, 954000003, 0, '33333333K']])

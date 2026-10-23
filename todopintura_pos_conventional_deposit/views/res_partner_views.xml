@@ -17,21 +17,22 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group[@name='point_of_sale']" position="inside">
-                <field name="pos_conventional_sale_mode"/>
+                <field name="pos_credit_sale_enabled"/>
+                <field name="pos_deposit_sale_enabled"/>
                 <field name="use_partner_credit_limit"
-                       invisible="pos_conventional_sale_mode != 'credit'"/>
+                       invisible="not pos_credit_sale_enabled"/>
                 <field name="credit_limit"
-                       invisible="pos_conventional_sale_mode != 'credit' or not use_partner_credit_limit"
-                       required="pos_conventional_sale_mode == 'credit' and use_partner_credit_limit"/>
+                       invisible="not pos_credit_sale_enabled or not use_partner_credit_limit"
+                       required="pos_credit_sale_enabled and use_partner_credit_limit"/>
                 <field name="pos_credit_location_ids"
                        string="Tiendas permitidas para depósito"
                        widget="many2many_tags"
-                       invisible="pos_conventional_sale_mode != 'deposit'"
+                       invisible="not pos_deposit_sale_enabled"
                        options="{'no_create': True}"/>
                 <field name="pos_requires_voucher"
-                       invisible="pos_conventional_sale_mode == 'deposit'"/>
+                       invisible="pos_deposit_sale_enabled and not pos_credit_sale_enabled"/>
                 <field name="pos_voucher_reference"
-                       invisible="not pos_requires_voucher or pos_conventional_sale_mode == 'deposit'"/>
+                       invisible="not pos_requires_voucher or (pos_deposit_sale_enabled and not pos_credit_sale_enabled)"/>
             </xpath>
             <xpath expr="//group[@name='point_of_sale']" position="after">
                 <group string="Autorizados de recogida" name="pos_pickup_persons">

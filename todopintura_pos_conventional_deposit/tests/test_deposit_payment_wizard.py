@@ -9,6 +9,8 @@ class TestDepositPaymentWizard(PosConventionalTestCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        if "pos_can_edit_price" in cls.env.user._fields:
+            cls.env.user.pos_can_edit_price = True
         cls.bank_payment_method = cls.card_pm
         config_vals = {
             "journal_id": cls.invoice_journal.id,

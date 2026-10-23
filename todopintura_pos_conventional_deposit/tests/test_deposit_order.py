@@ -6,6 +6,12 @@ from odoo.tests.common import tagged
 @tagged("post_install", "-at_install")
 class TestDepositOrder(PosConventionalTestCommon):
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if "pos_can_edit_price" in cls.env.user._fields:
+            cls.env.user.pos_can_edit_price = True
+
     def test_module_keeps_only_full_deposit_flow(self):
         state_values = dict(self.env["pos.order"]._fields["state"].selection)
         self.assertIn("deposit", state_values)

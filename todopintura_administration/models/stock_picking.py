@@ -62,8 +62,8 @@ class StockPicking(models.Model):
         if self._tp_is_deposit_picking():
             return 'DEPÓSITO Nº'
         partner = self.partner_id.commercial_partner_id
-        if partner and 'pos_conventional_sale_mode' in partner._fields \
-                and partner.pos_conventional_sale_mode == 'deposit':
+        if partner and 'pos_deposit_sale_enabled' in partner._fields \
+                and partner.pos_deposit_sale_enabled:
             return 'VTA CUENTA Nº'
         return 'ALBARAN Nº'
 
