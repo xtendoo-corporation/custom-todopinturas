@@ -221,8 +221,9 @@ class ImportContactsWizard(models.TransientModel):
         return self._sanitize_import_text(value).upper() == 'S'
 
     @api.model
-    def _prepare_sn_flags(self, partner_model, valued, needs_voucher, deposit):
-        """Valores de res.partner para ALBARÁN VALORADO / NECESITA VALE / VENTA DEPOSITO.
+    def _prepare_sn_flags(self, partner_model, valued, needs_voucher, deposit, credit=None):
+        """Valores de res.partner para ALBARÁN VALORADO / NECESITA VALE / VENTA DEPOSITO /
+        CRÉDITO PERMITIDO. `credit=None` (columna ausente) no toca el crédito del contacto.
 
         Los campos de vale y depósito viven en módulos POS que este módulo no
         declara como dependencia, así que solo se rellenan si existen.
@@ -232,6 +233,9 @@ class ImportContactsWizard(models.TransientModel):
             vals['pos_requires_voucher'] = needs_voucher
         if deposit and 'pos_deposit_sale_enabled' in partner_model._fields:
             vals['pos_deposit_sale_enabled'] = True
+        if credit is not None and 'pos_credit_sale_enabled' in partner_model._fields:
+            # Crédito y depósito son independientes: puede tener los dos a la vez.
+            vals['pos_credit_sale_enabled'] = credit
         return vals
 
     @api.model
@@ -335,6 +339,18 @@ class ImportContactsWizard(models.TransientModel):
         """
         contact = self._find_existing_contact(num_client, name, record.get('vat'), iban=iban)
 
+        # Una importación masiva no debe enviar a cada comercial un correo "Ha sido asignado a..."
+        # por contacto (ni suscribirlo, ni registrar el seguimiento de cada cambio).
+        silent = dict(
+            mail_auto_subscribe_no_notify=True,
+            mail_create_nosubscribe=True,
+            mail_create_nolog=True,
+            mail_notrack=True,
+        )
+        partners = self.env['res.partner'].with_context(**silent)
+        if contact:
+            contact = contact.with_context(**silent)
+
         try:
             if contact:
                 # Una fila sin NUMERO CLIENTE no debe borrar el ref de un
@@ -344,17 +360,18 @@ class ImportContactsWizard(models.TransientModel):
                 contact.write(record)
                 status = 'updated'
             else:
-                contact = self.env['res.partner'].create(record)
+                contact = partners.create(record)
                 status = 'created'
         except Exception:
             _logger.exception("Error al crear/actualizar el contacto %s, reintentando sin VAT", name)
             fallback_record = dict(record, vat='')
             contact = contact or self._find_existing_contact(num_client, name, record.get('vat'), iban=iban)
             if contact:
+                contact = contact.with_context(**silent)
                 contact.write(fallback_record)
                 status = 'updated'
             else:
-                contact = self.env['res.partner'].create(fallback_record)
+                contact = partners.create(fallback_record)
                 status = 'created'
 
         return contact, status
@@ -443,10 +460,12 @@ class ImportContactsWizard(models.TransientModel):
         observation2 = self._sanitize_import_text(cell(20))
         observation3 = self._sanitize_import_text(cell(21))
         observation4 = self._sanitize_import_text(cell(22))
-        # Columnas AB/AC/AD: ALBARÁN VALORADO S/N, NECESITA VALE S/N, VENTA DEPOSITO S/N.
+        # Columnas AB/AC/AD/AE: ALBARÁN VALORADO S/N, NECESITA VALE S/N, VENTA DEPOSITO S/N y
+        # la última (cabecera "SOLO CONTADO") donde S = crédito permitido (límite en la columna L).
         valued = self._is_yes(cell(27))
         needs_voucher = self._is_yes(cell(28))
         deposit = self._is_yes(cell(29))
+        credit = None if cell(30) is None else self._is_yes(cell(30))
 
         if not (name or address or cp or telefono or nif):
             return False
@@ -459,7 +478,7 @@ class ImportContactsWizard(models.TransientModel):
             record = self._prepare_contact_record(num_client, name, address, cp, telefono, vat, email, notes, country_id)
 
             record.update(self._prepare_sn_flags(
-                self.env['res.partner'], valued, needs_voucher, deposit))
+                self.env['res.partner'], valued, needs_voucher, deposit, credit))
 
             if credit_limit is not None:
                 record['use_partner_credit_limit'] = True

@@ -3,7 +3,7 @@ import io
 
 import openpyxl
 
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase, tagged
 
 
 class TestImportContactsWizard(TransactionCase):
@@ -245,7 +245,7 @@ class TestImportContactsWizard(TransactionCase):
     def _build_row(num_client, name, address='', cp='', telefono='', nif='',
                     forma_pago='', credit_limit='', iban='', email='',
                     condiciones_pago='', metodo_pago='', valued='', needs_voucher='',
-                    deposit=''):
+                    deposit='', credit=None):
         """Construye una fila con el mismo layout posicional que
         _process_import_row espera (ver cell(idx) ahí), rellenando con
         cadenas vacías las columnas que no nos interesan para estos tests.
@@ -266,6 +266,8 @@ class TestImportContactsWizard(TransactionCase):
         row[27] = valued
         row[28] = needs_voucher
         row[29] = deposit
+        if credit is not None:
+            row.append(credit)  # columna AE (índice 30)
         return row
 
     def _make_payment_term(self, name, condiciones, metodo=None):
@@ -373,3 +375,60 @@ class TestImportContactsWizard(TransactionCase):
         self.assertFalse(wizard.file)
         self.assertFalse(wizard.log)
 
+
+@tagged('post_install', '-at_install')
+class TestImportContactsCreditDeposit(TransactionCase):
+    """Necesitan los campos de crédito/depósito de los módulos POS (post_install).
+    Reutiliza _build_row y el wizard de TestImportContactsWizard."""
+
+    _build_row = staticmethod(TestImportContactsWizard._build_row)
+
+    def setUp(self):
+        super().setUp()
+        self.wizard = self.env['import.contacts.wizard'].create({
+            'file': base64.b64encode(b'dummy'),
+            'file_name': 'dummy.xls',
+        })
+
+
+    def test_process_import_row_credit_and_deposit_are_independent(self):
+        """AE = S -> crédito permitido; AD = S -> depósito. Pueden darse a la vez; L = límite en euros."""
+        country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        results = {'created': [], 'updated': [], 'error': [], 'payment_term_unmatched': {}}
+        rows = {
+            9001: dict(name='SOLO CREDITO', nif='11111111H', deposit=' N', credit='S ', credit_limit=1500),
+            9002: dict(name='SOLO DEPOSITO', nif='22222222J', deposit=' S', credit=' N', credit_limit=''),
+            9003: dict(name='CREDITO Y DEPOSITO', nif='33333333P', deposit=' S', credit='S ', credit_limit=2223.75),
+            9004: dict(name='NINGUNO', nif='44444444A', deposit=' N', credit=' N', credit_limit=''),
+        }
+        for ref, vals in rows.items():
+            self.wizard._process_import_row(self._build_row(ref, **vals), country, results)
+
+        get = lambda ref: self.env['res.partner'].search([('ref', '=', str(ref))], limit=1)
+        credit_only, deposit_only, both, none = get(9001), get(9002), get(9003), get(9004)
+        self.assertEqual(
+            [(p.pos_credit_sale_enabled, p.pos_deposit_sale_enabled) for p in (credit_only, deposit_only, both, none)],
+            [(True, False), (False, True), (True, True), (False, False)],
+        )
+        self.assertEqual(both.pos_conventional_sale_mode, 'both')
+        self.assertTrue(both.use_partner_credit_limit)
+        self.assertEqual(both.credit_limit, 2223.75)
+        self.assertEqual(credit_only.credit_limit, 1500.0)
+        self.assertFalse(deposit_only.use_partner_credit_limit)
+
+    def test_reimport_updates_credit_flag_and_keeps_it_when_column_is_missing(self):
+        country = self.env['res.country'].search([('code', '=', 'ES')], limit=1)
+        results = {'created': [], 'updated': [], 'error': [], 'payment_term_unmatched': {}}
+        self.wizard._process_import_row(
+            self._build_row(9101, 'CAMBIA', nif='55555555K', deposit=' N', credit='S '), country, results)
+        partner = self.env['res.partner'].search([('ref', '=', '9101')], limit=1)
+        self.assertTrue(partner.pos_credit_sale_enabled)
+
+        # Fila sin la columna AE: no se toca el crédito.
+        self.wizard._process_import_row(self._build_row(9101, 'CAMBIA', nif='55555555K', deposit=' N'), country, results)
+        self.assertTrue(partner.pos_credit_sale_enabled)
+
+        # AE = N: se quita el crédito.
+        self.wizard._process_import_row(
+            self._build_row(9101, 'CAMBIA', nif='55555555K', deposit=' N', credit=' N'), country, results)
+        self.assertFalse(partner.pos_credit_sale_enabled)
