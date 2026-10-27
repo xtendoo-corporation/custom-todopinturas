@@ -328,6 +328,7 @@ patch(ProductScreen.prototype, {
                     qty: 1,
                     price_unit: priceBase,
                     discount: pricelistDiscount,
+                    price_type: "manual",
                 });
             } else {
                 console.error('[CUSTOM PRICE] ❌ No se encontró método para añadir producto');

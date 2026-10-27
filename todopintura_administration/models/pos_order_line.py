@@ -1,50 +1,41 @@
-from odoo import models, api
+from odoo import api, models
 
 
 class PosOrderLine(models.Model):
-    _inherit = 'pos.order.line'
+    _inherit = "pos.order.line"
 
-    @api.onchange('product_id', 'qty')
+    def _tp_get_price_and_discount(self):
+        """Devuelve (PVP, % descuento) si la tarifa rebaja el PVP, o None."""
+        self.ensure_one()
+        order = self.order_id
+        pricelist = order.pricelist_id or order.session_id.config_id.pricelist_id
+        if not pricelist:
+            return None
+        product = self.product_id
+        pricelist_price = pricelist._get_product_price(
+            product, self.qty or 1.0, partner=order.partner_id, uom=product.uom_id
+        )
+        public_price = product.lst_price
+        if public_price > 0 and public_price > pricelist_price:
+            return public_price, (public_price - pricelist_price) / public_price * 100
+        return None
+
+    @api.onchange("product_id", "qty")
     def _onchange_product_id(self):
-        # Mantener lógica nativa y luego forzar visualización precio de lista + descuento
+        """Muestra PVP + descuento de tarifa y recalcula los subtotales.
+
+        El onchange nativo fija el precio de tarifa y calcula los subtotales
+        con el descuento que tuviera la línea. Tras cambiar precio y descuento
+        hay que recalcular los subtotales: si los valores finales coinciden con
+        los iniciales, Odoo no vuelve a lanzar ``_onchange_qty`` y el subtotal
+        quedaría con el descuento aplicado dos veces.
+        """
         res = super()._onchange_product_id()
-        for line in self:
-            try:
-                order = line.order_id
-                if not line.product_id or not order:
-                    continue
-                pricelist = order.pricelist_id or (order.session_id and order.session_id.config_id and order.session_id.config_id.pricelist_id)
-                public_price = float(line.product_id.lst_price or 0.0)
-                if pricelist:
-                    price_unit = pricelist._get_product_price(line.product_id, line.qty or 1.0, partner=order.partner_id, uom=line.product_id.uom_id)
-                    if public_price > price_unit and public_price > 0:
-                        line.discount = (public_price - price_unit) / public_price * 100
-                        line.price_unit = public_price
-            except Exception:
-                # No romper el onchange
-                continue
+        for line in self.filtered("product_id"):
+            price_and_discount = line._tp_get_price_and_discount()
+            if price_and_discount:
+                line.price_unit, line.discount = price_and_discount
+            else:
+                line.discount = 0.0
+            line._onchange_qty()
         return res
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        normalized = []
-        for vals in vals_list:
-            v = dict(vals)
-            try:
-                if v.get('product_id') and v.get('order_id'):
-                    order = self.env['pos.order'].browse(v.get('order_id'))
-                    if order.exists():
-                        product = self.env['product.product'].browse(v.get('product_id'))
-                        qty = v.get('qty') or v.get('product_uom_qty') or 1.0
-                        pricelist = order.pricelist_id or (order.session_id and order.session_id.config_id and order.session_id.config_id.pricelist_id)
-                        if pricelist and product.exists():
-                            pricelist_price = pricelist._get_product_price(product, qty, partner=order.partner_id, uom=product.uom_id)
-                            public_price = float(product.lst_price or 0.0)
-                            if public_price > pricelist_price and public_price > 0:
-                                v['discount'] = (public_price - pricelist_price) / public_price * 100
-                                v['price_unit'] = public_price
-            except Exception:
-                pass
-            normalized.append(v)
-        return super().create(normalized)
-

@@ -1,56 +1,62 @@
-from odoo import models, api
+from odoo import api, models
 
 
 class SaleOrderLine(models.Model):
-    _inherit = 'sale.order.line'
+    """Muestra el PVP como precio unitario y la rebaja de la tarifa como descuento.
 
-    @api.onchange('product_id', 'product_uom', 'product_uom_qty')
-    def _onchange_product_id(self):
-        # Mantener la lógica nativa y luego aplicar la visualización de precio/lista
-        result = super()._onchange_product_id()
+    La representación se calcula en los mismos métodos que usa Odoo para
+    recalcular precio y descuento, de modo que ambos se mantienen coherentes
+    cuando cambian el producto, la unidad, la cantidad o la tarifa.
+    """
 
-        if self.product_id and self.order_id and self.order_id.pricelist_id:
-            pricelist = self.order_id.pricelist_id
-            try:
-                qty = self.product_uom_qty or 1.0
-                pricelist_price = pricelist._get_product_price(
-                    self.product_id, qty, partner=self.order_id.partner_id, uom=self.product_uom
-                )
-                public_price = float(self.product_id.lst_price or 0.0)
-                if public_price > pricelist_price and public_price > 0:
-                    self.discount = (public_price - pricelist_price) / public_price * 100
-                    # Mostrar precio original (lista) y dejar el descuento como porcentaje
-                    self.price_unit = public_price
-                else:
-                    # No hay descuento de tarifa sobre el precio de lista: dejar comportamiento por defecto
-                    pass
-            except Exception:
-                # No interrumpir el onchange si ocurre un error de tipos o calculo
-                pass
+    _inherit = "sale.order.line"
 
-        return result
+    def _tp_get_public_price(self):
+        """PVP del producto en la unidad y moneda de la línea, sin impuestos."""
+        self.ensure_one()
+        product = self.product_id.with_context(**self._get_product_price_context())
+        return product._price_compute(
+            "list_price",
+            uom=self.product_uom_id,
+            currency=self.currency_id,
+            company=self.company_id,
+            date=self._get_order_date(),
+        )[product.id]
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        normalized = []
-        for vals in vals_list:
-            v = dict(vals)
-            try:
-                if v.get('product_id') and v.get('order_id'):
-                    order = self.env['sale.order'].browse(v.get('order_id'))
-                    if order.exists() and order.pricelist_id:
-                        product = self.env['product.product'].browse(v.get('product_id'))
-                        qty = v.get('product_uom_qty') or v.get('product_uom_qty') or v.get('qty', 1.0) or 1.0
-                        pricelist = order.pricelist_id
-                        pricelist_price = pricelist._get_product_price(product, qty, partner=order.partner_id, uom=product.uom_id)
-                        public_price = float(product.lst_price or 0.0)
-                        if public_price > pricelist_price and public_price > 0:
-                            discount = (public_price - pricelist_price) / public_price * 100
-                            v['discount'] = discount
-                            v['price_unit'] = public_price
-            except Exception:
-                # No queremos que un fallo impida la creación de la línea
-                pass
-            normalized.append(v)
-        return super().create(normalized)
+    def _tp_get_pricelist_discount(self):
+        """Porcentaje que la tarifa rebaja el PVP (0 si no lo rebaja)."""
+        self.ensure_one()
+        if (
+            self.display_type
+            or self.combo_item_id
+            or not self.product_id
+            or not self.product_uom_id
+            or not self.order_id.pricelist_id
+        ):
+            return 0.0
+        public_price = self._tp_get_public_price()
+        pricelist_price = self._get_pricelist_price()
+        if public_price > 0 and public_price > pricelist_price:
+            return (public_price - pricelist_price) / public_price * 100
+        return 0.0
 
+    def _get_display_price_ignore_combo(self):
+        if self._tp_get_pricelist_discount():
+            return self._tp_get_public_price()
+        return super()._get_display_price_ignore_combo()
+
+    @api.depends("product_id", "product_uom_id", "product_uom_qty")
+    def _compute_discount(self):
+        super()._compute_discount()
+        discount_enabled = self.env[
+            "product.pricelist.item"
+        ]._is_discount_feature_enabled()
+        for line in self:
+            if line.combo_item_id or not line.order_id.pricelist_id:
+                continue
+            discount = line.with_company(line.company_id)._tp_get_pricelist_discount()
+            # Sin el grupo de descuentos Odoo no reinicia el descuento al
+            # recalcular el precio; hay que hacerlo aquí para no arrastrar
+            # un descuento antiguo sobre un precio ya rebajado.
+            if discount or not discount_enabled:
+                line.discount = discount

@@ -220,7 +220,10 @@ export class PartnerOrdersScreen extends Component {
                                     product_id: product,  // Pasar el objeto completo en lugar del ID
                                     qty: line.product_uom_qty || 1,
                                     price_unit: line.price_unit || 0,
-                                    discount: line.discount || 0
+                                    discount: line.discount || 0,
+                                    // Evita que el TPV recalcule el precio con la tarifa
+                                    // y mantenga el descuento (doble descuento).
+                                    price_type: "manual",
                                 });
                                 console.log('[PARTNER ORDERS] Línea creada:', posLine);
                             } catch (lineError) {

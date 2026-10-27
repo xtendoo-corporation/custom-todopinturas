@@ -1,11 +1,11 @@
 {
     "name": "Todo Pintura Administration",
     "summary": "Administración de Todo Pintura",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "description": "Administración de Todo Pintura",
     "company": "Xtendoo",
     "website": "http://www.xtendoo.es",
-    'depends': ['base', 'product', 'contacts', 'stock', 'point_of_sale', 'account', 'account_payment_mode', 'sale'],
+    'depends': ['base', 'product', 'contacts', 'hr', 'stock', 'point_of_sale', 'account', 'account_payment_mode', 'sale'],
     "license": "AGPL-3",
     'assets': {
         'web.assets_backend': [
