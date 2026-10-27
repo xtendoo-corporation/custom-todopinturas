@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class ResPartner(models.Model):
@@ -41,6 +42,20 @@ class ResPartner(models.Model):
             "no se restringe por tienda."
         ),
     )
+
+    @api.constrains("pos_deposit_sale_enabled", "pos_credit_location_ids")
+    def _check_pos_deposit_requires_location(self):
+        partners = self.filtered(
+            lambda p: p.pos_deposit_sale_enabled and not p.pos_credit_location_ids
+        )
+        if partners:
+            raise ValidationError(
+                _(
+                    "Un cliente con venta en depósito debe tener al menos una tienda "
+                    "permitida para depósito. Revisa: %s",
+                    ", ".join(partners.mapped("display_name")),
+                )
+            )
 
     @api.model
     def _mode_from_flags(self, credit, deposit):

@@ -1,5 +1,5 @@
 from odoo.addons.pos_conventional_core.tests.common import PosConventionalTestCommon
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import tagged
 
 
@@ -20,17 +20,26 @@ class TestCreditAndDeposit(PosConventionalTestCommon):
         )
         cls.pos_config.write({"payment_method_ids": [(4, cls.pay_later_pm.id)]})
         cls.Partner = cls.env["res.partner"]
+        cls.store = cls.env["stock.location"].search(
+            [("usage", "=", "internal")], limit=1
+        )
+        cls.store_ids = [(6, 0, cls.store.ids)]
         cls.partner_credit = cls.Partner.create(
             {"name": "Cliente solo crédito", "pos_credit_sale_enabled": True}
         )
         cls.partner_deposit = cls.Partner.create(
-            {"name": "Cliente solo depósito", "pos_deposit_sale_enabled": True}
+            {
+                "name": "Cliente solo depósito",
+                "pos_deposit_sale_enabled": True,
+                "pos_credit_location_ids": cls.store_ids,
+            }
         )
         cls.partner_both = cls.Partner.create(
             {
                 "name": "Cliente crédito y depósito",
                 "pos_credit_sale_enabled": True,
                 "pos_deposit_sale_enabled": True,
+                "pos_credit_location_ids": cls.store_ids,
             }
         )
         cls.partner_none = cls.Partner.create({"name": "Cliente sin crédito ni depósito"})
@@ -54,7 +63,9 @@ class TestCreditAndDeposit(PosConventionalTestCommon):
     # --- flags y selector resumen -------------------------------------------------
 
     def test_flags_are_independent_and_mode_follows(self):
-        partner = self.Partner.create({"name": "Flags"})
+        partner = self.Partner.create(
+            {"name": "Flags", "pos_credit_location_ids": self.store_ids}
+        )
         self.assertEqual(partner.pos_conventional_sale_mode, "none")
         partner.pos_credit_sale_enabled = True
         self.assertEqual(partner.pos_conventional_sale_mode, "credit")
@@ -67,9 +78,30 @@ class TestCreditAndDeposit(PosConventionalTestCommon):
         partner.pos_deposit_sale_enabled = False
         self.assertEqual(partner.pos_conventional_sale_mode, "none")
 
+    def test_deposit_requires_store(self):
+        with self.assertRaises(ValidationError):
+            self.Partner.create(
+                {"name": "Depósito sin tienda", "pos_deposit_sale_enabled": True}
+            )
+        partner = self.Partner.create({"name": "Sin depósito"})
+        with self.assertRaises(ValidationError):
+            partner.pos_deposit_sale_enabled = True
+        partner.write(
+            {
+                "pos_deposit_sale_enabled": True,
+                "pos_credit_location_ids": self.store_ids,
+            }
+        )
+        with self.assertRaises(ValidationError):
+            partner.pos_credit_location_ids = False
+
     def test_legacy_mode_both_sets_both_flags(self):
         partner = self.Partner.create(
-            {"name": "Modo both", "pos_conventional_sale_mode": "both"}
+            {
+                "name": "Modo both",
+                "pos_conventional_sale_mode": "both",
+                "pos_credit_location_ids": self.store_ids,
+            }
         )
         self.assertTrue(partner.pos_credit_sale_enabled)
         self.assertTrue(partner.pos_deposit_sale_enabled)

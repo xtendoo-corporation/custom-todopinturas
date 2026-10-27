@@ -109,6 +109,9 @@ class TestPartnerSaleMode(PosConventionalTestCommon):
             {
                 "pos_conventional_sale_mode": "deposit",
                 "pos_credit_sale_enabled": True,
+                "pos_credit_location_ids": [
+                    (6, 0, self.env["stock.location"].search([("usage", "=", "internal")], limit=1).ids)
+                ],
             }
         )
 

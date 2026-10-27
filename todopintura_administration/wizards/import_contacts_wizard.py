@@ -184,6 +184,20 @@ class ImportContactsWizard(models.TransientModel):
         return {user.commercial_code: user.id for user in users}
 
     @api.model
+    def _build_store_lookup(self):
+        """Código de TIENDA COBRO (col. P) -> stock.location de existencias.
+
+        El código N del Excel corresponde al almacén cuyo código es ALM<N>.
+        """
+        warehouses = self.env['stock.warehouse'].search([('code', '=like', 'ALM%')])
+        lookup = {}
+        for warehouse in warehouses:
+            suffix = warehouse.code[3:]
+            if suffix.isdigit() and warehouse.lot_stock_id:
+                lookup[str(int(suffix))] = warehouse.lot_stock_id.id
+        return lookup
+
+    @api.model
     def _build_payment_mode_lookup(self):
         """Nombre normalizado (sin tildes, mayúsculas) -> id de account.payment.mode."""
         return {
@@ -216,6 +230,14 @@ class ImportContactsWizard(models.TransientModel):
         return lookup[key]
 
     @api.model
+    @api.model
+    def _normalize_store_code(self, value):
+        """'2', 2, 2.0 o ' 2 ' -> '2'; vacío o 0 -> ''."""
+        try:
+            return str(int(float(self._sanitize_import_text(value) or 0))) if value else ''
+        except (ValueError, TypeError):
+            return ''
+
     def _is_yes(self, value):
         """Columnas S/N del Excel: solo 'S' (con o sin espacios) es afirmativo."""
         return self._sanitize_import_text(value).upper() == 'S'
@@ -425,7 +447,8 @@ class ImportContactsWizard(models.TransientModel):
 
     @api.model
     def _process_import_row(self, row, country_id, results, payment_term_lookup=None,
-                            salesperson_lookup=None, payment_mode_lookup=None):
+                            salesperson_lookup=None, payment_mode_lookup=None,
+                            store_lookup=None):
         """Procesa una fila del Excel: crea/actualiza el cliente y registra el resultado.
 
         Devuelve False cuando la fila está completamente vacía (fin de los datos reales),
@@ -466,6 +489,8 @@ class ImportContactsWizard(models.TransientModel):
         needs_voucher = self._is_yes(cell(28))
         deposit = self._is_yes(cell(29))
         credit = None if cell(30) is None else self._is_yes(cell(30))
+        # TIENDA COBRO (col. P): tienda de la que puede sacar depósito. 0 = sin tienda.
+        store_code = self._normalize_store_code(cell(15))
 
         if not (name or address or cp or telefono or nif):
             return False
@@ -477,8 +502,17 @@ class ImportContactsWizard(models.TransientModel):
             vat, _country_code = self._normalize_contact_vat(nif)
             record = self._prepare_contact_record(num_client, name, address, cp, telefono, vat, email, notes, country_id)
 
+            store_location_id = (store_lookup or {}).get(store_code) if store_code else None
+            if deposit and not store_location_id:
+                # Un cliente no puede tener depósito sin tienda asignada.
+                deposit = False
+                results.setdefault('deposit_without_store', []).append(
+                    f"{row_label} (TIENDA COBRO: {store_code or 'vacía/0'})")
+
             record.update(self._prepare_sn_flags(
                 self.env['res.partner'], valued, needs_voucher, deposit, credit))
+            if deposit and 'pos_credit_location_ids' in self.env['res.partner']._fields:
+                record['pos_credit_location_ids'] = [(6, 0, [store_location_id])]
 
             if credit_limit is not None:
                 record['use_partner_credit_limit'] = True
@@ -578,6 +612,8 @@ class ImportContactsWizard(models.TransientModel):
                 'Condiciones/método de pago (columnas Z/AA) sin término de pago coincidente',
                 unmatched_lines, 'text-warning')
             + section('Códigos de comercial (col. K) sin usuario', salesperson_lines, 'text-warning')
+            + section('Depósito NO activado por no tener tienda válida (col. P)',
+                      results.get('deposit_without_store'), 'text-warning')
             + section('Método de pago (col. AA) ignorado por no parecer un método válido',
                       payment_mode_lines, 'text-warning')
         )
@@ -621,10 +657,12 @@ class ImportContactsWizard(models.TransientModel):
         payment_term_lookup = self._build_payment_term_lookup()
         salesperson_lookup = self._build_salesperson_lookup()
         payment_mode_lookup = self._build_payment_mode_lookup()
+        store_lookup = self._build_store_lookup()
         for row in self._iter_rows(sheet, is_xlsx):
             if not self._process_import_row(
                     row, country_id, results, payment_term_lookup=payment_term_lookup,
-                    salesperson_lookup=salesperson_lookup, payment_mode_lookup=payment_mode_lookup):
+                    salesperson_lookup=salesperson_lookup, payment_mode_lookup=payment_mode_lookup,
+                    store_lookup=store_lookup):
                 break
 
         self.write({

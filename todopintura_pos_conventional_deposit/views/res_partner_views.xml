@@ -28,6 +28,7 @@
                        string="Tiendas permitidas para depósito"
                        widget="many2many_tags"
                        invisible="not pos_deposit_sale_enabled"
+                       required="pos_deposit_sale_enabled"
                        options="{'no_create': True}"/>
                 <field name="pos_requires_voucher"
                        invisible="pos_deposit_sale_enabled and not pos_credit_sale_enabled"/>
@@ -48,6 +49,17 @@
                     </field>
                 </group>
             </xpath>
+        </field>
+    </record>
+
+    <record id="view_partner_tree_show_ref" model="ir.ui.view">
+        <field name="name">res.partner.list.show.ref</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <field name="complete_name" position="after">
+                <field name="ref" string="Referencia" optional="show"/>
+            </field>
         </field>
     </record>
 </odoo>
