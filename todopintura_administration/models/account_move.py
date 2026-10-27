@@ -36,6 +36,11 @@ class AccountMove(models.Model):
             texts += sale_orders.mapped('pos_observations')
         return '\n\n'.join(dict.fromkeys(t.strip() for t in texts if t and t.strip()))
 
+    def _tp_report_copies(self):
+        """Etiquetas de cada copia a imprimir: interna y para el cliente."""
+        self.ensure_one()
+        return ['COPIA INTERNA', 'COPIA PARA EL CLIENTE']
+
     def _tp_report_tax_summary(self):
         """Base, IVA por tipo y recargo de equivalencia por tipo."""
         self.ensure_one()

@@ -7,11 +7,12 @@
                 <t t-set="partner" t-value="o.partner_id"/>
                 <t t-set="summary" t-value="o._tp_report_tax_summary()"/>
                 <t t-call="todopintura_administration.external_layout_todopintura">
-                    <div class="page tp_doc tp_factura" style="font-size: 11px; color: #1c2b5a;">
+                    <t t-foreach="o._tp_report_copies()" t-as="copy_label">
+                    <div class="page tp_doc tp_factura"
+                         t-attf-style="font-size: 11px; color: #1c2b5a; #{'page-break-before: always;' if not copy_label_first else ''}">
                         <table class="tp_page_table">
                         <tr><td class="tp_page_top">
                         <t t-call="todopintura_administration.tp_document_top_boxes">
-                            <t t-set="copy_label" t-value="False"/>
                             <t t-set="salesperson" t-value="o.invoice_user_id"/>
                             <t t-set="right_block">
                                 <div t-out="o._tp_report_date_str()"/>
@@ -90,6 +91,7 @@
                         </td></tr>
                         </table>
                     </div>
+                    </t>
                 </t>
             </t>
         </t>

@@ -51,11 +51,8 @@ class StockPicking(models.Model):
         return '\n\n'.join(dict.fromkeys(t.strip() for t in texts if t and t.strip()))
 
     def _tp_report_copies(self):
-        """Etiquetas de cada copia a imprimir; False = copia sin texto."""
+        """Etiquetas de cada copia a imprimir: interna y para el cliente."""
         self.ensure_one()
-        warehouse = self.picking_type_id.warehouse_id
-        if warehouse and warehouse.tp_report_copies == '3':
-            return [False, 'COPIA INTERNA', 'COPIA PARA EL CLIENTE']
         return ['COPIA INTERNA', 'COPIA PARA EL CLIENTE']
 
     def _tp_is_deposit_picking(self):
