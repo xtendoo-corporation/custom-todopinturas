@@ -243,6 +243,9 @@
                 <attribute name="string">Total</attribute>
             </xpath>
 
+            <!-- La tarifa ya está en la cabecera: sobra en "Información adicional". -->
+            <xpath expr="//page[@name='extra']//group[@name='other_information']/field[@name='pricelist_id']" position="replace" />
+
             <xpath expr="//page[@name='extra']//group[@name='other_information']" position="before">
                 <group string="Datos del pedido" name="order_data">
                     <field name="user_id" string="Usuario" readonly="1" force_save="1" />
