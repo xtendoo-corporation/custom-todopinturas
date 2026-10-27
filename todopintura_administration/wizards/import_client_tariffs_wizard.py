@@ -165,6 +165,7 @@ class ImportClientTariffsWizard(models.TransientModel):
             raise UserError("Formato de archivo no soportado. Usa .xls o .xlsx")
 
         errors = []
+        cleared_pricelists = set()
         if is_xlsx:
             _logger.info("Importación de tarifas %s: procesando filas con openpyxl", self.file_name)
             rows = list(sheet.iter_rows(min_row=2, values_only=True))
@@ -272,10 +273,32 @@ class ImportClientTariffsWizard(models.TransientModel):
                     self._register_row_error(errors, excel_row, "cliente no encontrado", row_data=row, client_ref=client_ref)
                     continue
 
+                if (product_code == '0' and not category and provider_ref
+                        and provider_ref != '0777' and not provider):
+                    # Regla de un proveedor que no existe: sin él caería en una regla global
+                    # de toda la tarifa del cliente (y se repetiría por cada proveedor).
+                    self._register_row_error(
+                        errors, excel_row, f"proveedor no encontrado ({provider_ref}). Fila omitida",
+                        row_data=row, client_ref=client_ref, provider_ref=provider_ref)
+                    continue
+
+                if product_code != '0' and not product and not category:
+                    # Sin producto ni familia la fila caería en una regla global de toda
+                    # la tarifa del cliente: se omite y se avisa.
+                    self._register_row_error(
+                        errors, excel_row, f"producto no encontrado ({product_code}). Fila omitida",
+                        row_data=row, client_ref=client_ref, product_code=product_code)
+                    continue
+
                 pricelist_name = f"Tarifa {client.name}"
                 pricelist = self.env['product.pricelist'].search([('name', '=', pricelist_name)], limit=1)
                 if not pricelist:
                     pricelist = self.env['product.pricelist'].create({'name': pricelist_name, 'company_id': False})
+                # Reimportar sustituye la tarifa del cliente: se vacía una sola vez por
+                # importación (antes de su primera línea) para no acumular líneas repetidas.
+                if pricelist.id not in cleared_pricelists:
+                    cleared_pricelists.add(pricelist.id)
+                    self.env['product.pricelist.item'].search([('pricelist_id', '=', pricelist.id)]).unlink()
                 base_pricelist_name = f"Tarifa {price_line}"
                 if product.id == 0 and product_code != '0':
                     _logger.warning("Fila %s: producto no encontrado para referencia %s", excel_row, product_code)
