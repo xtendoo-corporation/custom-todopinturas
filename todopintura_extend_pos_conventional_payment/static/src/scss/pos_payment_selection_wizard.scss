@@ -76,6 +76,25 @@ $o-todopintura-primary: $o-brand-primary;
         }
     }
 
+    // Pagado (efectivo): mismo verde que "Pagado" en el pago combinado
+    .o_todopintura_paid_block {
+        .o_todopintura_amount_label,
+        .input-group-text,
+        .o_todopintura_amount_input,
+        .o_todopintura_amount_input input.o_input {
+            color: $success;
+        }
+
+        // Importe insuficiente: el campo lleva text-danger (decoration-danger)
+        &:has(.text-danger) {
+            .input-group-text,
+            .o_todopintura_amount_input,
+            .o_todopintura_amount_input input.o_input {
+                color: $danger;
+            }
+        }
+    }
+
     .o_todopintura_total_due_row {
         .o_todopintura_amount_label,
         .o_todopintura_amount_value {
@@ -96,10 +115,18 @@ $o-todopintura-primary: $o-brand-primary;
         // sin <input> real), así que hace falta apuntar también al wrapper
         // directamente, o este énfasis más grande/de color nunca llegaba a
         // aplicarse.
+        // Mismo azul que "Total a Pagar" en el pago combinado
+        // (.o_todopintura_total_due_row), para que ambos modos coincidan.
+        .o_todopintura_amount_label,
         .input-group-text,
         .o_todopintura_amount_input,
         .o_todopintura_amount_input input.o_input {
-            color: $o-todopintura-primary;
+            color: $blue;
+        }
+
+        .input-group-text,
+        .o_todopintura_amount_input,
+        .o_todopintura_amount_input input.o_input {
             font-size: 1.4rem;
         }
     }

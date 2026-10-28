@@ -134,12 +134,15 @@
                                                    readonly="1" class="form-control o_todopintura_amount_input"/>
                                         </div>
                                     </div>
-                                    <div class="o_todopintura_amount_block" invisible="payment_type != 'cash'">
-                                        <div class="o_todopintura_amount_label">Importe Entregado:</div>
+                                    <div class="o_todopintura_amount_block o_todopintura_paid_block" invisible="payment_type != 'cash'">
+                                        <div class="o_todopintura_amount_label text-success" invisible="amount_change &lt; 0">Pagado:</div>
+                                        <div class="o_todopintura_amount_label text-danger" invisible="amount_change &gt;= 0">Pagado:</div>
                                         <div class="input-group o_todopintura_cash_input_group">
                                             <span class="input-group-text">€</span>
                                             <field name="amount_tendered" nolabel="1" widget="monetary"
                                                    options="{'currency_field': 'currency_id', 'no_symbol': True}"
+                                                   decoration-danger="amount_change &lt; 0"
+                                                   decoration-success="amount_change &gt;= 0"
                                                    class="form-control o_todopintura_amount_input"/>
                                         </div>
                                     </div>
@@ -205,8 +208,8 @@
 
                 <footer>
                     <button name="action_confirm" string="Confirmar" type="object" class="btn-primary"
-                            invisible="(not deposit_wizard_id and operation_type == 'delivery' and (not partner_id or not partner_credit_available_at_open or partner_credit_limit_exceeded)) or (operation_type == 'deposit' and (not partner_id or not partner_deposit_enabled or not partner_deposit_available)) or (deposit_wizard_id and operation_type != 'ticket' and operation_type != 'invoice')"/>
-                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                            invisible="(payment_type == 'cash' and operation_type in ('ticket', 'invoice') and amount_change &lt; 0) or (not deposit_wizard_id and operation_type == 'delivery' and (not partner_id or not partner_credit_available_at_open or partner_credit_limit_exceeded)) or (operation_type == 'deposit' and (not partner_id or not partner_deposit_enabled or not partner_deposit_available)) or (deposit_wizard_id and operation_type != 'ticket' and operation_type != 'invoice')"/>
+                    <button string="Cancelar" class="btn-secondary" name="action_cancel_wizard" type="object"/>
                 </footer>
             </form>
         </field>

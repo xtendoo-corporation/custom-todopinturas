@@ -312,6 +312,12 @@ class PosPaymentSelectionWizard(models.TransientModel):
             'target': 'new',
         }
 
+    def action_cancel_wizard(self):
+        """Cancelar sin confirmar: no se guarda ningún pago del pedido."""
+        self.ensure_one()
+        self.order_id._todopintura_discard_unconfirmed_payments()
+        return {"type": "ir.actions.act_window_close"}
+
     def action_cancel_payment_step(self):
         self.ensure_one()
         self.state = 'doc_selection'
@@ -442,6 +448,11 @@ class PosPaymentSelectionWizard(models.TransientModel):
             if self.payment_type == 'cash':
                 if not self.cash_method_id:
                     raise UserError(_("No se encontró método de pago en efectivo."))
+                if float_compare(
+                    self.amount_tendered, self.amount_due,
+                    precision_rounding=self.currency_id.rounding or 0.01,
+                ) < 0:
+                    raise UserError(_("El importe pagado es insuficiente."))
 
                 wizard = self.env['pos.make.payment.wizard'].with_context(
                     active_id=self.order_id.id,

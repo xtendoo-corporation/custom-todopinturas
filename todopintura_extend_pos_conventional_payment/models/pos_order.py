@@ -10,8 +10,17 @@ class PosOrder(models.Model):
         for order in self:
             order.amount_paid = order._compute_amount_paid()
 
+    def _todopintura_discard_unconfirmed_payments(self):
+        """Los pagos de un pedido en borrador solo existen mientras el wizard de
+        pago está abierto: si no se confirma, no se conservan."""
+        for order in self.filtered(lambda o: o.state == "draft" and o.payment_ids):
+            order.payment_ids.unlink()
+            order._todopintura_sync_amount_paid()
+
     def action_open_payment_selection_wizard(self):
         self.ensure_one()
+        # Pagos que quedaron de un wizard cerrado sin confirmar (X, Esc...)
+        self._todopintura_discard_unconfirmed_payments()
         view = self.env.ref('todopintura_extend_pos_conventional_payment.view_pos_payment_selection_wizard_form')
         return {
             "type": "ir.actions.act_window",

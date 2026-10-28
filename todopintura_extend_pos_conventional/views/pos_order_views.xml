@@ -56,6 +56,24 @@
         </field>
     </record>
 
+    <!-- Pagos solo lectura: se registran únicamente desde el wizard de pago -->
+    <record id="view_pos_order_form_payments_readonly" model="ir.ui.view">
+        <field name="name">pos.order.form.payments.readonly</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form" />
+        <field name="priority">200</field>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='payments']//field[@name='payment_ids']" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </xpath>
+            <xpath expr="//page[@name='payments']//field[@name='payment_ids']/list" position="attributes">
+                <attribute name="create">0</attribute>
+                <attribute name="delete">0</attribute>
+                <attribute name="editable"></attribute>
+            </xpath>
+        </field>
+    </record>
+
     <record id="view_pos_order_form_inherit_route_lines" model="ir.ui.view">
         <field name="name">pos.order.form.inherit.pickup.lines</field>
         <field name="model">pos.order</field>
