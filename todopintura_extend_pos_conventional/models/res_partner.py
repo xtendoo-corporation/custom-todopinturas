@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 
 
 class ResPartnerPickupPerson(models.Model):
@@ -31,6 +32,21 @@ class ResPartnerPickupPerson(models.Model):
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        partners = super().create(vals_list)
+        if self.env.context.get("pos_quick_partner_pricelist"):
+            for partner in partners:
+                if not partner.property_product_pricelist.pos_quick_partner_selectable:
+                    raise UserError(
+                        _(
+                            "Al crear un cliente desde el POS solo se pueden asignar "
+                            "las tarifas marcadas como seleccionables. Elija una "
+                            "en el campo Lista de precios."
+                        )
+                    )
+        return partners
 
     pos_requires_voucher = fields.Boolean(string="Necesita vale")
     pos_voucher_reference = fields.Char(string="Código / documento del vale")

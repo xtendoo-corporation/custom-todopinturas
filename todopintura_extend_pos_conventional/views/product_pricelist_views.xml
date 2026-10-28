@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_pricelist_view_form_quick_partner" model="ir.ui.view">
+        <field name="name">product.pricelist.form.quick.partner</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view"/>
+        <field name="arch" type="xml">
+            <field name="active" position="after">
+                <field name="pos_quick_partner_selectable"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_partner_form_quick_pricelist_domain" model="ir.ui.view">
+        <field name="name">res.partner.form.quick.pricelist.domain</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="product.view_partner_property_form"/>
+        <field name="arch" type="xml">
+            <field name="property_product_pricelist" position="attributes">
+                <attribute name="domain">[('pos_quick_partner_selectable', '=', True)] if context.get('pos_quick_partner_pricelist') else [('company_id', 'in', (False, context.get('allowed_company_ids', [False])[0]))]</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

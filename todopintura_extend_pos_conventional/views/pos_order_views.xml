@@ -44,6 +44,18 @@
     </record>
 
     <!-- Recogida por línea del pedido -->
+    <!-- Cliente creado al vuelo desde el pedido: solo tarifas marcadas como seleccionables -->
+    <record id="view_pos_order_form_quick_partner_pricelist" model="ir.ui.view">
+        <field name="name">pos.order.form.quick.partner.pricelist</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="pos_conventional_core.view_pos_pos_form_inherit_pos_conventional_core" />
+        <field name="arch" type="xml">
+            <field name="partner_id" position="attributes">
+                <attribute name="context">{'res_partner_search_mode': 'customer', 'show_address': False, 'show_vat': False, 'pos_quick_partner_pricelist': True}</attribute>
+            </field>
+        </field>
+    </record>
+
     <record id="view_pos_order_form_inherit_route_lines" model="ir.ui.view">
         <field name="name">pos.order.form.inherit.pickup.lines</field>
         <field name="model">pos.order</field>

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models, _
+from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
 
@@ -18,12 +18,31 @@ class PosConventionalQuickPartnerWizard(models.TransientModel):
     street = fields.Char(string="Dirección")
     phone = fields.Char(string="Teléfono")
     email = fields.Char(string="Correo electrónico")
+    pricelist_id = fields.Many2one(
+        comodel_name="product.pricelist",
+        string="Tarifa",
+        required=True,
+        domain="[('pos_quick_partner_selectable', '=', True)]",
+        default=lambda self: self._default_pricelist_id(),
+    )
+
+    @api.model
+    def _default_pricelist_id(self):
+        pricelists = self.env["product.pricelist"].search(
+            [("pos_quick_partner_selectable", "=", True)], limit=2
+        )
+        return pricelists.id if len(pricelists) == 1 else False
 
     def action_create_partner(self):
         self.ensure_one()
         if self.order_id.state != "draft":
             raise UserError(
                 _("Solo se puede asignar un contacto a un pedido en borrador.")
+            )
+        if not self.pricelist_id.pos_quick_partner_selectable:
+            raise UserError(
+                _("La tarifa «%s» no está habilitada para clientes creados al vuelo.")
+                % self.pricelist_id.display_name
             )
         # El campo cliente del pedido solo admite empresas sin padre
         partner = self.env["res.partner"].create({
@@ -33,6 +52,7 @@ class PosConventionalQuickPartnerWizard(models.TransientModel):
             "email": self.email,
             "is_company": True,
             "company_type": "company",
+            "property_product_pricelist": self.pricelist_id.id,
         })
         # Asignar por código no dispara los onchange del formulario: hay que
         # aplicar a mano la tarifa del cliente y recalcular las líneas, igual

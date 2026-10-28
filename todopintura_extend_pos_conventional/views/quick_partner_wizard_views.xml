@@ -11,6 +11,7 @@
                     <field name="street"/>
                     <field name="phone" widget="phone"/>
                     <field name="email" widget="email"/>
+                    <field name="pricelist_id" options="{'no_create': True, 'no_open': True}"/>
                 </group>
                 <footer>
                     <button string="Crear y asignar" name="action_create_partner" type="object" class="btn-primary" data-hotkey="q"/>
