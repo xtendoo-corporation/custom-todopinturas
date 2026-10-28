@@ -87,6 +87,17 @@ class ImportClientTariffsWizard(models.TransientModel):
             _logger.info("Creada automáticamente la tarifa base %s durante la importación de tarifas de cliente", pricelist_name)
         return pricelist
 
+    @staticmethod
+    def _global_item_domain(pricelist, date_start, date_end):
+        # Una tarifa solo debe tener una línea global por ventana de fechas: varias
+        # filas del Excel con la misma ventana se resuelven sobreescribiendo (gana la última).
+        return [
+            ('pricelist_id', '=', pricelist.id),
+            ('applied_on', '=', '3_global'),
+            ('date_start', '=', date_start or False),
+            ('date_end', '=', date_end or False),
+        ]
+
     def _upsert_pricelist_item(self, errors, excel_row, vals, search_domain=None, client_ref=None, product_code=None, row_data=None):
         if vals.get('base') == 'pricelist' and not vals.get('base_pricelist_id'):
             self._register_row_error(
@@ -464,6 +475,7 @@ class ImportClientTariffsWizard(models.TransientModel):
                                     errors,
                                     excel_row,
                                     pricelist_item_vals,
+                                    search_domain=False if provider else self._global_item_domain(pricelist, date_start, date_end),
                                     client_ref=client_ref,
                                     product_code=product_code,
                                     row_data=row,
@@ -599,15 +611,21 @@ class ImportClientTariffsWizard(models.TransientModel):
                                         pricelist_item_vals['applied_on'] = '2_product_category'
                                         pricelist_item_vals['display_applied_on'] = '2_product_category'
                                         pricelist_item_vals['categ_id'] = product_category.id
-                                    print("Pricelist item vals 6: ", pricelist_item_vals)
-                                    self._upsert_pricelist_item(
-                                        errors,
-                                        excel_row,
-                                        pricelist_item_vals,
-                                        client_ref=client_ref,
-                                        product_code=product_code,
-                                        row_data=row,
-                                    )
+                                    if not provider and not float(discount):
+                                        # Un descuento global del 0 % no cambia el precio y, al
+                                        # ir antes, taparía la línea global basada en otra tarifa.
+                                        self._trace_row(excel_row, "descuento global 0 %. Línea omitida", row_data=row)
+                                    else:
+                                        print("Pricelist item vals 6: ", pricelist_item_vals)
+                                        self._upsert_pricelist_item(
+                                            errors,
+                                            excel_row,
+                                            pricelist_item_vals,
+                                            search_domain=False if provider else self._global_item_domain(pricelist, date_start, date_end),
+                                            client_ref=client_ref,
+                                            product_code=product_code,
+                                            row_data=row,
+                                        )
                                 else:
                                     pricelist_item_vals = {
                                         'pricelist_id': pricelist.id,

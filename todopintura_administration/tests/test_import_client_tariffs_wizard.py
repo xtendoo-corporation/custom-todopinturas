@@ -53,3 +53,23 @@ class TestImportClientTariffsWizard(TransactionCase):
         self.assertTrue(pricelist)
         self.assertEqual(pricelist.name, 'Tarifa 3')
 
+
+    def test_global_item_domain_matches_only_same_date_window(self):
+        pricelist = self.env['product.pricelist'].create({'name': 'Tarifa Test Global'})
+        base = self.wizard._ensure_base_pricelist(3)
+        vals = {
+            'pricelist_id': pricelist.id,
+            'applied_on': '3_global',
+            'compute_price': 'formula',
+            'base': 'pricelist',
+            'base_pricelist_id': base.id,
+        }
+        errors = []
+        for _ in range(2):
+            self.wizard._upsert_pricelist_item(
+                errors, 2, dict(vals),
+                search_domain=self.wizard._global_item_domain(pricelist, None, None))
+        self.assertFalse(errors)
+        self.assertEqual(
+            self.env['product.pricelist.item'].search_count(
+                [('pricelist_id', '=', pricelist.id), ('applied_on', '=', '3_global')]), 1)
