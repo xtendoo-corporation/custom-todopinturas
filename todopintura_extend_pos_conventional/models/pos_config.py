@@ -14,6 +14,17 @@ class PosConfig(models.Model):
         readonly=True,
     )
 
+    def _get_available_pricelists(self):
+        self.ensure_one()
+        load_all = self.env["ir.config_parameter"].sudo().get_param(
+            "point_of_sale.pos_load_all_pricelists"
+        )
+        if load_all and load_all != "False":
+            return self.env["product.pricelist"].search(
+                [("company_id", "in", [self.company_id.id, False])]
+            )
+        return super()._get_available_pricelists()
+
     def _is_conventional_pos_config(self):
         self.ensure_one()
         return bool(getattr(self, "pos_non_touch", False))

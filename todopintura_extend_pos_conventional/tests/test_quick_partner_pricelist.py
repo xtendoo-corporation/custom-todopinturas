@@ -31,3 +31,15 @@ class TestQuickPartnerPricelist(TransactionCase):
             {"name": "B", "property_product_pricelist": allowed.id}
         )
         self.assertEqual(partner.property_product_pricelist, allowed)
+
+
+@tagged("post_install", "-at_install")
+class TestLoadAllPricelists(TransactionCase):
+    def test_load_all_pricelists(self):
+        config = self.env["pos.config"].search([], limit=1)
+        param = self.env["ir.config_parameter"].sudo()
+        param.set_param("point_of_sale.pos_load_all_pricelists", "")
+        pl = self.env["product.pricelist"].create({"name": "PL extra"})
+        self.assertNotIn(pl, config._get_available_pricelists())
+        param.set_param("point_of_sale.pos_load_all_pricelists", "True")
+        self.assertIn(pl, config._get_available_pricelists())
