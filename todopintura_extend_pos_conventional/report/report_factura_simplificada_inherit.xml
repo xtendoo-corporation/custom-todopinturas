@@ -8,7 +8,8 @@
         <xpath expr="//div[hasclass('page')]" position="replace">
             <div class="page tp-ticket">
                 <style>
-                    .tp-ticket { font-family: "Courier New", Courier, monospace; font-size: 12px; line-height: 1.25; color: #000; }
+                    .page.tp-ticket { padding: 2mm 1mm 4mm 1mm !important; }
+                    .tp-ticket { font-family: "Courier New", Courier, monospace; font-size: 15px; line-height: 1.25; color: #000; }
                     .tp-ticket .tp-center { text-align: center; }
                     .tp-ticket .tp-title { text-align: center; font-weight: bold; font-size: 1.2em; letter-spacing: .18em; text-transform: uppercase; }
                     .tp-ticket .tp-stars { overflow: hidden; white-space: nowrap; margin: 3px 0; text-align: center; }
