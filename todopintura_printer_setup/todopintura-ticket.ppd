@@ -1,0 +1,61 @@
+*PPD-Adobe: "4.3"
+*FormatVersion: "4.3"
+*FileVersion: "1.0"
+*LanguageVersion: Spanish
+*LanguageEncoding: ISOLatin1
+*PCFileName: "TPTICKET.PPD"
+*Manufacturer: "Epson"
+*Product: "(TM-T88IV TodoPintura)"
+*ModelName: "TM-T88IV TodoPintura"
+*ShortNickName: "TM-T88IV TodoPintura"
+*NickName: "Epson TM-T88IV ticket TodoPintura (ESC/POS imagen 8 puntos)"
+*PSVersion: "(3010.000) 0"
+*LanguageLevel: "3"
+*ColorDevice: False
+*DefaultColorSpace: Gray
+*FileSystem: False
+*Throughput: "1"
+*LandscapeOrientation: Plus90
+*TTRasterizer: Type42
+*cupsVersion: 2.4
+*cupsModelNumber: 0
+*cupsFilter: "application/pdf 0 pdf2escpos8"
+
+*OpenUI *PageSize/Tamaño del papel: PickOne
+*OrderDependency: 10 AnySetup *PageSize
+*DefaultPageSize: 80mmx200mm
+*PageSize 80mmx200mm/80 mm x 200 mm: "<</PageSize[227 567]>>setpagedevice"
+*PageSize 80mmx297mm/80 mm x 297 mm: "<</PageSize[227 842]>>setpagedevice"
+*PageSize 80mmx1000mm/80 mm x 1000 mm: "<</PageSize[227 2835]>>setpagedevice"
+*CloseUI: *PageSize
+
+*OpenUI *PageRegion/Tamaño del papel: PickOne
+*OrderDependency: 10 AnySetup *PageRegion
+*DefaultPageRegion: 80mmx200mm
+*PageRegion 80mmx200mm/80 mm x 200 mm: "<</PageSize[227 567]>>setpagedevice"
+*PageRegion 80mmx297mm/80 mm x 297 mm: "<</PageSize[227 842]>>setpagedevice"
+*PageRegion 80mmx1000mm/80 mm x 1000 mm: "<</PageSize[227 2835]>>setpagedevice"
+*CloseUI: *PageRegion
+
+*DefaultImageableArea: 80mmx200mm
+*ImageableArea 80mmx200mm/80 mm x 200 mm: "0 0 227 567"
+*ImageableArea 80mmx297mm/80 mm x 297 mm: "0 0 227 842"
+*ImageableArea 80mmx1000mm/80 mm x 1000 mm: "0 0 227 2835"
+
+*DefaultPaperDimension: 80mmx200mm
+*PaperDimension 80mmx200mm/80 mm x 200 mm: "227 567"
+*PaperDimension 80mmx297mm/80 mm x 297 mm: "227 842"
+*PaperDimension 80mmx1000mm/80 mm x 1000 mm: "227 2835"
+
+*MaxMediaWidth: "227"
+*MaxMediaHeight: "11339"
+*HWMargins: 0 0 0 0
+*CustomPageSize True: "pop pop pop <</PageSize[5 -2 roll]/ImagingBBox null>>setpagedevice"
+*ParamCustomPageSize Width: 1 points 164 227
+*ParamCustomPageSize Height: 2 points 28 11339
+*ParamCustomPageSize WidthOffset: 3 points 0 0
+*ParamCustomPageSize HeightOffset: 4 points 0 0
+*ParamCustomPageSize Orientation: 5 int 0 0
+
+*DefaultResolution: 203dpi
+*% Fin del PPD

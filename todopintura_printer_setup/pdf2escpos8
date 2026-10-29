@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""Filtro CUPS: PDF -> ESC/POS con imagen de 8 puntos (ESC * 1).
+
+Pensado para las Epson TM-T88IV con interfaz UB-U05 de las tiendas de TodoPintura:
+no aceptan GS v 0, GS ( L, GS * ni ESC * de 24 puntos (los imprimen como texto),
+solo ESC * 0/1. Por eso no sirven los filtros rastertozj / zj-58.
+
+Uso CUPS:  pdf2escpos8 job usuario titulo copias opciones [fichero]
+Geometría medida en la TM-T88IV: cada franja ESC * 1 imprime 8 puntos a resolución vertical
+de ~16 puntos reales (cada fila de imagen = ~2 puntos, ~100 dpi vertical) y el interlineado
+ESC 3 n avanza ~1,13 puntos por unidad: n=14 avanza ~16 puntos, justo lo que mide la franja,
+y la siguiente encaja sin solape ni rendija. Medido con barras macizas (ver README).
+Por eso la imagen se reduce a la mitad en vertical (rowdots=2).
+
+Ajustes (en /etc/todopintura-printer.conf, formato clave=valor):
+  width=400      puntos útiles de la impresora (con 416 se corta por la derecha)
+  pitch=12       valor de ESC 3 entre franjas; con overlap=1 debe avanzar 7 filas (~14 puntos)
+  overlap=1      filas de imagen que se repiten entre franjas consecutivas. La fila repetida
+                 cubre la unión: una rendija o solape de 1-2 puntos ya no corta el texto
+  rowdots=2      puntos reales que ocupa cada fila de imagen (reduce el alto en esa proporción)
+  threshold=165  umbral blanco/negro (0-255); más alto = trazo más grueso
+  debug_dir=     (opcional) carpeta donde guardar el PDF recibido y el ESC/POS generado
+  mode=text      text = el ticket se imprime como TEXTO nativo de la impresora (nítido, rápido y
+                 sin líneas entre franjas); image = imagen en franjas de 8 puntos (para PDFs que
+                 no son un ticket de texto, p. ej. con logos). En modo text, si el PDF no se
+                 puede leer como texto se usa image automáticamente.
+  codepage=19    página de códigos ESC t (19 = CP858: acentos, ñ, º y €)
+"""
+import os
+import statistics
+import subprocess
+import sys
+import tempfile
+import xml.etree.ElementTree as ET
+
+from PIL import Image
+
+CONF_FILE = os.environ.get("TODOPINTURA_PRINTER_CONF", "/etc/todopintura-printer.conf")
+DPI = 203
+
+
+def load_conf():
+    conf = {"width": 400, "pitch": 12, "threshold": 165, "rowdots": 2, "overlap": 1,
+            "codepage": 19, "mode": "text"}
+    text_keys = ("debug_dir", "mode")
+    try:
+        with open(CONF_FILE) as handle:
+            for line in handle:
+                line = line.split("#", 1)[0].strip()
+                if "=" in line:
+                    key, value = (part.strip() for part in line.split("=", 1))
+                    if key in text_keys:
+                        conf[key] = value
+                    elif key in conf and value.isdigit():
+                        conf[key] = int(value)
+    except OSError:
+        pass
+    return conf
+
+
+def pdf_to_image(path):
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(
+            ["pdftoppm", "-r", str(DPI), "-gray", "-png", path, os.path.join(tmp, "p")],
+            check=True,
+        )
+        pages = sorted(name for name in os.listdir(tmp) if name.endswith(".png"))
+        images = []
+        for name in pages:
+            image = Image.open(os.path.join(tmp, name)).convert("L")
+            image.load()
+            images.append(image)
+    width = max(image.width for image in images)
+    merged = Image.new("L", (width, sum(image.height for image in images)), 255)
+    top = 0
+    for image in images:
+        merged.paste(image, (0, top))
+        top += image.height
+    return merged
+
+
+def trim_bottom(image):
+    bbox = image.point(lambda value: 255 - value).getbbox()
+    if not bbox:
+        return image
+    return image.crop((0, 0, image.width, min(image.height, bbox[3] + 8)))
+
+
+def to_escpos(image, width, pitch, threshold, rowdots=2, overlap=1):
+    image = trim_bottom(image)
+    new_height = max(1, round(image.height * width / image.width / rowdots))
+    image = image.resize((width, new_height), Image.LANCZOS)
+    # Umbral en lugar de tramado: el tramado deja filas de puntos sueltos junto al texto.
+    image = image.point(lambda value: 0 if value < threshold else 255).convert("1")
+    step = 8 - overlap
+    tops = list(range(0, max(1, new_height - overlap), step))
+    height = tops[-1] + 8
+    page = Image.new("1", (width, height), 1)
+    page.paste(image, (0, 0))
+    pixels = page.load()
+    out = bytearray(b"\x1b@\x1b3" + bytes([pitch]))  # reset e interlineado entre franjas
+    for top in tops:
+        out += b"\x1b*\x01" + bytes([width & 255, width >> 8])
+        for x in range(width):
+            byte = 0
+            for row in range(8):
+                byte = (byte << 1) | (1 if pixels[x, top + row] == 0 else 0)
+            out.append(byte)
+        out.append(0x0A)
+    out += b"\x1b2\n\n\n\x1dV\x42\x00"  # interlineado normal, avance y corte parcial
+    return bytes(out)
+
+
+FONT_DOTS = {0: 12, 1: 9}  # ancho de carácter en puntos: fuente A (12x24) y B (9x17)
+
+
+def pdf_to_lines(path):
+    """Texto del PDF como líneas [(columna, texto, negrita, tamaño)], con la posición de cada trozo.
+
+    Usa pdftohtml -xml, que da posición, tamaño y negrita de cada trozo de texto.
+    """
+    xml = subprocess.run(
+        ["pdftohtml", "-xml", "-stdout", "-i", "-q", path],
+        check=True, capture_output=True,
+    ).stdout
+    root = ET.fromstring(xml)
+    chunks = []
+    offset = 0.0
+    for page in root.iter("page"):
+        for node in page.iter("text"):
+            text = "".join(node.itertext()).replace("\xa0", " ")
+            if not text.strip():
+                continue
+            chunks.append({
+                "top": offset + float(node.get("top")), "left": float(node.get("left")),
+                "width": float(node.get("width")), "text": text,
+                "bold": node.find("b") is not None,
+                "size": float(page.find("fontspec[@id='%s']" % node.get("font")).get("size")),
+            })
+        offset += float(page.get("height"))
+    if not chunks:
+        raise ValueError("el PDF no contiene texto")
+    charw = statistics.median(c["width"] / len(c["text"]) for c in chunks if len(c["text"]) >= 3)
+    base = statistics.median(c["size"] for c in chunks)
+    rows = []
+    for chunk in sorted(chunks, key=lambda c: (c["top"], c["left"])):
+        if rows and abs(rows[-1]["top"] - chunk["top"]) <= 5:
+            rows[-1]["items"].append(chunk)
+        else:
+            rows.append({"top": chunk["top"], "items": [chunk]})
+    return rows, charw, base
+
+
+def to_escpos_text(path, conf):
+    rows, charw, base = pdf_to_lines(path)
+    min_left = min(item["left"] for row in rows for item in row["items"])
+    layout = []
+    for row in rows:
+        segments = []
+        for item in sorted(row["items"], key=lambda c: c["left"]):
+            col = int(round((item["left"] - min_left) / charw))
+            segments.append((col, item["text"], item["bold"], item["size"]))
+        layout.append((row["top"], segments))
+    cols = max(col + len(text.rstrip()) for _top, segs in layout for col, text, _b, _s in segs)
+    font = 0 if cols <= conf["width"] // FONT_DOTS[0] else 1
+    if cols > conf["width"] // FONT_DOTS[font]:
+        raise ValueError("el ticket tiene %d columnas y no cabe en %d puntos" % (cols, conf["width"]))
+    sys.stderr.write("INFO: pdf2escpos8: modo texto, %d columnas, fuente %s\n" % (cols, "AB"[font]))
+    gaps = [b[0] - a[0] for a, b in zip(layout, layout[1:]) if b[0] - a[0] > 0]
+    pitch = statistics.median(gaps) if gaps else 20
+    out = bytearray(b"\x1b@\x1bt" + bytes([conf["codepage"]]) + b"\x1bM" + bytes([font]))
+    previous = None
+    for top, segments in layout:
+        if previous is not None:
+            for _ in range(min(2, max(0, int(round((top - previous) / pitch)) - 1))):
+                out += b"\n"
+        previous = top
+        line, bold, big = bytearray(), False, False
+        out_col = 0
+        for col, text, is_bold, size in segments:
+            line += b" " * max(0, col - out_col)
+            is_big = size >= base * 1.15
+            if is_bold != bold:
+                line += b"\x1bE" + (b"\x01" if is_bold else b"\x00")
+                bold = is_bold
+            if is_big != big:
+                line += b"\x1d!" + (b"\x01" if is_big else b"\x00")  # doble alto, mismas columnas
+                big = is_big
+            line += text.encode("cp858", errors="replace")
+            out_col = max(out_col, col) + len(text)
+        if bold:
+            line += b"\x1bE\x00"
+        if big:
+            line += b"\x1d!\x00"
+        out += bytes(line) + b"\n"
+    out += b"\n\n\n\x1dV\x42\x00"
+    return bytes(out)
+
+
+def main():
+    if len(sys.argv) not in (6, 7):
+        sys.stderr.write("ERROR: uso: pdf2escpos8 job usuario titulo copias opciones [fichero]\n")
+        return 1
+    source = sys.argv[6] if len(sys.argv) == 7 else None
+    temp_path = None
+    if source is None:
+        handle = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        handle.write(sys.stdin.buffer.read())
+        handle.close()
+        source = temp_path = handle.name
+    try:
+        conf = load_conf()
+        copies = max(1, int(sys.argv[4])) if sys.argv[4].isdigit() else 1
+        image = None
+        data = None
+        if conf["mode"] == "text":
+            try:
+                data = to_escpos_text(source, conf)
+            except Exception as exc:  # sin texto legible: se imprime como imagen
+                sys.stderr.write("INFO: pdf2escpos8: modo texto no aplicable (%s); se usa imagen\n" % exc)
+        if data is None:
+            image = pdf_to_image(source)
+            data = to_escpos(image, conf["width"], conf["pitch"], conf["threshold"], conf["rowdots"], conf["overlap"])
+        debug_dir = conf.get("debug_dir")
+        if debug_dir:
+            os.makedirs(debug_dir, exist_ok=True)
+            stamp = "job%s" % sys.argv[1]
+            with open(source, "rb") as src, open(os.path.join(debug_dir, stamp + ".pdf"), "wb") as dst:
+                dst.write(src.read())
+            with open(os.path.join(debug_dir, stamp + ".bin"), "wb") as dst:
+                dst.write(data)
+            if image is not None:
+                image.save(os.path.join(debug_dir, stamp + ".png"))
+        sys.stdout.buffer.write(data * copies)
+        sys.stdout.buffer.flush()
+    except Exception as exc:  # CUPS muestra stderr en el log
+        sys.stderr.write("ERROR: pdf2escpos8: %s\n" % exc)
+        return 1
+    finally:
+        if temp_path:
+            os.unlink(temp_path)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
