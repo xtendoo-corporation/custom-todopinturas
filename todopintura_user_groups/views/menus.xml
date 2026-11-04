@@ -47,8 +47,8 @@
     <menuitem id="menu_vc_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_vc_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
     <menuitem id="menu_vc_transfers_print" name="Impresión de partes de almacén" parent="menu_vc_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
 
-    <!-- Ventas de tiendas -->
-    <menuitem id="menu_vt_root" name="Ventas de tiendas" sequence="50" groups="group_06_ventas_de_tiendas,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <!-- Ventas de POS (stores) -->
+    <menuitem id="menu_vt_root" name="Ventas de POS" sequence="50" groups="group_06_ventas_de_tiendas,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
     <menuitem id="menu_vt_sales_entry" name="Grabación de ventas" parent="menu_vt_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_va01"/>
     <menuitem id="menu_vt_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vt_root" sequence="20" action="point_of_sale.action_pos_session" groups="perm_va03"/>
     <menuitem id="menu_vt_cash_listing" name="Listado de cuadre de caja" parent="menu_vt_root" sequence="30" action="point_of_sale.action_pos_session" groups="perm_va0303"/>

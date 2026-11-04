@@ -195,7 +195,7 @@ class TestTodopinturaUserGroups(TransactionCase):
                 "Pedidos de y para tiendas",
                 "Entradas de proveedor",
                 "Ventas de almacén central",
-                "Ventas de tiendas",
+                "Ventas de POS",
                 "Comerciales",
             },
         )
