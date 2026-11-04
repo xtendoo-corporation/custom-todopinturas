@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Editable by the customer: loaded once and never overwritten. -->
+    <record id="pricelist_outlet" model="product.pricelist">
+        <field name="name">Ofertas clientes/outlets</field>
+    </record>
+</odoo>

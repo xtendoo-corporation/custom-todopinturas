@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Warehouses of the central store and the nine shops. Editable by the customer,
+         so they are never overwritten on module update. The "Ecopintura" warehouse is
+         intentionally not defined here (pending confirmation with the customer). -->
+    <record id="warehouse_central" model="stock.warehouse">
+        <field name="name">Almacén central</field>
+        <field name="code">ALM</field>
+    </record>
+    <record id="warehouse_cantillana" model="stock.warehouse">
+        <field name="name">Cantillana</field>
+        <field name="code">CAN</field>
+    </record>
+    <record id="warehouse_lora_del_rio" model="stock.warehouse">
+        <field name="name">Lora del Río</field>
+        <field name="code">LOR</field>
+    </record>
+    <record id="warehouse_ronda_de_tamarguillo" model="stock.warehouse">
+        <field name="name">Ronda de Tamarguillo</field>
+        <field name="code">RON</field>
+    </record>
+    <record id="warehouse_pino_montano" model="stock.warehouse">
+        <field name="name">Pino Montano</field>
+        <field name="code">PIN</field>
+    </record>
+    <record id="warehouse_sanlucar_la_mayor" model="stock.warehouse">
+        <field name="name">Sanlúcar la Mayor</field>
+        <field name="code">SAN</field>
+    </record>
+    <record id="warehouse_bermejales" model="stock.warehouse">
+        <field name="name">Bermejales</field>
+        <field name="code">BER</field>
+    </record>
+    <record id="warehouse_huelva" model="stock.warehouse">
+        <field name="name">Huelva</field>
+        <field name="code">HUE</field>
+    </record>
+    <record id="warehouse_ayamonte" model="stock.warehouse">
+        <field name="name">Ayamonte</field>
+        <field name="code">AYA</field>
+    </record>
+
+    <!-- Each POS uses the "PoS Orders" operation type of its warehouse. -->
+    <record id="pos_config_central_1" model="pos.config">
+        <field name="name">TPV Almacén central – Caja 1</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_central')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_central_2" model="pos.config">
+        <field name="name">TPV Almacén central – Caja 2</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_central')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_cantillana" model="pos.config">
+        <field name="name">TPV Cantillana</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_cantillana')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_lora_del_rio" model="pos.config">
+        <field name="name">TPV Lora del Río</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_lora_del_rio')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_ronda_de_tamarguillo" model="pos.config">
+        <field name="name">TPV Ronda de Tamarguillo</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_ronda_de_tamarguillo')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_pino_montano" model="pos.config">
+        <field name="name">TPV Pino Montano</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_pino_montano')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_sanlucar_la_mayor" model="pos.config">
+        <field name="name">TPV Sanlúcar la Mayor</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_sanlucar_la_mayor')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_bermejales" model="pos.config">
+        <field name="name">TPV Bermejales</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_bermejales')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_huelva" model="pos.config">
+        <field name="name">TPV Huelva</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_huelva')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+    <record id="pos_config_ayamonte" model="pos.config">
+        <field name="name">TPV Ayamonte</field>
+        <field name="picking_type_id" search="[('warehouse_id', '=', ref('warehouse_ayamonte')), ('sequence_code', '=', 'POS')]"/>
+    </record>
+</odoo>

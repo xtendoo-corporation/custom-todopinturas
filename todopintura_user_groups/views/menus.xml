@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- One root menu per profile. Children are visible per granular group.
+         Restricted users only see these menus (see models/ir_ui_menu.py). -->
+
+    <!-- Pedidos de clientes -->
+    <menuitem id="menu_pc_root" name="Pedidos de clientes" sequence="10" groups="group_01_gestion_de_pedidos"/>
+    <menuitem id="menu_pc_sales_entry" name="Grabación de ventas" parent="menu_pc_root" sequence="10" action="sale.action_quotations_with_onboarding" groups="perm_v01alm"/>
+    <menuitem id="menu_pc_offers" name="Consulta de ofertas" parent="menu_pc_root" sequence="20" action="action_offers_consult" groups="perm_of01"/>
+    <menuitem id="menu_pc_prices" name="Consulta de precios" parent="menu_pc_root" sequence="30" action="sale.product_template_action" groups="perm_m02p"/>
+    <menuitem id="menu_pc_stock" name="Consulta de existencias" parent="menu_pc_root" sequence="40" action="stock.product_template_action_product" groups="perm_m02nc"/>
+    <menuitem id="menu_pc_reprint" name="Reimpresión de documentos" parent="menu_pc_root" sequence="50" action="account.action_move_out_invoice_type" groups="perm_v08alm"/>
+    <menuitem id="menu_pc_customers" name="Consulta de clientes" parent="menu_pc_root" sequence="60" action="action_partners_consult" groups="perm_m01pro"/>
+
+    <!-- Pedidos de y para tiendas -->
+    <menuitem id="menu_pt_root" name="Pedidos de y para tiendas" sequence="20" groups="group_02_pedidos_de_y_para_tiendas"/>
+    <menuitem id="menu_pt_weekly_replenishment" name="Listado de reposición semanal de tiendas" parent="menu_pt_root" sequence="10" action="stock.action_orderpoint_replenish" groups="perm_gs10ped"/>
+    <menuitem id="menu_pt_movement_entry" name="Grabación de partes de movimiento de almacén" parent="menu_pt_root" sequence="20" action="stock.action_picking_tree_internal" groups="perm_a01"/>
+    <!-- PENDING with the customer: physical inventory adjustment. -->
+    <menuitem id="menu_pt_stock_update" name="Actualización de existencias y adición a histórico" parent="menu_pt_root" sequence="30" action="stock.action_view_inventory_tree" groups="perm_a03"/>
+    <menuitem id="menu_pt_movement_reprint" name="Reimpresión de partes de almacén" parent="menu_pt_root" sequence="40" action="stock.action_picking_tree_all" groups="perm_a0707"/>
+    <menuitem id="menu_pt_branch_transfers" name="Listado de traspasos entre sucursales" parent="menu_pt_root" sequence="50" action="action_internal_transfers_list" groups="perm_e1717"/>
+
+    <!-- Entradas de proveedor -->
+    <menuitem id="menu_ep_root" name="Entradas de proveedor" sequence="30" groups="group_03_gestion_de_entradas_de_proveedor"/>
+    <menuitem id="menu_ep_purchase_entry" name="Grabación de pedidos a proveedores" parent="menu_ep_root" sequence="10" action="purchase.purchase_rfq" groups="perm_ar01"/>
+    <menuitem id="menu_ep_purchase_review" name="Listado repaso de pedidos a proveedores" parent="menu_ep_root" sequence="20" action="purchase.purchase_form_action" groups="perm_ar02"/>
+    <menuitem id="menu_ep_pending_orders" name="Vuelco a pedidos pendientes y carta de pedido" parent="menu_ep_root" sequence="30" action="purchase.purchase_rfq" groups="perm_ar03"/>
+    <menuitem id="menu_ep_stock" name="Consulta de existencias" parent="menu_ep_root" sequence="40" action="stock.product_template_action_product" groups="perm_m02nc"/>
+    <menuitem id="menu_ep_stock_control" name="Listado de artículos para control de stock" parent="menu_ep_root" sequence="50" action="action_stock_control_products" groups="perm_l10"/>
+    <menuitem id="menu_ep_product_search" name="Búsqueda de artículo" parent="menu_ep_root" sequence="60" action="action_product_search" groups="perm_m02b"/>
+    <menuitem id="menu_ep_barcodes" name="Mantenimiento de códigos de barras" parent="menu_ep_root" sequence="70" action="action_product_barcodes" groups="perm_m020"/>
+    <menuitem id="menu_ep_below_minimum" name="Listado de artículos bajo mínimos + precio de proveedor" parent="menu_ep_root" sequence="80" action="stock.action_orderpoint" groups="perm_gs11"/>
+
+    <!-- Ventas de almacén central -->
+    <menuitem id="menu_vc_root" name="Ventas de almacén central" sequence="40" groups="group_04_ventas_de_almacen_central,group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <menuitem id="menu_vc_sales_entry" name="Grabación de ventas" parent="menu_vc_root" sequence="10" action="sale.action_quotations_with_onboarding" groups="perm_v01"/>
+    <menuitem id="menu_vc_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vc_root" sequence="20" action="point_of_sale.action_pos_session" groups="perm_v03"/>
+    <menuitem id="menu_vc_prices" name="Consulta de precios" parent="menu_vc_root" sequence="30" action="sale.product_template_action" groups="perm_m02p_almacen_central"/>
+    <menuitem id="menu_vc_stock" name="Consulta de existencias" parent="menu_vc_root" sequence="40" action="stock.product_template_action_product" groups="perm_m02nc"/>
+    <menuitem id="menu_vc_reprint" name="Reimpresión de documentos" parent="menu_vc_root" sequence="50" action="account.action_move_out_invoice_type" groups="perm_v08"/>
+    <menuitem id="menu_vc_transfers" name="Traspasos y ventas de otras tiendas" parent="menu_vc_root" sequence="60" groups="perm_menu_va80"/>
+    <menuitem id="menu_vc_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_vc_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
+    <menuitem id="menu_vc_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_vc_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
+    <menuitem id="menu_vc_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vc_transfers" sequence="30" action="sale.action_orders" groups="perm_oc01pt"/>
+    <menuitem id="menu_vc_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_vc_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
+    <menuitem id="menu_vc_transfers_print" name="Impresión de partes de almacén" parent="menu_vc_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
+
+    <!-- Ventas de tiendas -->
+    <menuitem id="menu_vt_root" name="Ventas de tiendas" sequence="50" groups="group_06_ventas_de_tiendas,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <menuitem id="menu_vt_sales_entry" name="Grabación de ventas" parent="menu_vt_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_va01"/>
+    <menuitem id="menu_vt_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vt_root" sequence="20" action="point_of_sale.action_pos_session" groups="perm_va03"/>
+    <menuitem id="menu_vt_cash_listing" name="Listado de cuadre de caja" parent="menu_vt_root" sequence="30" action="point_of_sale.action_pos_session" groups="perm_va0303"/>
+    <menuitem id="menu_vt_offers_entry" name="Grabación de ofertas" parent="menu_vt_root" sequence="40" action="sale.action_quotations_with_onboarding" groups="perm_va05"/>
+    <menuitem id="menu_vt_prices" name="Consulta de precios" parent="menu_vt_root" sequence="50" action="sale.product_template_action" groups="perm_va02p"/>
+    <menuitem id="menu_vt_stock" name="Consulta de existencias" parent="menu_vt_root" sequence="60" action="stock.product_template_action_product" groups="perm_m02nc"/>
+    <menuitem id="menu_vt_reprint" name="Reimpresión de documentos" parent="menu_vt_root" sequence="70" action="point_of_sale.action_pos_pos_form" groups="perm_va08"/>
+    <menuitem id="menu_vt_cumulative_sales" name="Listado de ventas acumulado" parent="menu_vt_root" sequence="80" action="point_of_sale.action_pos_sale_graph" groups="perm_va14"/>
+    <menuitem id="menu_vt_credit_sales_query" name="Consulta de ventas a cuenta" parent="menu_vt_root" sequence="90" action="action_credit_sales" groups="perm_va10"/>
+    <menuitem id="menu_vt_credit_sales_list" name="Listado de ventas a cuenta" parent="menu_vt_root" sequence="100" action="action_credit_sales" groups="perm_va11"/>
+    <menuitem id="menu_vt_transfers" name="Traspasos y ventas de otras tiendas" parent="menu_vt_root" sequence="110" groups="perm_menu_va80"/>
+    <menuitem id="menu_vt_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_vt_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
+    <menuitem id="menu_vt_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_vt_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
+    <menuitem id="menu_vt_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vt_transfers" sequence="30" action="sale.action_orders" groups="perm_oc01pt"/>
+    <menuitem id="menu_vt_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_vt_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
+    <menuitem id="menu_vt_transfers_print" name="Impresión de partes de almacén" parent="menu_vt_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
+    <menuitem id="menu_vt_misc" name="Consulta varias" parent="menu_vt_root" sequence="120" groups="perm_menu_va20"/>
+    <menuitem id="menu_vt_customers" name="Consulta de clientes" parent="menu_vt_misc" sequence="10" action="action_partners_consult" groups="perm_consulta_de_clientes"/>
+
+    <!-- Comerciales (also entry point of the "Informes estadísticos" profile) -->
+    <menuitem id="menu_co_root" name="Comerciales" sequence="60" groups="group_08_menu_de_comerciales,group_09_informes_estadisticos_menu_of002"/>
+    <menuitem id="menu_co_offers" name="Gestión de ofertas" parent="menu_co_root" sequence="10" action="sale.action_quotations_with_onboarding" groups="perm_menu_of001"/>
+    <menuitem id="menu_co_orders" name="Consulta de ofertas realizadas por compras" parent="menu_co_root" sequence="20" action="sale.action_orders" groups="perm_oc01pr"/>
+    <menuitem id="menu_co_reports" name="Informes estadísticos" parent="menu_co_root" sequence="30" groups="group_09_informes_estadisticos_menu_of002"/>
+    <menuitem id="menu_co_report_sales_by_customer" name="Ventas por clientes" parent="menu_co_reports" sequence="10" action="action_report_sales_by_customer" groups="perm_of10"/>
+    <menuitem id="menu_co_report_year_comparison" name="Comparativa de ventas de clientes entre dos años" parent="menu_co_reports" sequence="20" action="action_report_sales_year_comparison" groups="perm_of11"/>
+    <menuitem id="menu_co_report_commissions" name="Ventas para comisiones" parent="menu_co_reports" sequence="30" action="action_report_sales_commissions" groups="perm_of0023"/>
+    <menuitem id="menu_co_report_budget_status" name="Estado del presupuesto por comercial" parent="menu_co_reports" sequence="40" action="action_report_budget_status" groups="perm_e8004"/>
+    <menuitem id="menu_co_report_monthly_sales" name="Venta mensual por cliente" parent="menu_co_reports" sequence="50" action="action_report_monthly_sales_by_customer" groups="perm_e03"/>
+    <menuitem id="menu_co_report_customer_sales" name="Listado de ventas de clientes" parent="menu_co_reports" sequence="60" action="action_report_customer_sales_list" groups="perm_e11com"/>
+    <menuitem id="menu_co_report_huelva" name="Ventas delegación Huelva" parent="menu_co_reports" sequence="70" action="action_report_sales_huelva" groups="perm_of0024"/>
+    <menuitem id="menu_co_report_customers_by_salesperson" name="Listado de clientes por vendedor y ventas" parent="menu_co_reports" sequence="80" action="action_partners_by_salesperson" groups="perm_l0203"/>
+    <menuitem id="menu_co_customer_maintenance" name="Mantenimiento de clientes" parent="menu_co_root" sequence="40" action="contacts.action_contacts" groups="perm_m01com"/>
+    <menuitem id="menu_co_outlet_offers" name="Ofertas clientes/outlets" parent="menu_co_root" sequence="60" action="action_pricelist_outlet" groups="perm_of82"/>
+    <menuitem id="menu_co_stock" name="Consulta de existencias" parent="menu_co_root" sequence="70" action="stock.product_template_action_product" groups="perm_m02nc"/>
+    <menuitem id="menu_co_customers" name="Consulta de clientes" parent="menu_co_root" sequence="80" action="action_partners_consult" groups="perm_of002"/>
+</odoo>
