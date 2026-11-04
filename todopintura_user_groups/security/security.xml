@@ -184,12 +184,12 @@
 
     <!-- Ventas de tiendas -->
     <record id="perm_va01" model="res.groups">
-        <field name="name">Grabación de ventas (Tiendas)</field>
+        <field name="name">Grabación de ventas (POS)</field>
         <field name="sequence">100</field>
         <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('point_of_sale.group_pos_user'))]"/>
     </record>
     <record id="perm_va03" model="res.groups">
-        <field name="name">Listado de cuadre de caja y cierre diario de caja (Tiendas)</field>
+        <field name="name">Listado de cuadre de caja y cierre diario de caja (POS)</field>
         <field name="sequence">100</field>
         <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('point_of_sale.group_pos_user'))]"/>
     </record>
@@ -204,12 +204,12 @@
         <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman'))]"/>
     </record>
     <record id="perm_va02p" model="res.groups">
-        <field name="name">Consulta de precios (Tiendas)</field>
+        <field name="name">Consulta de precios (POS)</field>
         <field name="sequence">100</field>
         <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
     </record>
     <record id="perm_va08" model="res.groups">
-        <field name="name">Reimpresión de documentos (Tiendas)</field>
+        <field name="name">Reimpresión de documentos (POS)</field>
         <field name="sequence">100</field>
         <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
     </record>
@@ -229,7 +229,7 @@
         <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
     </record>
     <record id="perm_consulta_de_clientes" model="res.groups">
-        <field name="name">Consulta de clientes (Tiendas)</field>
+        <field name="name">Consulta de clientes (POS)</field>
         <field name="sequence">100</field>
         <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
     </record>
@@ -433,12 +433,12 @@
     </record>
 
     <record id="privilege_06_ventas_de_tiendas" model="res.groups.privilege">
-        <field name="name">Ventas de tiendas</field>
+        <field name="name">Ventas de POS</field>
         <field name="category_id" ref="module_category_todopintura"/>
         <field name="sequence">60</field>
     </record>
     <record id="group_06_ventas_de_tiendas" model="res.groups">
-        <field name="name">Ventas de tiendas</field>
+        <field name="name">Ventas de POS</field>
         <field name="sequence">60</field>
         <field name="privilege_id" ref="privilege_06_ventas_de_tiendas"/>
         <field name="implied_ids" eval="[
