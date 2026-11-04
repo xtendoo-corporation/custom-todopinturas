@@ -89,6 +89,12 @@ access_res_partner_m01pro,res.partner m01pro,base.model_res_partner,perm_m01pro,
 access_res_partner_of002,res.partner of002,base.model_res_partner,perm_of002,1,0,0,0
 access_res_partner_restricted,res.partner restricted,base.model_res_partner,group_todopintura_restricted,1,0,0,0
 access_res_partner_ventas_tiendas,res.partner ventas de tiendas,base.model_res_partner,group_06_ventas_de_tiendas,1,1,1,0
+access_pos_config_v01,pos.config v01,point_of_sale.model_pos_config,perm_v01,1,0,0,0
+access_pos_session_v01,pos.session v01,point_of_sale.model_pos_session,perm_v01,1,1,1,0
+access_pos_order_v01,pos.order v01,point_of_sale.model_pos_order,perm_v01,1,1,1,0
+access_pos_order_line_v01,pos.order.line v01,point_of_sale.model_pos_order_line,perm_v01,1,1,1,0
+access_pos_payment_v01,pos.payment v01,point_of_sale.model_pos_payment,perm_v01,1,1,1,0
+access_pos_payment_method_v01,pos.payment.method v01,point_of_sale.model_pos_payment_method,perm_v01,1,0,0,0
 access_todopintura_route_restricted,todopintura.route restricted,model_todopintura_route,group_todopintura_restricted,1,0,0,0
 access_todopintura_route_rc00,todopintura.route rc00,model_todopintura_route,perm_menu_rc00,1,1,1,1
 access_todopintura_weekday_restricted,todopintura.weekday restricted,model_todopintura_weekday,group_todopintura_restricted,1,0,0,0

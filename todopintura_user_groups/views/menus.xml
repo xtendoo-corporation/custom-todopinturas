@@ -35,7 +35,7 @@
 
     <!-- Ventas de almacén central -->
     <menuitem id="menu_vc_root" name="Ventas de almacén central" sequence="40" groups="group_04_ventas_de_almacen_central,group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
-    <menuitem id="menu_vc_sales_entry" name="Grabación de ventas" parent="menu_vc_root" sequence="10" action="sale.action_quotations_with_onboarding" groups="perm_v01"/>
+    <menuitem id="menu_vc_sales_entry" name="Grabación de ventas" parent="menu_vc_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_v01"/>
     <menuitem id="menu_vc_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vc_root" sequence="20" action="point_of_sale.action_pos_session" groups="perm_v03"/>
     <menuitem id="menu_vc_prices" name="Consulta de precios" parent="menu_vc_root" sequence="30" action="sale.product_template_action" groups="perm_m02p_almacen_central"/>
     <menuitem id="menu_vc_stock" name="Consulta de existencias" parent="menu_vc_root" sequence="40" action="stock.product_template_action_product" groups="perm_m02nc"/>
