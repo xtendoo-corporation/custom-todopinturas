@@ -14,7 +14,9 @@ from lxml import etree
 from odoo import Command
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import TransactionCase
+from odoo.tools.safe_eval import datetime as safe_datetime
 from odoo.tools.safe_eval import safe_eval
+from odoo.tools.safe_eval import time as safe_time
 
 MODULE = "todopintura_user_groups"
 STACK_MODULES = ("todopintura_extend_pos_conventional",)
