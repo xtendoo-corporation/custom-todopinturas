@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_route_list" model="ir.ui.view">
+        <field name="name">todopintura.route.list</field>
+        <field name="model">todopintura.route</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="partner_count"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_route_form" model="ir.ui.view">
+        <field name="name">todopintura.route.form</field>
+        <field name="model">todopintura.route</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="user_id" widget="many2one_avatar_user"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                    <field name="partner_ids" readonly="1">
+                        <list>
+                            <field name="display_name"/>
+                            <field name="visit_day_ids" widget="many2many_tags"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_route_search" model="ir.ui.view">
+        <field name="name">todopintura.route.search</field>
+        <field name="model">todopintura.route</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="user_id"/>
+                <filter name="inactive" string="Archivadas" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_user" string="Comercial" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_routes" model="ir.actions.act_window">
+        <field name="name">Zonas y rutas</field>
+        <field name="res_model">todopintura.route</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Customer form: route and visit days -->
+    <record id="view_partner_form_route" model="ir.ui.view">
+        <field name="name">res.partner.form.route</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='sales_purchases']//group[@name='sale']" position="inside">
+                <field name="route_id" options="{'no_create': True}"/>
+                <field name="visit_day_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Weekly planning: customers by salesperson and visit day -->
+    <record id="view_partner_route_planning_list" model="ir.ui.view">
+        <field name="name">res.partner.route.planning.list</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" import="0">
+                <field name="display_name"/>
+                <field name="route_user_id" widget="many2one_avatar_user"/>
+                <field name="route_id"/>
+                <field name="visit_day_ids" widget="many2many_tags"/>
+                <field name="city" optional="show"/>
+                <field name="phone" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_partner_route_planning_pivot" model="ir.ui.view">
+        <field name="name">res.partner.route.planning.pivot</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <pivot string="Planificación semanal">
+                <field name="route_user_id" type="row"/>
+                <field name="route_id" type="row"/>
+                <field name="visit_day_ids" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_partner_route_planning_search" model="ir.ui.view">
+        <field name="name">res.partner.route.planning.search</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="route_user_id"/>
+                <field name="route_id"/>
+                <field name="visit_day_ids"/>
+                <group>
+                    <filter name="group_salesperson" string="Comercial" context="{'group_by': 'route_user_id'}"/>
+                    <filter name="group_route" string="Zona" context="{'group_by': 'route_id'}"/>
+                    <filter name="group_day" string="Día de visita" context="{'group_by': 'visit_day_ids'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_route_planning" model="ir.actions.act_window">
+        <field name="name">Planificación semanal de rutas</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">pivot,list</field>
+        <field name="search_view_id" ref="view_partner_route_planning_search"/>
+        <field name="domain">[('route_id', '!=', False)]</field>
+        <field name="context">{'search_default_group_salesperson': 1}</field>
+    </record>
+    <record id="action_route_planning_pivot" model="ir.actions.act_window.view">
+        <field name="sequence">1</field>
+        <field name="view_mode">pivot</field>
+        <field name="view_id" ref="view_partner_route_planning_pivot"/>
+        <field name="act_window_id" ref="action_route_planning"/>
+    </record>
+    <record id="action_route_planning_list" model="ir.actions.act_window.view">
+        <field name="sequence">2</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_partner_route_planning_list"/>
+        <field name="act_window_id" ref="action_route_planning"/>
+    </record>
+</odoo>

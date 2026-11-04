@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Rates: no percentage is shipped, the customer has to define the rule. -->
+    <record id="view_commission_rate_list" model="ir.ui.view">
+        <field name="name">todopintura.commission.rate.list</field>
+        <field name="model">todopintura.commission.rate</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="categ_id"/>
+                <field name="rate"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_commission_rates" model="ir.actions.act_window">
+        <field name="name">Parametrización de comisiones</field>
+        <field name="res_model">todopintura.commission.rate</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Defina el porcentaje de comisión</p>
+            <p>
+                La regla de cálculo está pendiente de acordar con el cliente. Un porcentaje
+                por comercial, por categoría o por ambos; el más específico prevalece.
+                Mientras no haya porcentajes, el informe no calcula comisión.
+            </p>
+        </field>
+    </record>
+
+    <!-- Report -->
+    <record id="view_commission_report_pivot" model="ir.ui.view">
+        <field name="name">todopintura.commission.report.pivot</field>
+        <field name="model">todopintura.commission.report</field>
+        <field name="arch" type="xml">
+            <pivot string="Ventas para comisiones" sample="1">
+                <field name="user_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="price_subtotal" type="measure"/>
+                <field name="commission" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_commission_report_graph" model="ir.ui.view">
+        <field name="name">todopintura.commission.report.graph</field>
+        <field name="model">todopintura.commission.report</field>
+        <field name="arch" type="xml">
+            <graph string="Ventas para comisiones" type="bar" sample="1">
+                <field name="user_id"/>
+                <field name="commission" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_commission_report_list" model="ir.ui.view">
+        <field name="name">todopintura.commission.report.list</field>
+        <field name="model">todopintura.commission.report</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" edit="0">
+                <field name="date"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="partner_id"/>
+                <field name="order_id"/>
+                <field name="product_id"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="price_subtotal" sum="Total"/>
+                <field name="rate" optional="show"/>
+                <field name="commission" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_commission_report_search" model="ir.ui.view">
+        <field name="name">todopintura.commission.report.search</field>
+        <field name="model">todopintura.commission.report</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="partner_id"/>
+                <field name="categ_id"/>
+                <filter name="this_month" string="Este mes" domain="[('date', '>=', (context_today().replace(day=1)).strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter name="group_user" string="Comercial" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_categ" string="Categoría" context="{'group_by': 'categ_id'}"/>
+                    <filter name="group_month" string="Mes" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_report_sales_commissions" model="ir.actions.act_window">
+        <field name="name">Ventas para comisiones</field>
+        <field name="res_model">todopintura.commission.report</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="view_commission_report_search"/>
+    </record>
+</odoo>

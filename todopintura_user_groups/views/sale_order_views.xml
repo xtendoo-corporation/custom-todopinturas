@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Purchase history: read-only views over the existing order lines -->
+    <record id="sale_order_line_history_list" model="ir.ui.view">
+        <field name="name">sale.order.line.history.list</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" edit="0" default_order="order_id desc, id desc">
+                <field name="order_id"/>
+                <field name="product_id"/>
+                <field name="product_uom_qty" string="Pedido" sum="Total"/>
+                <field name="qty_delivered" string="Entregado" sum="Total"/>
+                <field name="qty_invoiced" string="Facturado" sum="Total"/>
+                <field name="price_unit"/>
+                <field name="discount" optional="show"/>
+                <field name="price_subtotal" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="sale_order_line_history_pivot" model="ir.ui.view">
+        <field name="name">sale.order.line.history.pivot</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Historial de compras">
+                <field name="product_id" type="row"/>
+                <field name="qty_invoiced" type="measure"/>
+                <field name="qty_delivered" type="measure"/>
+                <field name="price_subtotal" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_order_form_purchase_history" model="ir.ui.view">
+        <field name="name">sale.order.form.purchase.history</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_purchase_history" type="object" class="oe_stat_button"
+                        icon="fa-history" string="Historial de compras" invisible="not partner_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

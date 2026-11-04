@@ -18,13 +18,25 @@ class IrUiMenu(models.Model):
             f"{MODULE}.group_todopintura_restricted"
         ):
             return visible
-        own_groups = self.env["res.groups"].browse(user._get_group_ids()).filtered(
-            lambda g: g.get_external_id().get(g.id, "").startswith(f"{MODULE}.")
+        own_groups = (
+            self.env["res.groups"]
+            .browse(user._get_group_ids())
+            .filtered(
+                lambda g: g.get_external_id().get(g.id, "").startswith(f"{MODULE}.")
+            )
         )
-        allowed_menus = self.sudo().with_context(active_test=False).search(
-            [("group_ids", "in", own_groups.ids)]
+        allowed_menus = (
+            self.sudo()
+            .with_context(active_test=False)
+            .search([("group_ids", "in", own_groups.ids)])
         )
         allowed = set(allowed_menus.ids)
         for menu in allowed_menus:
             allowed.update(int(i) for i in menu.parent_path.split("/")[:-1])
-        return visible & allowed
+        reachable = visible & allowed
+        menus = self.sudo().browse(reachable)
+        return frozenset(
+            menu.id
+            for menu in menus
+            if all(int(i) in reachable for i in menu.parent_path.split("/")[:-1])
+        )

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_allowed_warehouses" model="ir.ui.view">
+        <field name="name">res.users.form.allowed.warehouses</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']/field[@name='group_ids']" position="before">
+                <group name="allowed_warehouses" invisible="share">
+                    <field name="allowed_warehouse_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

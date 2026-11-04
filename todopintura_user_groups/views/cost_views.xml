@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Costs, vendor prices and margins are only shown to group_cost_viewer
+         (Entradas de proveedor, Dirección and administrators). -->
+
+    <record id="product_template_form_view_costs" model="ir.ui.view">
+        <field name="name">product.template.form.costs</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//label[@for='standard_price']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+            <xpath expr="//div[@name='standard_price_uom']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_template_tree_view_costs" model="ir.ui.view">
+        <field name="name">product.template.list.costs</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='standard_price']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_variant_easy_edit_view_costs" model="ir.ui.view">
+        <field name="name">product.product.easy.edit.costs</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_variant_easy_edit_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//label[@for='standard_price']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+            <xpath expr="//field[@name='standard_price']/.." position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_product_tree_view_costs" model="ir.ui.view">
+        <field name="name">product.product.list.costs</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_product_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='standard_price']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_product_stock_tree_costs" model="ir.ui.view">
+        <field name="name">product.product.stock.list.costs</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="stock_account.product_product_stock_tree_inherit_stock_account"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='avg_cost']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+            <xpath expr="//field[@name='total_value']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_product_list_at_date_costs" model="ir.ui.view">
+        <field name="name">product.product.list.at.date.costs</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="stock_account.product_product_view_list_at_date"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='avg_cost']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+            <xpath expr="//field[@name='total_value']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="stock_move_list_valuation_costs" model="ir.ui.view">
+        <field name="name">stock.move.list.valuation.costs</field>
+        <field name="model">stock.move</field>
+        <field name="inherit_id" ref="stock_account.stock_move_view_list_valuation"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='standard_price']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Vendor prices -->
+    <record id="product_template_form_view_vendor_prices" model="ir.ui.view">
+        <field name="name">product.template.form.vendor.prices</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="purchase.view_product_supplier_inherit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='seller_ids']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_supplierinfo_form_view_costs" model="ir.ui.view">
+        <field name="name">product.supplierinfo.form.costs</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="inherit_id" ref="product.product_supplierinfo_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_supplierinfo_kanban_view_costs" model="ir.ui.view">
+        <field name="name">product.supplierinfo.kanban.costs</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="inherit_id" ref="product.product_supplierinfo_view_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_supplierinfo_tree_view_costs" model="ir.ui.view">
+        <field name="name">product.supplierinfo.list.costs</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="inherit_id" ref="product.product_supplierinfo_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- POS: the margin fields are restricted in the model; the stored total cost
+         is only hidden in the view because it is written when orders are created. -->
+    <record id="view_pos_pos_form_costs" model="ir.ui.view">
+        <field name="name">pos.order.form.costs</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='total_cost']" position="attributes">
+                <attribute name="groups">todopintura_user_groups.group_cost_viewer</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

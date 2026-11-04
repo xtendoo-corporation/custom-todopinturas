@@ -25,22 +25,37 @@ class TestTodopinturaUserGroups(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.blocks = cls.env["res.groups"].search(
-            [("privilege_id.category_id", "=", cls.env.ref(f"{MODULE}.module_category_todopintura").id)],
+            [
+                (
+                    "privilege_id.category_id",
+                    "=",
+                    cls.env.ref(f"{MODULE}.module_category_todopintura").id,
+                )
+            ],
             order="sequence",
         )
         cls.partner = cls.env["res.partner"].create({"name": "Cliente Test Grupos"})
         cls.product = cls.env["product.product"].create(
-            {"name": "Producto Test Grupos", "type": "consu", "list_price": 10, "standard_price": 5}
+            {
+                "name": "Producto Test Grupos",
+                "type": "consu",
+                "list_price": 10,
+                "standard_price": 5,
+            }
         )
 
     def _user(self, block_xmlid):
         group = self.env.ref(f"{MODULE}.{block_xmlid}")
-        return self.env["res.users"].with_context(no_reset_password=True).create(
-            {
-                "name": f"Test {block_xmlid}",
-                "login": f"test_{block_xmlid}",
-                "group_ids": [Command.set(group.ids)],
-            }
+        return (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": f"Test {block_xmlid}",
+                    "login": f"test_{block_xmlid}",
+                    "group_ids": [Command.set(group.ids)],
+                }
+            )
         )
 
     def _access(self, user, model):
@@ -51,14 +66,43 @@ class TestTodopinturaUserGroups(TransactionCase):
 
     # ---- estructura -------------------------------------------------------
     def test_00_structure(self):
-        self.assertEqual(len(self.blocks), 9)
-        names = self.blocks.mapped("name")
-        self.assertEqual(sum("MENU VA80" in n for n in names), 2)
-        for block in self.blocks:
+        self.assertEqual(len(self.blocks), 10)
+        self.assertIn("Dirección", self.blocks.mapped("name"))
+        for block in self.blocks.filtered(
+            lambda g: "direccion" not in g.get_external_id()[g.id]
+        ):
             perms = block.implied_ids.filtered(
-                lambda g: g.get_external_id().get(g.id, "").startswith(f"{MODULE}.perm_")
+                lambda g: (
+                    g.get_external_id().get(g.id, "").startswith(f"{MODULE}.perm_")
+                )
             )
             self.assertTrue(perms, f"{block.name} no tiene permisos")
+
+    def test_00b_direccion_implies_every_profile(self):
+        direccion = self.env.ref(f"{MODULE}.group_10_direccion")
+        profiles = self.blocks - direccion
+        self.assertEqual(len(profiles), 9)
+        self.assertLessEqual(profiles, direccion.all_implied_ids)
+        self.assertIn(
+            self.env.ref(f"{MODULE}.group_todopintura_restricted"),
+            direccion.all_implied_ids,
+        )
+
+    def test_00c_group_names_are_unique_and_without_legacy_codes(self):
+        module_groups = self.env["ir.model.data"].search(
+            [("module", "=", MODULE), ("model", "=", "res.groups")]
+        )
+        group_names = (
+            self.env["res.groups"].browse(module_groups.mapped("res_id")).mapped("name")
+        )
+        self.assertEqual(len(group_names), len(set(group_names)))
+        for name in group_names:
+            self.assertNotRegex(name, r"\([A-Z]{1,4}\d+[A-Z0-9]*\)")
+
+    def test_00d_central_price_group_exists_and_is_granted(self):
+        group = self.env.ref(f"{MODULE}.perm_m02p_almacen_central")
+        central = self.env.ref(f"{MODULE}.group_04_ventas_de_almacen_central")
+        self.assertIn(group, central.all_implied_ids)
 
     # ---- matriz de accesos ------------------------------------------------
     def test_01_model_access_matrix(self):
@@ -66,7 +110,9 @@ class TestTodopinturaUserGroups(TransactionCase):
             user = self._user(block_xmlid)
             for model in MODELS:
                 self.assertEqual(
-                    self._access(user, model), expected[model], f"{block_xmlid} -> {model}"
+                    self._access(user, model),
+                    expected[model],
+                    f"{block_xmlid} -> {model}",
                 )
 
     # ---- menus ------------------------------------------------------------
@@ -75,11 +121,78 @@ class TestTodopinturaUserGroups(TransactionCase):
         for block_xmlid, expected in EXPECTED_MENUS.items():
             user = self._user(block_xmlid)
             visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
-            leaves = set(visible.filtered("action").get_external_id().values())
+            leaves = {
+                xmlid.split(".", 1)[1]
+                for xmlid in visible.filtered("action").get_external_id().values()
+                if xmlid.startswith(f"{MODULE}.")
+            }
             self.assertEqual(leaves, set(expected), block_xmlid)
+            self.assertEqual(
+                len(visible.filtered("action")), len(expected), block_xmlid
+            )
             visible_xmlids = set(visible.get_external_id().values())
             for forbidden in FORBIDDEN_MENUS:
-                self.assertNotIn(forbidden, visible_xmlids, f"{block_xmlid} ve {forbidden}")
+                self.assertNotIn(
+                    forbidden, visible_xmlids, f"{block_xmlid} ve {forbidden}"
+                )
+
+    def test_02b_no_orphan_menus(self):
+        """Shared granular groups must not expose children of other profiles' roots."""
+        Menu = self.env["ir.ui.menu"]
+        user = self._user("group_01_gestion_de_pedidos")
+        visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
+        roots = visible.filtered(lambda menu: not menu.parent_id)
+        self.assertEqual(roots.mapped("name"), ["Pedidos de clientes"])
+        for menu in visible:
+            self.assertTrue(menu.parent_id in visible or not menu.parent_id)
+
+    def test_02c_every_menu_has_group_and_ends_in_an_action(self):
+        menus = self.env["ir.ui.menu"].search(
+            [
+                (
+                    "id",
+                    "in",
+                    self.env["ir.model.data"]
+                    .search([("module", "=", MODULE), ("model", "=", "ir.ui.menu")])
+                    .mapped("res_id"),
+                )
+            ]
+        )
+        for menu in menus:
+            self.assertTrue(menu.group_ids, f"{menu.complete_name} sin grupo")
+            if not menu.child_id:
+                self.assertTrue(menu.action, f"{menu.complete_name} sin acción")
+
+    def test_02d_direccion_sees_every_profile_menu(self):
+        Menu = self.env["ir.ui.menu"]
+        user = self._user("group_10_direccion")
+        visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
+        roots = set(visible.filtered(lambda menu: not menu.parent_id).mapped("name"))
+        self.assertEqual(
+            roots,
+            {
+                "Pedidos de clientes",
+                "Pedidos de y para tiendas",
+                "Entradas de proveedor",
+                "Ventas de almacén central",
+                "Ventas de tiendas",
+                "Comerciales",
+            },
+        )
+
+    def test_02e_standard_menus_are_hidden_for_profiles(self):
+        Menu = self.env["ir.ui.menu"]
+        for xmlid in ("group_01_gestion_de_pedidos", "group_10_direccion"):
+            user = self._user(xmlid)
+            visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
+            self.assertFalse(
+                visible.filtered(
+                    lambda menu: (
+                        not menu.get_external_id()[menu.id].startswith(f"{MODULE}.")
+                    )
+                ),
+                xmlid,
+            )
 
     def test_03_admin_not_restricted(self):
         Menu = self.env["ir.ui.menu"]
@@ -90,19 +203,31 @@ class TestTodopinturaUserGroups(TransactionCase):
     # ---- flujos reales ----------------------------------------------------
     def test_10_gestion_de_pedidos(self):
         user = self._user("group_01_gestion_de_pedidos")
-        order = self.env["sale.order"].with_user(user).create(
-            {
-                "partner_id": self.partner.id,
-                "order_line": [Command.create({"product_id": self.product.id, "product_uom_qty": 2})],
-            }
+        order = (
+            self.env["sale.order"]
+            .with_user(user)
+            .create(
+                {
+                    "partner_id": self.partner.id,
+                    "order_line": [
+                        Command.create(
+                            {"product_id": self.product.id, "product_uom_qty": 2}
+                        )
+                    ],
+                }
+            )
         )
         order.action_confirm()
         self.assertEqual(order.state, "sale")
         # lo que NO pueden hacer
         with self.assertRaises(AccessError):
-            self.env["purchase.order"].with_user(user).create({"partner_id": self.partner.id})
+            self.env["purchase.order"].with_user(user).create(
+                {"partner_id": self.partner.id}
+            )
         with self.assertRaises(AccessError):
-            self.env["account.move"].with_user(user).create({"move_type": "out_invoice"})
+            self.env["account.move"].with_user(user).create(
+                {"move_type": "out_invoice"}
+            )
         with self.assertRaises(AccessError):
             self.product.with_user(user).write({"list_price": 99})
         with self.assertRaises(AccessError):
@@ -110,47 +235,71 @@ class TestTodopinturaUserGroups(TransactionCase):
 
     def test_11_pedidos_de_y_para_tiendas(self):
         user = self._user("group_02_pedidos_de_y_para_tiendas")
-        picking_type = self.env["stock.picking.type"].search([("code", "=", "internal")], limit=1)
-        picking = self.env["stock.picking"].with_user(user).create(
-            {
-                "picking_type_id": picking_type.id,
-                "location_id": picking_type.default_location_src_id.id,
-                "location_dest_id": picking_type.default_location_dest_id.id,
-                "move_ids": [
-                    Command.create(
-                        {
-                            "product_id": self.product.id,
-                            "product_uom_qty": 1,
-                            "location_id": picking_type.default_location_src_id.id,
-                            "location_dest_id": picking_type.default_location_dest_id.id,
-                        }
-                    )
-                ],
-            }
+        picking_type = self.env["stock.picking.type"].search(
+            [("code", "=", "internal")], limit=1
+        )
+        source = picking_type.default_location_src_id
+        destination = picking_type.default_location_dest_id
+        picking = (
+            self.env["stock.picking"]
+            .with_user(user)
+            .create(
+                {
+                    "picking_type_id": picking_type.id,
+                    "location_id": source.id,
+                    "location_dest_id": destination.id,
+                    "move_ids": [
+                        Command.create(
+                            {
+                                "product_id": self.product.id,
+                                "product_uom_qty": 1,
+                                "location_id": source.id,
+                                "location_dest_id": destination.id,
+                            }
+                        )
+                    ],
+                }
+            )
         )
         picking.action_confirm()
         self.assertIn(picking.state, ("confirmed", "assigned", "waiting"))
         with self.assertRaises(AccessError):
-            self.env["sale.order"].with_user(user).create({"partner_id": self.partner.id})
+            self.env["sale.order"].with_user(user).create(
+                {"partner_id": self.partner.id}
+            )
         with self.assertRaises(AccessError):
-            self.env["purchase.order"].with_user(user).create({"partner_id": self.partner.id})
+            self.env["purchase.order"].with_user(user).create(
+                {"partner_id": self.partner.id}
+            )
 
     def test_12_entradas_de_proveedor(self):
         user = self._user("group_03_gestion_de_entradas_de_proveedor")
-        po = self.env["purchase.order"].with_user(user).create(
-            {
-                "partner_id": self.partner.id,
-                "order_line": [
-                    Command.create({"product_id": self.product.id, "product_qty": 3, "price_unit": 5})
-                ],
-            }
+        po = (
+            self.env["purchase.order"]
+            .with_user(user)
+            .create(
+                {
+                    "partner_id": self.partner.id,
+                    "order_line": [
+                        Command.create(
+                            {
+                                "product_id": self.product.id,
+                                "product_qty": 3,
+                                "price_unit": 5,
+                            }
+                        )
+                    ],
+                }
+            )
         )
         po.button_confirm()
         self.assertEqual(po.state, "purchase")
         # mantenimiento de codigos de barras (M020)
         self.product.with_user(user).write({"barcode": "TESTGRP0001"})
         with self.assertRaises(AccessError):
-            self.env["sale.order"].with_user(user).create({"partner_id": self.partner.id})
+            self.env["sale.order"].with_user(user).create(
+                {"partner_id": self.partner.id}
+            )
         with self.assertRaises(AccessError):
             self.env["account.move"].with_user(user).create({"move_type": "in_invoice"})
         with self.assertRaises(AccessError):
@@ -158,24 +307,85 @@ class TestTodopinturaUserGroups(TransactionCase):
 
     def test_13_comerciales(self):
         user = self._user("group_08_menu_de_comerciales")
-        order = self.env["sale.order"].with_user(user).create(
-            {
-                "partner_id": self.partner.id,
-                "order_line": [Command.create({"product_id": self.product.id, "product_uom_qty": 1})],
-            }
+        order = (
+            self.env["sale.order"]
+            .with_user(user)
+            .create(
+                {
+                    "partner_id": self.partner.id,
+                    "order_line": [
+                        Command.create(
+                            {"product_id": self.product.id, "product_uom_qty": 1}
+                        )
+                    ],
+                }
+            )
         )
         self.assertEqual(order.state, "draft")
         with self.assertRaises(AccessError):
-            self.env["purchase.order"].with_user(user).create({"partner_id": self.partner.id})
-        with self.assertRaises(AccessError):
-            self.env["sale.report"].with_user(user).search_count([])
+            self.env["purchase.order"].with_user(user).create(
+                {"partner_id": self.partner.id}
+            )
+        self.env["sale.report"].with_user(user).search_count([])
+
+    def test_13b_comerciales_see_all_customers_but_only_own_orders(self):
+        seller_a = self._user("group_08_menu_de_comerciales")
+        seller_b = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Comercial B",
+                    "login": "comercial_b",
+                    "group_ids": [
+                        Command.set(
+                            self.env.ref(f"{MODULE}.group_08_menu_de_comerciales").ids
+                        )
+                    ],
+                }
+            )
+        )
+        other_partner = self.env["res.partner"].create(
+            {"name": "Cliente de otro comercial"}
+        )
+        order_a = (
+            self.env["sale.order"]
+            .with_user(seller_a)
+            .create({"partner_id": self.partner.id, "user_id": seller_a.id})
+        )
+        order_b = (
+            self.env["sale.order"]
+            .with_user(seller_b)
+            .create({"partner_id": other_partner.id, "user_id": seller_b.id})
+        )
+        orders = self.env["sale.order"].with_user(seller_a).search([])
+        self.assertIn(order_a, orders)
+        self.assertNotIn(order_b, orders)
+        partners = self.env["res.partner"].with_user(seller_a).search([])
+        self.assertLessEqual(self.partner | other_partner, partners)
+
+    def test_13c_only_commercials_stores_and_direccion_edit_customers(self):
+        editors = {
+            "group_08_menu_de_comerciales": True,
+            "group_06_ventas_de_tiendas": True,
+            "group_10_direccion": True,
+            "group_01_gestion_de_pedidos": False,
+            "group_03_gestion_de_entradas_de_proveedor": False,
+        }
+        for xmlid, can_edit in editors.items():
+            access = self._access(self._user(xmlid), "res.partner")
+            self.assertEqual("w" in access, can_edit, xmlid)
 
     def test_14_informes_estadisticos(self):
         user = self._user("group_09_informes_estadisticos_menu_of002")
         self.env["sale.report"].with_user(user).search_count([])
-        self.env["res.partner"].with_user(user).create({"name": "Cliente nuevo (M01COM)"})
+        self.env["res.partner"].with_user(user).create(
+            {"name": "Cliente nuevo (M01COM)"}
+        )
         with self.assertRaises(AccessError):
-            self.env["sale.order"].with_user(user).create({"partner_id": self.partner.id})
+            self.env["sale.order"].with_user(user).create(
+                {"partner_id": self.partner.id}
+            )
         with self.assertRaises(AccessError):
             self.env["stock.picking"].with_user(user).search_count([])
 
@@ -184,7 +394,9 @@ class TestTodopinturaUserGroups(TransactionCase):
         self.assertTrue(self.env["pos.session"].with_user(user).has_access("create"))
         self.assertTrue(self.env["pos.order"].with_user(user).has_access("create"))
         with self.assertRaises(AccessError):
-            self.env["purchase.order"].with_user(user).create({"partner_id": self.partner.id})
+            self.env["purchase.order"].with_user(user).create(
+                {"partner_id": self.partner.id}
+            )
         with self.assertRaises(AccessError):
             self.env["stock.count"].with_user(user).search_count([])
 
@@ -194,17 +406,51 @@ class TestTodopinturaUserGroups(TransactionCase):
             "group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie",
         ):
             user = self._user(xmlid)
-            self.assertTrue(self.env["account.payment"].with_user(user).has_access("create"))
-            self.assertTrue(self.env["stock.picking"].with_user(user).has_access("create"))
+            self.assertTrue(
+                self.env["account.payment"].with_user(user).has_access("create")
+            )
+            self.assertTrue(
+                self.env["stock.picking"].with_user(user).has_access("create")
+            )
             with self.assertRaises(AccessError):
-                self.env["purchase.order"].with_user(user).create({"partner_id": self.partner.id})
+                self.env["purchase.order"].with_user(user).create(
+                    {"partner_id": self.partner.id}
+                )
             with self.assertRaises(AccessError):
                 self.env["pos.order"].with_user(user).search_count([])
+
+    def test_16b_barcodes_and_prices_only_for_suppliers_and_direccion(self):
+        editors = {
+            "group_03_gestion_de_entradas_de_proveedor": True,
+            "group_10_direccion": True,
+            "group_01_gestion_de_pedidos": False,
+            "group_02_pedidos_de_y_para_tiendas": False,
+            "group_04_ventas_de_almacen_central": False,
+            "group_06_ventas_de_tiendas": False,
+            "group_08_menu_de_comerciales": False,
+        }
+        pricelist = self.env["product.pricelist"].create({"name": "Tarifa test"})
+        for xmlid, allowed in editors.items():
+            user = self._user(xmlid)
+            for record, values in (
+                (self.product, {"barcode": f"BC{xmlid[-6:]}"}),
+                (self.product, {"list_price": 12}),
+                (pricelist, {"name": "Tarifa editada"}),
+            ):
+                if allowed:
+                    record.with_user(user).write(values)
+                else:
+                    with self.assertRaises(AccessError, msg=f"{xmlid} {values}"):
+                        record.with_user(user).write(values)
 
     def test_17_combinacion_de_bloques(self):
         """Dos bloques suman sus derechos, nada mas."""
         user = self._user("group_01_gestion_de_pedidos")
-        user.group_ids = [Command.link(self.env.ref(f"{MODULE}.group_03_gestion_de_entradas_de_proveedor").id)]
+        user.group_ids = [
+            Command.link(
+                self.env.ref(f"{MODULE}.group_03_gestion_de_entradas_de_proveedor").id
+            )
+        ]
         self.assertEqual(self._access(user, "sale.order"), "rwc-")
         self.assertEqual(self._access(user, "purchase.order"), "rwc-")
         self.assertEqual(self._access(user, "account.move"), "r---")
@@ -219,7 +465,11 @@ class TestTodopinturaUserGroups(TransactionCase):
         po = self.env["purchase.order"].create(
             {
                 "partner_id": self.partner.id,
-                "order_line": [Command.create({"product_id": storable.id, "product_qty": 3, "price_unit": 1})],
+                "order_line": [
+                    Command.create(
+                        {"product_id": storable.id, "product_qty": 3, "price_unit": 1}
+                    )
+                ],
             }
         )
         po.button_confirm()
@@ -230,7 +480,9 @@ class TestTodopinturaUserGroups(TransactionCase):
 
     def test_21_ajuste_de_inventario(self):
         user = self._user("group_02_pedidos_de_y_para_tiendas")
-        loss = self.env["stock.location"].create({"name": "Perdidas Test", "usage": "inventory"})
+        loss = self.env["stock.location"].create(
+            {"name": "Perdidas Test", "usage": "inventory"}
+        )
         storable = self.env["product.product"].create(
             {
                 "name": "Storable Inv Test",
@@ -244,17 +496,30 @@ class TestTodopinturaUserGroups(TransactionCase):
             self.env["stock.quant"]
             .with_user(user)
             .with_context(inventory_mode=True)
-            .create({"product_id": storable.id, "location_id": location.id, "inventory_quantity": 5})
+            .create(
+                {
+                    "product_id": storable.id,
+                    "location_id": location.id,
+                    "inventory_quantity": 5,
+                }
+            )
         )
         quant.action_apply_inventory()
-        self.assertEqual(self.env["stock.quant"]._get_available_quantity(storable, location), 5)
+        self.assertEqual(
+            self.env["stock.quant"]._get_available_quantity(storable, location), 5
+        )
 
     def test_22_sesion_tpv_abrir_y_cerrar(self):
-        for xmlid in ("group_04_ventas_de_almacen_central", "group_06_ventas_de_tiendas"):
+        for xmlid in (
+            "group_04_ventas_de_almacen_central",
+            "group_06_ventas_de_tiendas",
+        ):
             user = self._user(xmlid)
             config = self.env["pos.config"].create({"name": f"TPV Test {xmlid}"})
-            session = self.env["pos.session"].with_user(user).create(
-                {"config_id": config.id, "user_id": user.id}
+            session = (
+                self.env["pos.session"]
+                .with_user(user)
+                .create({"config_id": config.id, "user_id": user.id})
             )
             session.action_pos_session_open()
             session.action_pos_session_closing_control()
@@ -262,14 +527,24 @@ class TestTodopinturaUserGroups(TransactionCase):
 
     def test_23_reimprimir_pedido(self):
         user = self._user("group_01_gestion_de_pedidos")
-        order = self.env["sale.order"].with_user(user).create(
-            {
-                "partner_id": self.partner.id,
-                "order_line": [Command.create({"product_id": self.product.id, "product_uom_qty": 1})],
-            }
+        order = (
+            self.env["sale.order"]
+            .with_user(user)
+            .create(
+                {
+                    "partner_id": self.partner.id,
+                    "order_line": [
+                        Command.create(
+                            {"product_id": self.product.id, "product_uom_qty": 1}
+                        )
+                    ],
+                }
+            )
         )
-        html, _fmt = self.env["ir.actions.report"].with_user(user)._render_qweb_html(
-            "sale.action_report_saleorder", order.ids
+        html, _fmt = (
+            self.env["ir.actions.report"]
+            .with_user(user)
+            ._render_qweb_html("sale.action_report_saleorder", order.ids)
         )
         self.assertIn(b"Producto Test Grupos", html)
 
@@ -285,7 +560,11 @@ class TestTodopinturaUserGroups(TransactionCase):
                 f"{block_xmlid} + grupos extra -> {model}",
             )
         visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
-        leaves = set(visible.filtered("action").get_external_id().values())
+        leaves = {
+            xmlid.split(".", 1)[1]
+            for xmlid in visible.filtered("action").get_external_id().values()
+            if xmlid.startswith(f"{MODULE}.")
+        }
         self.assertEqual(leaves, set(EXPECTED_MENUS[block_xmlid]), block_xmlid)
 
     def test_30_bloque_mas_grupos_de_administrador(self):
