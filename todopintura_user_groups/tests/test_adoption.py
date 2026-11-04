@@ -129,9 +129,12 @@ class TestAdoption(TransactionCase):
         hooks.normalize_declared_records(self.env)
 
     def test_standard_flows_can_read_taxes_and_credit_flags(self):
-        restricted = self.env.ref(f"{MODULE}.group_todopintura_restricted")
-        self.assertIn(
-            self.env.ref("account.group_account_readonly"), restricted.implied_ids
+        readonly = self.env.ref("account.group_account_readonly")
+        for xmlid in ("perm_va01", "perm_v01", "perm_va08", "perm_v03"):
+            self.assertIn(readonly, self.env.ref(f"{MODULE}.{xmlid}").implied_ids)
+        self.assertNotIn(
+            readonly,
+            self.env.ref(f"{MODULE}.group_todopintura_restricted").implied_ids,
         )
         user = (
             self.env["res.users"]

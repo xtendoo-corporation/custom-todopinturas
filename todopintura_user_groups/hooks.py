@@ -309,16 +309,18 @@ def reset_declared_implied_groups(env):
     data file would otherwise survive.
     """
     root = _parse("security/security.xml")
+    declared = defaultdict(list)  # a group can be extended by several records
     for record in root.iter("record"):
         node = record.find("field[@name='implied_ids']")
         if record.get("model") != "res.groups" or node is None:
             continue
         if "." in record.get("id"):  # standard group extended by the module
             continue
-        group = env.ref(f"{MODULE}.{record.get('id')}", raise_if_not_found=False)
+        declared[record.get("id")] += GROUP_REF.findall(node.get("eval") or "")
+    for xml_id, refs in declared.items():
+        group = env.ref(f"{MODULE}.{xml_id}", raise_if_not_found=False)
         if not group:
             continue
-        refs = GROUP_REF.findall(node.get("eval") or "")
         implied = env["res.groups"].browse(
             env.ref(ref if "." in ref else f"{MODULE}.{ref}").id for ref in refs
         )
