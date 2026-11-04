@@ -65,17 +65,21 @@ class PosOperationsCase(OperationsCase):
         methods = config.payment_method_ids
         return methods.filtered(lambda m: m.type == "cash")[:1] or methods[:1]
 
-    def ring_up(self, user, session, partner=None, method=None):
-        """A complete sale: order with one line, paid, ready to be closed."""
-        price = self.product.lst_price
-        order = (
+    def draft_order(self, user, session, partner=None):
+        """A draft order with one line priced like the till does."""
+        pricelist = self.pricelist_for(session.config_id)
+        partner = partner or self.env["res.partner"].create(
+            {"name": "Cliente mostrador e2e"}
+        )
+        price = pricelist._get_product_price(self.product, 1.0, partner=partner)
+        return (
             self.env["pos.order"]
             .with_user(user)
             .create(
                 {
                     "session_id": session.id,
-                    "pricelist_id": self.pricelist_for(session.config_id).id,
-                    "partner_id": partner.id if partner else False,
+                    "pricelist_id": pricelist.id,
+                    "partner_id": partner.id,
                     "amount_tax": 0,
                     "amount_total": price,
                     "amount_paid": 0,
@@ -94,9 +98,17 @@ class PosOperationsCase(OperationsCase):
                 }
             )
         )
+
+    def ring_up(self, user, session, partner=None, method=None):
+        """A complete sale: order with one line, paid, ready to be closed."""
+        order = self.draft_order(user, session, partner)
         method = method or self.cash_method(session.config_id)
         order.add_payment(
-            {"pos_order_id": order.id, "amount": price, "payment_method_id": method.id}
+            {
+                "pos_order_id": order.id,
+                "amount": order.amount_total,
+                "payment_method_id": method.id,
+            }
         )
         order.action_pos_order_paid()
         return order
@@ -178,33 +190,7 @@ class TestPosCredit(PosOperationsCase):
         partner = self.env["res.partner"].create(
             {"name": "Cliente a cuenta e2e", "pos_credit_sale_enabled": True}
         )
-        order = (
-            self.env["pos.order"]
-            .with_user(user)
-            .create(
-                {
-                    "session_id": session.id,
-                    "pricelist_id": self.pricelist_for(session.config_id).id,
-                    "partner_id": partner.id,
-                    "amount_tax": 0,
-                    "amount_total": 10,
-                    "amount_paid": 0,
-                    "amount_return": 0,
-                    "lines": [
-                        Command.create(
-                            {
-                                "product_id": self.product.id,
-                                "qty": 1,
-                                "price_unit": 10,
-                                "price_subtotal": 10,
-                                "price_subtotal_incl": 10,
-                            }
-                        )
-                    ],
-                }
-            )
-        )
-        return partner, order
+        return partner, self.draft_order(user, session, partner)
 
     def test_store_reads_the_credit_policy(self):
         user = self.store_user()
