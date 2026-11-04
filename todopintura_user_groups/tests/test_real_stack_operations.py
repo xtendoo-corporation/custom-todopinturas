@@ -56,7 +56,9 @@ class PosOperationsCase(OperationsCase):
         return (
             config.pricelist_id
             or config.available_pricelist_ids[:1]
-            or self.env["product.pricelist"].search([], limit=1)
+            or self.env["product.pricelist"].search(
+                [("company_id", "in", [False, config.company_id.id])], limit=1
+            )
         )
 
     def cash_method(self, config):
