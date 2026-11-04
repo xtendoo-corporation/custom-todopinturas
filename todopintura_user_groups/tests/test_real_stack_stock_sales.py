@@ -249,7 +249,9 @@ class TestSalesOperations(StockOperationsCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.customer = cls.env["res.partner"].create({"name": "Cliente ventas e2e"})
+        cls.customer = cls.env["res.partner"].create(
+            {"name": "Cliente ventas e2e", "pos_credit_sale_enabled": True}
+        )
 
     def _quotation(self, user):
         return (
