@@ -127,7 +127,7 @@
     <record id="perm_v01" model="res.groups">
         <field name="name">Grabación de ventas (Almacén central)</field>
         <field name="sequence">100</field>
-        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman'))]"/>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman')), Command.link(ref('point_of_sale.group_pos_user'))]"/>
     </record>
     <record id="perm_v03" model="res.groups">
         <field name="name">Listado de cuadre de caja y cierre diario de caja (Almacén central)</field>

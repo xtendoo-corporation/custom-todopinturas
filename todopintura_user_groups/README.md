@@ -15,7 +15,7 @@ implica los grupos granulares (uno por pantalla del menú del cliente), el grupo
 | Pedidos de clientes | Pedidos de clientes | Grabación de ventas, Consulta de ofertas, Consulta de precios, Consulta de existencias, Reimpresión de documentos, Consulta de clientes |
 | Pedidos de y para tiendas | Pedidos de y para tiendas | Reposición semanal, Partes de movimiento, Actualización de existencias (*), Reimpresión de partes, Traspasos entre sucursales |
 | Entradas de proveedor | Entradas de proveedor | Pedidos a proveedores, Repaso, Vuelco a pendientes, Existencias, Control de stock, Búsqueda de artículo, Códigos de barras, Bajo mínimos + precio de proveedor, Precios y tarifas |
-| Ventas de almacén central | Ventas de almacén central | Grabación de ventas, Cuadre de caja, Consulta de precios, Existencias, Reimpresión + submenú *Traspasos y ventas de otras tiendas* |
+| Ventas de almacén central | Ventas de almacén central | Grabación de ventas (TPV, solo las cajas autorizadas del usuario), Cuadre de caja, Consulta de precios, Existencias, Reimpresión + submenú *Traspasos y ventas de otras tiendas* |
 | Traspasos y ventas de otras tiendas (almacén central) | Ventas de almacén central | Solo el submenú de traspasos |
 | Ventas de POS | Ventas de POS | Solo TPV (sin presupuestos ni pedidos de venta): TPV, Cuadre de caja, Precios, Existencias, Reimpresión de tickets, Ventas acumuladas, Ventas a cuenta, submenú *Traspasos…* (sin ofertas por compras), *Consulta varias* |
 | Traspasos y ventas de otras tiendas (tiendas) | Ventas de POS | Submenú de traspasos y *Consulta varias* |

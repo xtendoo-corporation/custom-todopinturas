@@ -156,6 +156,29 @@ class TestTodopinturaUserGroups(TransactionCase):
         store = self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas")
         self.assertNotIn(self.env.ref(f"{MODULE}.perm_va05"), store.all_implied_ids)
 
+    def test_02a2_central_sales_entry_is_the_pos(self):
+        """Grabación de ventas of the central warehouse opens the POS dashboard."""
+        menu = self.env.ref(f"{MODULE}.menu_vc_sales_entry")
+        self.assertEqual(menu.action.res_model, "pos.config")
+        group = self._user_with_group("perm_v01")
+        for model in ("pos.config", "pos.session", "pos.order"):
+            self.assertTrue(self.env[model].with_user(group).has_access("read"), model)
+        self.assertTrue(self.env["pos.session"].with_user(group).has_access("create"))
+
+    def _user_with_group(self, xmlid):
+        group = self.env.ref(f"{MODULE}.{xmlid}")
+        return (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": f"Granular {xmlid}",
+                    "login": f"granular_{xmlid}",
+                    "group_ids": [Command.set(group.ids)],
+                }
+            )
+        )
+
     def test_02b_no_orphan_menus(self):
         """Shared granular groups must not expose children of other profiles' roots."""
         Menu = self.env["ir.ui.menu"]
