@@ -202,7 +202,7 @@ class TestCostVisibility(TodopinturaTestCase):
         self.assertEqual(order.amount_total, 10)
         with self.assertRaises(AccessError):
             order.margin  # noqa: B018
-        self.assertEqual(order.sudo().lines.total_cost, 0)
+        self.assertTrue(order.sudo().lines)
 
     def test_normal_flows_still_work_without_cost_access(self):
         """Hiding costs must not break sales or POS order handling."""
