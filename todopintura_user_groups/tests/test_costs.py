@@ -154,7 +154,12 @@ class TestCostVisibility(TodopinturaTestCase):
     def test_pos_order_can_be_created_without_margin_access(self):
         user = self.users["group_06_ventas_de_tiendas"]
         product = self.env["product.product"].create(
-            {"name": "Producto TPV costes", "list_price": 10, "standard_price": 4}
+            {
+                "name": "Producto TPV costes",
+                "list_price": 10,
+                "standard_price": 4,
+                "taxes_id": [Command.clear()],
+            }
         )
         config = self.env["pos.config"].create({"name": "TPV costes"})
         if "allowed_pos_config_ids" in user._fields:
