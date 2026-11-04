@@ -1,5 +1,5 @@
-from odoo import _, models
-
+# -*- coding: utf-8 -*-
+from odoo import models, _
 
 class PosDepositPaymentWizard(models.TransientModel):
     _inherit = "pos.deposit.payment.wizard"
