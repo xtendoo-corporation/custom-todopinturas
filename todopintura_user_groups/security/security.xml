@@ -313,6 +313,35 @@
     </record>
 
     <!-- Submenu containers. They bundle the granular groups of the submenu. -->
+    <!-- The till screens read taxes, journals and the partner accounting flags in the
+         standard POS flow. These groups already hold the invoice access they need. -->
+    <record id="perm_v01" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
+    <record id="perm_v03" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
+    <record id="perm_v08" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
+    <record id="perm_va01" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
+    <record id="perm_va03" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
+    <record id="perm_va0303" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
+    <record id="perm_va08" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
+    <record id="perm_va10" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
+    <record id="perm_va11" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
+    </record>
     <record id="perm_menu_va80" model="res.groups">
         <field name="name">Traspasos y ventas de otras tiendas</field>
         <field name="sequence">100</field>

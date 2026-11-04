@@ -1,5 +1,12 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_account_move_v03,account.move v03,account.model_account_move,perm_v03,1,1,1,0
+access_account_move_ar01,account.move ar01,account.model_account_move,perm_ar01,1,0,0,0
+access_account_move_ar02,account.move ar02,account.model_account_move,perm_ar02,1,0,0,0
+access_account_move_ar03,account.move ar03,account.model_account_move,perm_ar03,1,0,0,0
+access_stock_warehouse_orderpoint_m02nc,stock.warehouse.orderpoint m02nc,stock.model_stock_warehouse_orderpoint,perm_m02nc,1,0,0,0
+access_stock_warehouse_orderpoint_m02p,stock.warehouse.orderpoint m02p,stock.model_stock_warehouse_orderpoint,perm_m02p,1,0,0,0
+access_stock_warehouse_orderpoint_m02p_almacen_central,stock.warehouse.orderpoint m02p almacen central,stock.model_stock_warehouse_orderpoint,perm_m02p_almacen_central,1,0,0,0
+access_stock_warehouse_orderpoint_va02p,stock.warehouse.orderpoint va02p,stock.model_stock_warehouse_orderpoint,perm_va02p,1,0,0,0
 access_account_move_v08,account.move v08,account.model_account_move,perm_v08,1,0,0,0
 access_account_move_v08alm,account.move v08alm,account.model_account_move,perm_v08alm,1,0,0,0
 access_account_move_va01,account.move va01,account.model_account_move,perm_va01,1,1,1,0
@@ -10,6 +17,9 @@ access_account_move_va08,account.move va08,account.model_account_move,perm_va08,
 access_account_move_va10,account.move va10,account.model_account_move,perm_va10,1,0,0,0
 access_account_move_va11,account.move va11,account.model_account_move,perm_va11,1,0,0,0
 access_account_move_line_v03,account.move.line v03,account.model_account_move_line,perm_v03,1,1,1,0
+access_account_move_line_ar01,account.move.line ar01,account.model_account_move_line,perm_ar01,1,0,0,0
+access_account_move_line_ar02,account.move.line ar02,account.model_account_move_line,perm_ar02,1,0,0,0
+access_account_move_line_ar03,account.move.line ar03,account.model_account_move_line,perm_ar03,1,0,0,0
 access_account_move_line_v08,account.move.line v08,account.model_account_move_line,perm_v08,1,0,0,0
 access_account_move_line_v08alm,account.move.line v08alm,account.model_account_move_line,perm_v08alm,1,0,0,0
 access_account_move_line_va01,account.move.line va01,account.model_account_move_line,perm_va01,1,1,1,0

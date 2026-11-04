@@ -523,7 +523,8 @@ class PosOrder(models.Model):
         credit_limit_enabled = bool(
             partner
             and "use_partner_credit_limit" in partner._fields
-            and partner.use_partner_credit_limit
+            # field restricted to accounting groups: read it as the system does
+            and partner.sudo().use_partner_credit_limit
             and credit_limit > 0
         )
         limit_exceeded = bool(

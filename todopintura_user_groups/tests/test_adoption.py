@@ -80,6 +80,99 @@ class TestAdoption(TransactionCase):
         hooks.adopt_manual_records(self.env)
         self.assertFalse(self.env.ref(f"{MODULE}.perm_va01", raise_if_not_found=False))
 
+    def test_stale_implied_group_is_removed(self):
+        store = self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas")
+        stale = self.env.ref(f"{MODULE}.perm_va05")
+        store.implied_ids = [Command.link(stale.id)]
+        self.assertIn(stale, store.implied_ids)
+        hooks.reset_declared_implied_groups(self.env)
+        self.assertNotIn(stale, store.implied_ids)
+        self.assertIn(self.env.ref(f"{MODULE}.perm_va01"), store.implied_ids)
+
+    def test_reset_keeps_standard_groups_extended_by_the_module(self):
+        hooks.reset_declared_implied_groups(self.env)
+        self.assertIn(
+            self.env.ref(f"{MODULE}.group_cost_viewer"),
+            self.env.ref("base.group_system").implied_ids,
+        )
+
+    def test_user_loses_the_stale_implied_permission(self):
+        store = self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas")
+        stale = self.env.ref(f"{MODULE}.perm_va05")
+        store.implied_ids = [Command.link(stale.id)]
+        user = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Stale",
+                    "login": "stale_user",
+                    "group_ids": [Command.set(store.ids)],
+                }
+            )
+        )
+        self.assertIn(stale.id, user._get_group_ids())
+        hooks.reset_declared_implied_groups(self.env)
+        user.invalidate_recordset()
+        self.assertNotIn(stale.id, user._get_group_ids())
+        self.assertIn(self.env.ref(f"{MODULE}.perm_va01").id, user._get_group_ids())
+
+    def test_menu_container_loses_an_adopted_action(self):
+        menu = self.env.ref(f"{MODULE}.menu_vt_misc")
+        menu.action = self.env.ref(f"{MODULE}.action_partners_consult")
+        hooks.reset_declared_menu_actions(self.env)
+        self.assertFalse(menu.action)
+        leaf = self.env.ref(f"{MODULE}.menu_vt_customers")
+        self.assertTrue(leaf.action)
+
+    def test_normalize_runs_both_resets(self):
+        hooks.normalize_declared_records(self.env)
+
+    def test_standard_flows_can_read_taxes_and_credit_flags(self):
+        readonly = self.env.ref("account.group_account_readonly")
+        for xmlid in ("perm_va01", "perm_v01", "perm_va08", "perm_v03"):
+            self.assertIn(readonly, self.env.ref(f"{MODULE}.{xmlid}").implied_ids)
+        self.assertNotIn(
+            readonly,
+            self.env.ref(f"{MODULE}.group_todopintura_restricted").implied_ids,
+        )
+        user = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Taxes",
+                    "login": "taxes_user",
+                    "group_ids": [
+                        Command.set(
+                            self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas").ids
+                        )
+                    ],
+                }
+            )
+        )
+        self.env["account.tax"].with_user(user).search([], limit=1)
+        partner = self.env["res.partner"].create({"name": "Cliente crédito"})
+        partner.with_user(user).read(["use_partner_credit_limit"])
+
+    def test_reset_is_idempotent_and_keeps_manual_users_untouched(self):
+        manual = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Manual",
+                    "login": "manual_user",
+                    "group_ids": [Command.set(self.env.ref(f"{MODULE}.perm_va05").ids)],
+                }
+            )
+        )
+        before = self.env["res.groups"].search_count([])
+        hooks.reset_declared_implied_groups(self.env)
+        hooks.reset_declared_implied_groups(self.env)
+        self.assertEqual(self.env["res.groups"].search_count([]), before)
+        self.assertIn(self.env.ref(f"{MODULE}.perm_va05"), manual.group_ids)
+
     def test_adoption_is_idempotent(self):
         before = self.env["ir.model.data"].search_count([("module", "=", MODULE)])
         hooks.adopt_manual_records(self.env)

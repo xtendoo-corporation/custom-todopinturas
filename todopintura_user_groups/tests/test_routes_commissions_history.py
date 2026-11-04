@@ -6,13 +6,14 @@ from psycopg2 import IntegrityError
 from odoo import Command
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 from odoo.tools import mute_logger
+
+from .common import TodopinturaTestCase
 
 MODULE = "todopintura_user_groups"
 
 
-class TodopinturaCase(TransactionCase):
+class TodopinturaCase(TodopinturaTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

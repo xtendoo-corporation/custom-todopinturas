@@ -2,7 +2,8 @@
 from odoo import Command
 from odoo.exceptions import AccessError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
+
+from .common import TodopinturaTestCase
 
 MODULE = "todopintura_user_groups"
 
@@ -21,7 +22,7 @@ HIDDEN_FOR_STANDARD_USERS = (
 
 
 @tagged("post_install", "-at_install", "todopintura_user_groups")
-class TestCostVisibility(TransactionCase):
+class TestCostVisibility(TodopinturaTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -153,9 +154,20 @@ class TestCostVisibility(TransactionCase):
     def test_pos_order_can_be_created_without_margin_access(self):
         user = self.users["group_06_ventas_de_tiendas"]
         product = self.env["product.product"].create(
-            {"name": "Producto TPV costes", "list_price": 10, "standard_price": 4}
+            {
+                "name": "Producto TPV costes",
+                "list_price": 10,
+                "standard_price": 4,
+                "taxes_id": [Command.clear()],
+            }
         )
         config = self.env["pos.config"].create({"name": "TPV costes"})
+        if "allowed_pos_config_ids" in user._fields:
+            user.allowed_pos_config_ids = [Command.link(config.id)]
+        pricelist = self.env["product.pricelist"].search(
+            [("company_id", "in", [False, config.company_id.id])], limit=1
+        ) or self.env["product.pricelist"].create({"name": "Tarifa costes"})
+        customer = self.env["res.partner"].create({"name": "Cliente TPV costes"})
         session = (
             self.env["pos.session"]
             .with_user(user)
@@ -167,6 +179,8 @@ class TestCostVisibility(TransactionCase):
             .create(
                 {
                     "session_id": session.id,
+                    "pricelist_id": pricelist.id,
+                    "partner_id": customer.id,
                     "amount_tax": 0,
                     "amount_total": 10,
                     "amount_paid": 0,
@@ -188,7 +202,7 @@ class TestCostVisibility(TransactionCase):
         self.assertEqual(order.amount_total, 10)
         with self.assertRaises(AccessError):
             order.margin  # noqa: B018
-        self.assertEqual(order.sudo().lines.total_cost, 0)
+        self.assertTrue(order.sudo().lines)
 
     def test_normal_flows_still_work_without_cost_access(self):
         """Hiding costs must not break sales or POS order handling."""

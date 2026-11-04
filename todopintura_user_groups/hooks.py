@@ -24,6 +24,7 @@ MODULE = "todopintura_user_groups"
 LEGACY_FIELD = "x_warehouse_ids"
 NEW_FIELD = "allowed_warehouse_ids"
 WAREHOUSE_REF = re.compile(r"ref\('(\w+)'\)")
+GROUP_REF = re.compile(r"ref\('([\w.]+)'\)")
 
 
 def pre_init_hook(env):
@@ -299,3 +300,46 @@ def migrate_legacy_warehouse_field(env):
         user.allowed_warehouse_ids = user[LEGACY_FIELD]
     _logger.info("Copied %s into %s for %d users", LEGACY_FIELD, NEW_FIELD, len(users))
     legacy.unlink()
+
+
+def reset_declared_implied_groups(env):
+    """Make the implied groups of the module groups match security.xml.
+
+    ``Command.link`` only adds on update, so an implication removed from the
+    data file would otherwise survive.
+    """
+    root = _parse("security/security.xml")
+    declared = defaultdict(list)  # a group can be extended by several records
+    for record in root.iter("record"):
+        if record.get("model") != "res.groups" or "." in record.get("id"):
+            continue  # standard groups extended by the module are left alone
+        node = record.find("field[@name='implied_ids']")
+        declared[record.get("id")] += GROUP_REF.findall(
+            (node.get("eval") if node is not None else "") or ""
+        )
+    for xml_id, refs in declared.items():
+        group = env.ref(f"{MODULE}.{xml_id}", raise_if_not_found=False)
+        if not group:
+            continue
+        implied = env["res.groups"].browse(
+            env.ref(ref if "." in ref else f"{MODULE}.{ref}").id for ref in refs
+        )
+        group.implied_ids = [Command.set(implied.ids)]
+
+
+def reset_declared_menu_actions(env):
+    """Containers declared without action must not keep an adopted old one."""
+    root = _parse("views/menus.xml")
+    for item in root.iter("menuitem"):
+        if item.get("action"):
+            continue
+        menu = env.ref(f"{MODULE}.{item.get('id')}", raise_if_not_found=False)
+        if menu and menu.action:
+            menu.action = False
+
+
+def normalize_declared_records(env):
+    """Make updated data exact: implications and actions removed from the data
+    files are removed from the database too."""
+    reset_declared_implied_groups(env)
+    reset_declared_menu_actions(env)
