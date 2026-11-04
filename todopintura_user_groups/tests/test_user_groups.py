@@ -136,6 +136,26 @@ class TestTodopinturaUserGroups(TransactionCase):
                     forbidden, visible_xmlids, f"{block_xmlid} ve {forbidden}"
                 )
 
+    def test_02a_store_profiles_have_no_sale_order_menus(self):
+        """Ventas de tiendas is the POS: no quotations or sale orders."""
+        Menu = self.env["ir.ui.menu"]
+        for xmlid in (
+            "group_06_ventas_de_tiendas",
+            "group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie",
+        ):
+            user = self._user(xmlid)
+            visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
+            models = {
+                menu.action.res_model
+                for menu in visible.filtered("action")
+                if menu.action._name == "ir.actions.act_window"
+            }
+            self.assertFalse(
+                models & {"sale.order", "sale.order.line", "sale.report"}, xmlid
+            )
+        store = self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas")
+        self.assertNotIn(self.env.ref(f"{MODULE}.perm_va05"), store.all_implied_ids)
+
     def test_02b_no_orphan_menus(self):
         """Shared granular groups must not expose children of other profiles' roots."""
         Menu = self.env["ir.ui.menu"]

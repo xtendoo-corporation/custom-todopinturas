@@ -52,7 +52,6 @@
     <menuitem id="menu_vt_sales_entry" name="Grabación de ventas" parent="menu_vt_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_va01"/>
     <menuitem id="menu_vt_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vt_root" sequence="20" action="point_of_sale.action_pos_session" groups="perm_va03"/>
     <menuitem id="menu_vt_cash_listing" name="Listado de cuadre de caja" parent="menu_vt_root" sequence="30" action="point_of_sale.action_pos_session" groups="perm_va0303"/>
-    <menuitem id="menu_vt_offers_entry" name="Grabación de ofertas" parent="menu_vt_root" sequence="40" action="sale.action_quotations_with_onboarding" groups="perm_va05"/>
     <menuitem id="menu_vt_prices" name="Consulta de precios" parent="menu_vt_root" sequence="50" action="sale.product_template_action" groups="perm_va02p"/>
     <menuitem id="menu_vt_stock" name="Consulta de existencias" parent="menu_vt_root" sequence="60" action="stock.product_template_action_product" groups="perm_m02nc"/>
     <menuitem id="menu_vt_reprint" name="Reimpresión de documentos" parent="menu_vt_root" sequence="70" action="point_of_sale.action_pos_pos_form" groups="perm_va08"/>
@@ -62,7 +61,6 @@
     <menuitem id="menu_vt_transfers" name="Traspasos y ventas de otras tiendas" parent="menu_vt_root" sequence="110" groups="perm_menu_va80"/>
     <menuitem id="menu_vt_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_vt_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
     <menuitem id="menu_vt_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_vt_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
-    <menuitem id="menu_vt_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vt_transfers" sequence="30" action="sale.action_orders" groups="perm_oc01pt"/>
     <menuitem id="menu_vt_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_vt_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
     <menuitem id="menu_vt_transfers_print" name="Impresión de partes de almacén" parent="menu_vt_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
     <menuitem id="menu_vt_misc" name="Consulta varias" parent="menu_vt_root" sequence="120" groups="perm_menu_va20"/>

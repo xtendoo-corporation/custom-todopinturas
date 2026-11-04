@@ -17,7 +17,7 @@ implica los grupos granulares (uno por pantalla del menú del cliente), el grupo
 | Entradas de proveedor | Entradas de proveedor | Pedidos a proveedores, Repaso, Vuelco a pendientes, Existencias, Control de stock, Búsqueda de artículo, Códigos de barras, Bajo mínimos + precio de proveedor, Precios y tarifas |
 | Ventas de almacén central | Ventas de almacén central | Grabación de ventas, Cuadre de caja, Consulta de precios, Existencias, Reimpresión + submenú *Traspasos y ventas de otras tiendas* |
 | Traspasos y ventas de otras tiendas (almacén central) | Ventas de almacén central | Solo el submenú de traspasos |
-| Ventas de tiendas | Ventas de tiendas | TPV, Cuadre de caja, Ofertas, Precios, Existencias, Reimpresión, Ventas acumuladas, Ventas a cuenta, submenú *Traspasos…*, *Consulta varias* |
+| Ventas de tiendas | Ventas de tiendas | Solo TPV (sin presupuestos ni pedidos de venta): TPV, Cuadre de caja, Precios, Existencias, Reimpresión de tickets, Ventas acumuladas, Ventas a cuenta, submenú *Traspasos…* (sin ofertas por compras), *Consulta varias* |
 | Traspasos y ventas de otras tiendas (tiendas) | Ventas de tiendas | Submenú de traspasos y *Consulta varias* |
 | Comerciales | Comerciales | Gestión de ofertas, Ofertas por compras, Informes estadísticos, Mantenimiento de clientes, Rutas, Ofertas outlets, Existencias, Consulta de clientes |
 | Informes estadísticos | Comerciales | Todo lo de Comerciales salvo Gestión de ofertas y Ofertas por compras |

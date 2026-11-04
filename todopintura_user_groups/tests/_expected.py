@@ -212,7 +212,11 @@ TRANSFER_MENUS = {
     "menu_vc_transfers_pending",
     "menu_vc_transfers_print",
 }
-STORE_TRANSFER_MENUS = {name.replace("menu_vc_", "menu_vt_") for name in TRANSFER_MENUS}
+STORE_TRANSFER_MENUS = {
+    name.replace("menu_vc_", "menu_vt_")
+    for name in TRANSFER_MENUS
+    if name != "menu_vc_transfers_offers"
+}
 STATISTICAL_MENUS = {
     "menu_co_report_sales_by_customer",
     "menu_co_report_year_comparison",
@@ -240,7 +244,6 @@ STORE_SALES_MENUS = {
     "menu_vt_sales_entry",
     "menu_vt_cash_closing",
     "menu_vt_cash_listing",
-    "menu_vt_offers_entry",
     "menu_vt_prices",
     "menu_vt_stock",
     "menu_vt_reprint",
