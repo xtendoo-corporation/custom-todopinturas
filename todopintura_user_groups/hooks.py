@@ -145,7 +145,8 @@ def _adopt_rules(env):
     root = _parse("security/ir_rule.xml")
     expected = {}
     for record in root.iter("record"):
-        if record.get("model") != "ir.rule":
+        domain = record.find("field[@name='domain_force']")
+        if record.get("model") != "ir.rule" or NEW_FIELD not in (domain.text or ""):
             continue
         model_ref = record.find("field[@name='model_id']").get("ref")
         expected[record.get("id")] = env.ref(model_ref).model

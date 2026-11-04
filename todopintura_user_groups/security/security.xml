@@ -7,6 +7,16 @@
         <field name="sequence">1</field>
     </record>
 
+    <!-- Costs, vendor prices and margins are hidden from everybody else. -->
+    <record id="group_cost_viewer" model="res.groups">
+        <field name="name">Todopintura: ver costes, precios de proveedor y márgenes</field>
+        <field name="sequence">2</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('group_cost_viewer'))]"/>
+    </record>
+
     <!-- Granular groups: one per screen of the customer menu.
          Names repeated across profiles carry the profile in brackets. -->
 
@@ -104,6 +114,11 @@
     </record>
     <record id="perm_gs11" model="res.groups">
         <field name="name">Listado de artículos bajo mínimos + precio de proveedor</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_pricelist_maintenance" model="res.groups">
+        <field name="name">Mantenimiento de precios y tarifas</field>
         <field name="sequence">100</field>
         <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
     </record>
@@ -291,6 +306,12 @@
         <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
     </record>
 
+    <record id="perm_commission_rates" model="res.groups">
+        <field name="name">Parametrización de comisiones</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+
     <!-- Submenu containers. They bundle the granular groups of the submenu. -->
     <record id="perm_menu_va80" model="res.groups">
         <field name="name">Traspasos y ventas de otras tiendas</field>
@@ -371,6 +392,8 @@
             Command.link(ref('perm_m02b')),
             Command.link(ref('perm_m020')),
             Command.link(ref('perm_gs11')),
+            Command.link(ref('perm_pricelist_maintenance')),
+            Command.link(ref('group_cost_viewer')),
         ]"/>
     </record>
 
@@ -518,6 +541,8 @@
             Command.link(ref('group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie')),
             Command.link(ref('group_08_menu_de_comerciales')),
             Command.link(ref('group_09_informes_estadisticos_menu_of002')),
+            Command.link(ref('perm_commission_rates')),
+            Command.link(ref('sales_team.group_sale_salesman_all_leads')),
         ]"/>
     </record>
 </odoo>

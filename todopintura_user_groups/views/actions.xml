@@ -178,20 +178,6 @@
         }</field>
     </record>
 
-    <record id="action_report_sales_commissions" model="ir.actions.act_window">
-        <field name="name">Ventas para comisiones</field>
-        <field name="res_model">sale.report</field>
-        <field name="view_mode">pivot,graph,list</field>
-        <field name="search_view_id" ref="sale.view_order_product_search"/>
-        <field name="domain">[('state', 'in', ('sale', 'done'))]</field>
-        <field name="context">{
-            'pivot_row_groupby': ['user_id'],
-            'pivot_column_groupby': ['date:month'],
-            'pivot_measures': ['price_subtotal'],
-            'graph_groupbys': ['user_id'],
-        }</field>
-    </record>
-
     <record id="action_report_budget_status" model="ir.actions.act_window">
         <field name="name">Estado del presupuesto por comercial</field>
         <field name="res_model">sale.report</field>

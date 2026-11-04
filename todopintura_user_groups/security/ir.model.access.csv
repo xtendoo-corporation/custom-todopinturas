@@ -59,6 +59,9 @@ access_pos_session_va03,pos.session va03,point_of_sale.model_pos_session,perm_va
 access_pos_session_va0303,pos.session va0303,point_of_sale.model_pos_session,perm_va0303,1,1,1,0
 access_pos_session_va08,pos.session va08,point_of_sale.model_pos_session,perm_va08,1,0,0,0
 access_product_pricelist_restricted,product.pricelist restricted,product.model_product_pricelist,group_todopintura_restricted,1,0,0,0
+access_product_pricelist_pricelist_maintenance,product.pricelist maintenance,product.model_product_pricelist,perm_pricelist_maintenance,1,1,1,1
+access_product_pricelist_item_pricelist_maintenance,product.pricelist.item maintenance,product.model_product_pricelist_item,perm_pricelist_maintenance,1,1,1,1
+access_product_supplierinfo_pricelist_maintenance,product.supplierinfo maintenance,product.model_product_supplierinfo,perm_pricelist_maintenance,1,1,1,1
 access_product_pricelist_item_m02p,product.pricelist.item m02p,product.model_product_pricelist_item,perm_m02p,1,0,0,0
 access_product_pricelist_item_m02p_almacen_central,product.pricelist.item m02p almacen central,product.model_product_pricelist_item,perm_m02p_almacen_central,1,0,0,0
 access_product_pricelist_item_restricted,product.pricelist.item restricted,product.model_product_pricelist_item,group_todopintura_restricted,1,0,0,0
@@ -86,6 +89,11 @@ access_res_partner_m01pro,res.partner m01pro,base.model_res_partner,perm_m01pro,
 access_res_partner_of002,res.partner of002,base.model_res_partner,perm_of002,1,0,0,0
 access_res_partner_restricted,res.partner restricted,base.model_res_partner,group_todopintura_restricted,1,0,0,0
 access_res_partner_ventas_tiendas,res.partner ventas de tiendas,base.model_res_partner,group_06_ventas_de_tiendas,1,1,1,0
+access_todopintura_route_restricted,todopintura.route restricted,model_todopintura_route,group_todopintura_restricted,1,0,0,0
+access_todopintura_route_rc00,todopintura.route rc00,model_todopintura_route,perm_menu_rc00,1,1,1,1
+access_todopintura_weekday_restricted,todopintura.weekday restricted,model_todopintura_weekday,group_todopintura_restricted,1,0,0,0
+access_todopintura_commission_rate_manager,todopintura.commission.rate manager,model_todopintura_commission_rate,perm_commission_rates,1,1,1,1
+access_todopintura_commission_report_of0023,todopintura.commission.report of0023,model_todopintura_commission_report,perm_of0023,1,0,0,0
 access_sale_order_e8004,sale.order e8004,sale.model_sale_order,perm_e8004,1,0,0,0
 access_sale_order_menu_of001,sale.order menu_of001,sale.model_sale_order,perm_menu_of001,1,1,1,0
 access_sale_order_of01,sale.order of01,sale.model_sale_order,perm_of01,1,0,0,0

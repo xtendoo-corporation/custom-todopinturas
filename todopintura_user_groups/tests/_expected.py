@@ -80,7 +80,7 @@ EXPECTED_ACCESS = {
         "res.partner": "r---",
         "sale.report": "----",
         "report.pos.order": "----",
-        "product.pricelist": "r---",
+        "product.pricelist": "rwcd",
     },
     "group_04_ventas_de_almacen_central": {
         "sale.order": "rwc-",
@@ -222,6 +222,8 @@ STATISTICAL_MENUS = {
     "menu_co_report_customer_sales",
     "menu_co_report_huelva",
     "menu_co_report_customers_by_salesperson",
+    "menu_co_routes_planning",
+    "menu_co_routes_config",
     "menu_co_customer_maintenance",
     "menu_co_outlet_offers",
     "menu_co_stock",
@@ -272,6 +274,7 @@ SUPPLIER_MENUS = {
     "menu_ep_product_search",
     "menu_ep_barcodes",
     "menu_ep_below_minimum",
+    "menu_ep_pricelists",
 }
 
 EXPECTED_MENUS = {
@@ -293,5 +296,6 @@ EXPECTED_MENUS = {
         | CENTRAL_SALES_MENUS
         | STORE_SALES_MENUS
         | COMMERCIAL_MENUS
+        | {"menu_co_commission_rates"}
     ),
 }

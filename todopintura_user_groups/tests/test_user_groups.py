@@ -419,6 +419,30 @@ class TestTodopinturaUserGroups(TransactionCase):
             with self.assertRaises(AccessError):
                 self.env["pos.order"].with_user(user).search_count([])
 
+    def test_16b_barcodes_and_prices_only_for_suppliers_and_direccion(self):
+        editors = {
+            "group_03_gestion_de_entradas_de_proveedor": True,
+            "group_10_direccion": True,
+            "group_01_gestion_de_pedidos": False,
+            "group_02_pedidos_de_y_para_tiendas": False,
+            "group_04_ventas_de_almacen_central": False,
+            "group_06_ventas_de_tiendas": False,
+            "group_08_menu_de_comerciales": False,
+        }
+        pricelist = self.env["product.pricelist"].create({"name": "Tarifa test"})
+        for xmlid, allowed in editors.items():
+            user = self._user(xmlid)
+            for record, values in (
+                (self.product, {"barcode": f"BC{xmlid[-6:]}"}),
+                (self.product, {"list_price": 12}),
+                (pricelist, {"name": "Tarifa editada"}),
+            ):
+                if allowed:
+                    record.with_user(user).write(values)
+                else:
+                    with self.assertRaises(AccessError, msg=f"{xmlid} {values}"):
+                        record.with_user(user).write(values)
+
     def test_17_combinacion_de_bloques(self):
         """Dos bloques suman sus derechos, nada mas."""
         user = self._user("group_01_gestion_de_pedidos")
