@@ -306,8 +306,7 @@ def reset_declared_implied_groups(env):
     """Make the implied groups of the module groups match security.xml.
 
     ``Command.link`` only adds on update, so an implication removed from the
-    data file would otherwise survive. Users that kept a granular permission
-    only because of a stale implication lose it too.
+    data file would otherwise survive.
     """
     root = _parse("security/security.xml")
     for record in root.iter("record"):
@@ -324,34 +323,21 @@ def reset_declared_implied_groups(env):
             env.ref(ref if "." in ref else f"{MODULE}.{ref}").id for ref in refs
         )
         group.implied_ids = [Command.set(implied.ids)]
-    _strip_unreachable_permissions(env)
 
 
-def _strip_unreachable_permissions(env):
-    """Remove granular groups that no profile of the user implies any more."""
-    data = env["ir.model.data"].search(
-        [("module", "=", MODULE), ("model", "=", "res.groups")]
-    )
-    module_groups = env["res.groups"].browse(data.mapped("res_id"))
-    profiles = module_groups.filtered(
-        lambda group: re.match(
-            r"group_\d{2}_", group.get_external_id()[group.id].split(".")[1]
-        )
-    )
-    granular = (
-        module_groups - profiles - env.ref(f"{MODULE}.group_todopintura_restricted")
-    )
-    granular -= env.ref(f"{MODULE}.group_cost_viewer")
-    for user in (
-        env["res.users"]
-        .with_context(active_test=False)
-        .search([("group_ids", "in", profiles.ids)])
-    ):
-        held = user.group_ids & profiles
-        reachable = held | held.all_implied_ids
-        stale = (user.group_ids & granular) - reachable
-        if stale:
-            user.group_ids = [Command.unlink(group.id) for group in stale]
-            _logger.info(
-                "%s loses stale permissions %s", user.login, stale.mapped("name")
-            )
+def reset_declared_menu_actions(env):
+    """Containers declared without action must not keep an adopted old one."""
+    root = _parse("views/menus.xml")
+    for item in root.iter("menuitem"):
+        if item.get("action"):
+            continue
+        menu = env.ref(f"{MODULE}.{item.get('id')}", raise_if_not_found=False)
+        if menu and menu.action:
+            menu.action = False
+
+
+def normalize_declared_records(env):
+    """Make updated data exact: implications and actions removed from the data
+    files are removed from the database too."""
+    reset_declared_implied_groups(env)
+    reset_declared_menu_actions(env)

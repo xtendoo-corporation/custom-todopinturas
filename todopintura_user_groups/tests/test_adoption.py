@@ -96,7 +96,7 @@ class TestAdoption(TransactionCase):
             self.env.ref("base.group_system").implied_ids,
         )
 
-    def test_user_loses_permissions_no_profile_implies_any_more(self):
+    def test_user_loses_the_stale_implied_permission(self):
         store = self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas")
         stale = self.env.ref(f"{MODULE}.perm_va05")
         store.implied_ids = [Command.link(stale.id)]
@@ -111,10 +111,46 @@ class TestAdoption(TransactionCase):
                 }
             )
         )
-        self.assertIn(stale, user.group_ids)
+        self.assertIn(stale.id, user._get_group_ids())
         hooks.reset_declared_implied_groups(self.env)
-        self.assertNotIn(stale, user.group_ids)
-        self.assertIn(self.env.ref(f"{MODULE}.perm_va01"), user.group_ids)
+        user.invalidate_recordset()
+        self.assertNotIn(stale.id, user._get_group_ids())
+        self.assertIn(self.env.ref(f"{MODULE}.perm_va01").id, user._get_group_ids())
+
+    def test_menu_container_loses_an_adopted_action(self):
+        menu = self.env.ref(f"{MODULE}.menu_vt_misc")
+        menu.action = self.env.ref(f"{MODULE}.action_partners_consult")
+        hooks.reset_declared_menu_actions(self.env)
+        self.assertFalse(menu.action)
+        leaf = self.env.ref(f"{MODULE}.menu_vt_customers")
+        self.assertTrue(leaf.action)
+
+    def test_normalize_runs_both_resets(self):
+        hooks.normalize_declared_records(self.env)
+
+    def test_standard_flows_can_read_taxes_and_credit_flags(self):
+        restricted = self.env.ref(f"{MODULE}.group_todopintura_restricted")
+        self.assertIn(
+            self.env.ref("account.group_account_readonly"), restricted.implied_ids
+        )
+        user = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Taxes",
+                    "login": "taxes_user",
+                    "group_ids": [
+                        Command.set(
+                            self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas").ids
+                        )
+                    ],
+                }
+            )
+        )
+        self.env["account.tax"].with_user(user).search([], limit=1)
+        partner = self.env["res.partner"].create({"name": "Cliente crédito"})
+        partner.with_user(user).read(["use_partner_credit_limit"])
 
     def test_reset_is_idempotent_and_keeps_manual_users_untouched(self):
         manual = (

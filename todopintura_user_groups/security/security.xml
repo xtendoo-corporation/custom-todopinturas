@@ -5,6 +5,9 @@
     <record id="group_todopintura_restricted" model="res.groups">
         <field name="name">Todopintura: acceso limitado a sus permisos</field>
         <field name="sequence">1</field>
+        <!-- Tax, journal and partner accounting fields are read by the standard POS
+             and sale flows; access to invoices and payments stays controlled. -->
+        <field name="implied_ids" eval="[Command.link(ref('account.group_account_readonly'))]"/>
     </record>
 
     <!-- Costs, vendor prices and margins are hidden from everybody else. -->
