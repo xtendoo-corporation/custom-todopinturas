@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
+from odoo import _, models
+
 
 class PosOrder(models.Model):
     _inherit = "pos.order"
@@ -36,7 +36,7 @@ class PosOrder(models.Model):
 
     def action_pay_account(self):
         """Sobrescribimos para asegurar que retorne la acción de nuevo pedido"""
-        res = super(PosOrder, self).action_pay_account()
+        res = super().action_pay_account()
         # Si el resultado es abrir el formulario del pedido actual (lo que hace el original),
         # lo cambiamos por la acción de nuevo pedido.
         if isinstance(res, dict) and res.get('res_model') == 'pos.order' and res.get('res_id') == self.id:
@@ -46,7 +46,7 @@ class PosOrder(models.Model):
     def action_pay_deposit(self):
         """Tras enviar a depósito se imprime el albarán del depósito (como en el
         albarán normal) y se pasa al nuevo pedido."""
-        res = super(PosOrder, self).action_pay_deposit()
+        res = super().action_pay_deposit()
         if isinstance(res, dict) and res.get('res_model') == 'pos.order' and res.get('res_id') == self.id:
             next_action = self._get_post_validation_action() or res
             pickings = self.env['stock.picking'].search([

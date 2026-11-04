@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
+from odoo import _, fields, models
+
+
 class ResPartner(models.Model):
     _inherit = 'res.partner'
     pos_order_credit_count = fields.Integer(

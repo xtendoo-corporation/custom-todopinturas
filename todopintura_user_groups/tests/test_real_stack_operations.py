@@ -1,6 +1,8 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 """End-to-end operations of every profile on the customer's full stack."""
 
+from unittest.mock import patch
+
 from odoo import Command
 from odoo.exceptions import AccessError
 from odoo.tests import tagged
@@ -19,19 +21,20 @@ class PosOperationsCase(OperationsCase):
 
     @classmethod
     def _pos_product(cls):
-        product = cls.env["product.product"].search(
-            [
-                ("available_in_pos", "=", True),
-                ("list_price", ">", 0),
-                ("type", "=", "consu"),
-            ],
-            limit=1,
+        return cls.env["product.product"].create(
+            {
+                "name": "Producto TPV e2e",
+                "type": "consu",
+                "list_price": 10,
+                "available_in_pos": True,
+                "taxes_id": [Command.clear()],
+            }
         )
-        if not product:
-            product = cls.env["product.product"].create(
-                {"name": "Producto e2e", "list_price": 10, "available_in_pos": True}
-            )
-        return product
+
+    def close_session(self, user, session):
+        """Close the till; the stack commits internally, which tests forbid."""
+        with patch.object(self.env.cr, "commit"):
+            session.with_user(user).action_pos_session_closing_control()
 
     def store_user(
         self, warehouse_xmlid="warehouse_huelva", config_xmlid="pos_config_huelva", **kw
@@ -124,7 +127,7 @@ class TestPosSales(PosOperationsCase):
         session = self.open_session(user, config)
         order = self.ring_up(user, session)
         self.assertEqual(order.state, "paid")
-        session.with_user(user).action_pos_session_closing_control()
+        self.close_session(user, session)
         self.assertEqual(session.state, "closed")
         self.assertEqual(order.sudo().state, "done")
 
@@ -166,7 +169,7 @@ class TestPosSales(PosOperationsCase):
         self.assertEqual(order.state, "paid")
         configs = self.env["pos.config"].with_user(user).search([])
         self.assertEqual(configs, self.config("pos_config_central_2"))
-        session.with_user(user).action_pos_session_closing_control()
+        self.close_session(user, session)
         self.assertEqual(session.state, "closed")
         self.assertEqual(self.open_all_menus(user), {})
 
