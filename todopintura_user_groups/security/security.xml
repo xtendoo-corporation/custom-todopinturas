@@ -446,7 +446,6 @@
             Command.link(ref('perm_va01')),
             Command.link(ref('perm_va03')),
             Command.link(ref('perm_va0303')),
-            Command.link(ref('perm_va05')),
             Command.link(ref('perm_va02p')),
             Command.link(ref('perm_m02nc')),
             Command.link(ref('perm_va08')),
