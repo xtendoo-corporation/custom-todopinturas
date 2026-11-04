@@ -7,6 +7,7 @@ on a copy of the customer's database.
 """
 
 import datetime
+import traceback
 from unittest import SkipTest
 
 from lxml import etree
@@ -164,5 +165,14 @@ class OperationsCase(TransactionCase):
                 with self.env.cr.savepoint():
                     self.open_menu(user, menu)
             except (AccessError, UserError, KeyError, ValueError, TypeError) as error:
-                failures[menu.complete_name] = f"{type(error).__name__}: {error}"[:300]
+                where = [
+                    line.strip()
+                    for line in traceback.format_exc().splitlines()
+                    if 'File "/opt/odoo/auto/addons' in line
+                    or 'File "/mnt/e2e' in line
+                    or "orm/fields.py" in line
+                ][-3:]
+                failures[menu.complete_name] = (
+                    f"{type(error).__name__}: {error}"[:300] + " @ " + " | ".join(where)
+                )
         return failures

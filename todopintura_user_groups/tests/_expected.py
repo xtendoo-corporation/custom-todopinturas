@@ -72,7 +72,7 @@ EXPECTED_ACCESS = {
         "stock.quant": "r---",
         "stock.count": "----",
         "stock.warehouse.orderpoint": "r---",
-        "account.move": "----",
+        "account.move": "r---",
         "account.payment": "----",
         "pos.order": "----",
         "pos.session": "----",
