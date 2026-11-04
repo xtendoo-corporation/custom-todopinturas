@@ -20,6 +20,9 @@ class StockOperationsCase(OperationsCase):
                 "is_storable": True,
                 "list_price": 20,
                 "standard_price": 8,
+                "property_stock_inventory": cls.env["stock.location"]
+                .search([("usage", "=", "inventory")], limit=1)
+                .id,
             }
         )
 

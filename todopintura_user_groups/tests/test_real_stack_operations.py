@@ -175,6 +175,7 @@ class TestPosCredit(PosOperationsCase):
             .create(
                 {
                     "session_id": session.id,
+                    "pricelist_id": session.config_id.pricelist_id.id,
                     "partner_id": partner.id,
                     "amount_tax": 0,
                     "amount_total": 10,
