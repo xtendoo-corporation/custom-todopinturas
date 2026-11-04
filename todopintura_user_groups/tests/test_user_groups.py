@@ -2,6 +2,7 @@
 from odoo import Command
 from odoo.exceptions import AccessError
 from odoo.tests import tagged
+from odoo.tools import file_path
 
 from ._expected import EXPECTED_ACCESS, EXPECTED_MENUS, MODELS
 from .common import TodopinturaTestCase
@@ -183,6 +184,23 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
                     "group_ids": [Command.set(group.ids)],
                 }
             )
+        )
+
+    def test_02f_every_root_menu_has_the_todopintura_icon(self):
+        icon = "todopintura_user_groups,static/description/icon.png"
+        data = self.env["ir.model.data"].search(
+            [("module", "=", MODULE), ("model", "=", "ir.ui.menu")]
+        )
+        roots = (
+            self.env["ir.ui.menu"]
+            .browse(data.mapped("res_id"))
+            .filtered(lambda menu: not menu.parent_id)
+        )
+        self.assertEqual(len(roots), 6)
+        for root in roots:
+            self.assertEqual(root.web_icon, icon, root.name)
+        self.assertTrue(
+            file_path("todopintura_user_groups/static/description/icon.png")
         )
 
     def test_02b_no_orphan_menus(self):
