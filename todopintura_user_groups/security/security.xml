@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Technical group implied by every profile. Users holding it only see the
+         menus linked to their Todopintura groups (see models/ir_ui_menu.py). -->
+    <record id="group_todopintura_restricted" model="res.groups">
+        <field name="name">Todopintura: acceso limitado a sus permisos</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <!-- Granular groups: one per screen of the customer menu.
+         Names repeated across profiles carry the profile in brackets. -->
+
+    <!-- Pedidos de clientes -->
+    <record id="perm_v01alm" model="res.groups">
+        <field name="name">Grabación de ventas (Pedidos de clientes)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+    <record id="perm_of01" model="res.groups">
+        <field name="name">Consulta de ofertas</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_m02p" model="res.groups">
+        <field name="name">Consulta de precios (Pedidos de clientes)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_m02nc" model="res.groups">
+        <field name="name">Consulta de existencias</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_v08alm" model="res.groups">
+        <field name="name">Reimpresión de documentos (Pedidos de clientes)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_m01pro" model="res.groups">
+        <field name="name">Consulta de clientes (Pedidos de clientes)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Pedidos de y para tiendas -->
+    <record id="perm_gs10ped" model="res.groups">
+        <field name="name">Listado de reposición semanal de tiendas</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_a01" model="res.groups">
+        <field name="name">Grabación de partes de movimiento de almacén</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('stock.group_stock_user'))]"/>
+    </record>
+    <!-- PENDING with the customer: "Actualización de existencias y adición a
+         histórico" is mapped to the physical inventory adjustment. -->
+    <record id="perm_a03" model="res.groups">
+        <field name="name">Actualización de existencias y adición a histórico</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('stock.group_stock_user'))]"/>
+    </record>
+    <record id="perm_a0707" model="res.groups">
+        <field name="name">Reimpresión de partes de almacén</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_e1717" model="res.groups">
+        <field name="name">Listado de traspasos entre sucursales</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Entradas de proveedor -->
+    <record id="perm_ar01" model="res.groups">
+        <field name="name">Grabación de pedidos a proveedores</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('purchase.group_purchase_user'))]"/>
+    </record>
+    <record id="perm_ar02" model="res.groups">
+        <field name="name">Listado repaso de pedidos a proveedores</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_ar03" model="res.groups">
+        <field name="name">Vuelco a pedidos pendientes y carta de pedido</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('purchase.group_purchase_user'))]"/>
+    </record>
+    <record id="perm_l10" model="res.groups">
+        <field name="name">Listado de artículos para control de stock</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_m02b" model="res.groups">
+        <field name="name">Búsqueda de artículo</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_m020" model="res.groups">
+        <field name="name">Mantenimiento de códigos de barras</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_gs11" model="res.groups">
+        <field name="name">Listado de artículos bajo mínimos + precio de proveedor</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Ventas de almacén central -->
+    <record id="perm_v01" model="res.groups">
+        <field name="name">Grabación de ventas (Almacén central)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+    <record id="perm_v03" model="res.groups">
+        <field name="name">Listado de cuadre de caja y cierre diario de caja (Almacén central)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('point_of_sale.group_pos_user'))]"/>
+    </record>
+    <record id="perm_m02p_almacen_central" model="res.groups">
+        <field name="name">Consulta de precios (Almacén central)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_v08" model="res.groups">
+        <field name="name">Reimpresión de documentos (Almacén central)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Traspasos y ventas de otras tiendas (shared by central warehouse and stores) -->
+    <record id="perm_va83" model="res.groups">
+        <field name="name">Grabación de envíos a otra tienda</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('stock.group_stock_user'))]"/>
+    </record>
+    <record id="perm_va85" model="res.groups">
+        <field name="name">Confirmación de recepción de artículos</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('stock.group_stock_user'))]"/>
+    </record>
+    <record id="perm_oc01pt" model="res.groups">
+        <field name="name">Consulta de ofertas realizadas por compras (Traspasos y ventas de otras tiendas)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va87" model="res.groups">
+        <field name="name">Listado de traspasos pendientes de tiendas</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va88" model="res.groups">
+        <field name="name">Impresión de partes de almacén</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va01pas1" model="res.groups">
+        <field name="name">Grabación de ventas con recogida en otra tienda + traspasos</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman')), Command.link(ref('stock.group_stock_user'))]"/>
+    </record>
+    <record id="perm_va01pas2" model="res.groups">
+        <field name="name">Grabación de ACUENTAS de otra tienda</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Ventas de tiendas -->
+    <record id="perm_va01" model="res.groups">
+        <field name="name">Grabación de ventas (Tiendas)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('point_of_sale.group_pos_user'))]"/>
+    </record>
+    <record id="perm_va03" model="res.groups">
+        <field name="name">Listado de cuadre de caja y cierre diario de caja (Tiendas)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('point_of_sale.group_pos_user'))]"/>
+    </record>
+    <record id="perm_va0303" model="res.groups">
+        <field name="name">Listado de cuadre de caja</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('point_of_sale.group_pos_user'))]"/>
+    </record>
+    <record id="perm_va05" model="res.groups">
+        <field name="name">Grabación de ofertas</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+    <record id="perm_va02p" model="res.groups">
+        <field name="name">Consulta de precios (Tiendas)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va08" model="res.groups">
+        <field name="name">Reimpresión de documentos (Tiendas)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va14" model="res.groups">
+        <field name="name">Listado de ventas acumulado</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va10" model="res.groups">
+        <field name="name">Consulta de ventas a cuenta</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va11" model="res.groups">
+        <field name="name">Listado de ventas a cuenta</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_consulta_de_clientes" model="res.groups">
+        <field name="name">Consulta de clientes (Tiendas)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Comerciales -->
+    <record id="perm_menu_of001" model="res.groups">
+        <field name="name">Gestión de ofertas</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+    <record id="perm_oc01pr" model="res.groups">
+        <field name="name">Consulta de ofertas realizadas por compras (Comerciales)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_of10" model="res.groups">
+        <field name="name">Ventas por clientes</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_of11" model="res.groups">
+        <field name="name">Comparativa de ventas de clientes entre dos años</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_of0023" model="res.groups">
+        <field name="name">Ventas para comisiones</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_e8004" model="res.groups">
+        <field name="name">Estado del presupuesto por comercial</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_e03" model="res.groups">
+        <field name="name">Venta mensual por cliente</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_e11com" model="res.groups">
+        <field name="name">Listado de ventas de clientes</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_of0024" model="res.groups">
+        <field name="name">Ventas delegación Huelva</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_l0203" model="res.groups">
+        <field name="name">Listado de clientes por vendedor y ventas</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_m01com" model="res.groups">
+        <field name="name">Mantenimiento de clientes</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_menu_rc00" model="res.groups">
+        <field name="name">Rutas de comerciales</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_of82" model="res.groups">
+        <field name="name">Ofertas clientes/outlets</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_of002" model="res.groups">
+        <field name="name">Consulta de clientes (Comerciales)</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Submenu containers. They bundle the granular groups of the submenu. -->
+    <record id="perm_menu_va80" model="res.groups">
+        <field name="name">Traspasos y ventas de otras tiendas</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[
+            Command.link(ref('base.group_user')),
+            Command.link(ref('perm_va83')),
+            Command.link(ref('perm_va85')),
+            Command.link(ref('perm_oc01pt')),
+            Command.link(ref('perm_va87')),
+            Command.link(ref('perm_va88')),
+            Command.link(ref('perm_va01pas1')),
+            Command.link(ref('perm_va01pas2')),
+        ]"/>
+    </record>
+    <record id="perm_menu_va20" model="res.groups">
+        <field name="name">Consulta varias</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('perm_consulta_de_clientes'))]"/>
+    </record>
+
+    <!-- Profiles: one privilege (selection line in the user form) and one group each. -->
+    <record id="privilege_01_gestion_de_pedidos" model="res.groups.privilege">
+        <field name="name">Pedidos de clientes</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">10</field>
+    </record>
+    <record id="group_01_gestion_de_pedidos" model="res.groups">
+        <field name="name">Pedidos de clientes</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="privilege_01_gestion_de_pedidos"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_v01alm')),
+            Command.link(ref('perm_of01')),
+            Command.link(ref('perm_m02p')),
+            Command.link(ref('perm_m02nc')),
+            Command.link(ref('perm_v08alm')),
+            Command.link(ref('perm_m01pro')),
+        ]"/>
+    </record>
+
+    <record id="privilege_02_pedidos_de_y_para_tiendas" model="res.groups.privilege">
+        <field name="name">Pedidos de y para tiendas</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">20</field>
+    </record>
+    <record id="group_02_pedidos_de_y_para_tiendas" model="res.groups">
+        <field name="name">Pedidos de y para tiendas</field>
+        <field name="sequence">20</field>
+        <field name="privilege_id" ref="privilege_02_pedidos_de_y_para_tiendas"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_gs10ped')),
+            Command.link(ref('perm_a01')),
+            Command.link(ref('perm_a03')),
+            Command.link(ref('perm_a0707')),
+            Command.link(ref('perm_e1717')),
+        ]"/>
+    </record>
+
+    <record id="privilege_03_gestion_de_entradas_de_proveedor" model="res.groups.privilege">
+        <field name="name">Entradas de proveedor</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">30</field>
+    </record>
+    <record id="group_03_gestion_de_entradas_de_proveedor" model="res.groups">
+        <field name="name">Entradas de proveedor</field>
+        <field name="sequence">30</field>
+        <field name="privilege_id" ref="privilege_03_gestion_de_entradas_de_proveedor"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_ar01')),
+            Command.link(ref('perm_ar02')),
+            Command.link(ref('perm_ar03')),
+            Command.link(ref('perm_m02nc')),
+            Command.link(ref('perm_l10')),
+            Command.link(ref('perm_m02b')),
+            Command.link(ref('perm_m020')),
+            Command.link(ref('perm_gs11')),
+        ]"/>
+    </record>
+
+    <record id="privilege_04_ventas_de_almacen_central" model="res.groups.privilege">
+        <field name="name">Ventas de almacén central</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">40</field>
+    </record>
+    <record id="group_04_ventas_de_almacen_central" model="res.groups">
+        <field name="name">Ventas de almacén central</field>
+        <field name="sequence">40</field>
+        <field name="privilege_id" ref="privilege_04_ventas_de_almacen_central"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_v01')),
+            Command.link(ref('perm_v03')),
+            Command.link(ref('perm_m02p_almacen_central')),
+            Command.link(ref('perm_m02nc')),
+            Command.link(ref('perm_v08')),
+            Command.link(ref('perm_menu_va80')),
+        ]"/>
+    </record>
+
+    <record id="privilege_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie" model="res.groups.privilege">
+        <field name="name">Traspasos y ventas de otras tiendas (almacén central)</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">50</field>
+    </record>
+    <record id="group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie" model="res.groups">
+        <field name="name">Traspasos y ventas de otras tiendas (almacén central)</field>
+        <field name="sequence">50</field>
+        <field name="privilege_id" ref="privilege_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_menu_va80')),
+        ]"/>
+    </record>
+
+    <record id="privilege_06_ventas_de_tiendas" model="res.groups.privilege">
+        <field name="name">Ventas de tiendas</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">60</field>
+    </record>
+    <record id="group_06_ventas_de_tiendas" model="res.groups">
+        <field name="name">Ventas de tiendas</field>
+        <field name="sequence">60</field>
+        <field name="privilege_id" ref="privilege_06_ventas_de_tiendas"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_va01')),
+            Command.link(ref('perm_va03')),
+            Command.link(ref('perm_va0303')),
+            Command.link(ref('perm_va05')),
+            Command.link(ref('perm_va02p')),
+            Command.link(ref('perm_m02nc')),
+            Command.link(ref('perm_va08')),
+            Command.link(ref('perm_va14')),
+            Command.link(ref('perm_va10')),
+            Command.link(ref('perm_va11')),
+            Command.link(ref('perm_menu_va80')),
+            Command.link(ref('perm_menu_va20')),
+        ]"/>
+    </record>
+
+    <record id="privilege_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie" model="res.groups.privilege">
+        <field name="name">Traspasos y ventas de otras tiendas (tiendas)</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">70</field>
+    </record>
+    <record id="group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie" model="res.groups">
+        <field name="name">Traspasos y ventas de otras tiendas (tiendas)</field>
+        <field name="sequence">70</field>
+        <field name="privilege_id" ref="privilege_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_menu_va80')),
+            Command.link(ref('perm_menu_va20')),
+        ]"/>
+    </record>
+
+    <record id="privilege_09_informes_estadisticos_menu_of002" model="res.groups.privilege">
+        <field name="name">Informes estadísticos</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">90</field>
+    </record>
+    <record id="group_09_informes_estadisticos_menu_of002" model="res.groups">
+        <field name="name">Informes estadísticos</field>
+        <field name="sequence">90</field>
+        <field name="privilege_id" ref="privilege_09_informes_estadisticos_menu_of002"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_of10')),
+            Command.link(ref('perm_of11')),
+            Command.link(ref('perm_of0023')),
+            Command.link(ref('perm_e8004')),
+            Command.link(ref('perm_e03')),
+            Command.link(ref('perm_e11com')),
+            Command.link(ref('perm_of0024')),
+            Command.link(ref('perm_l0203')),
+            Command.link(ref('perm_m01com')),
+            Command.link(ref('perm_menu_rc00')),
+            Command.link(ref('perm_m02p')),
+            Command.link(ref('perm_m02nc')),
+            Command.link(ref('perm_of82')),
+            Command.link(ref('perm_of002')),
+        ]"/>
+    </record>
+
+    <!-- Comerciales implies the whole "Informes estadísticos" profile so the
+         sales representative menu is complete with a single profile. -->
+    <record id="privilege_08_menu_de_comerciales" model="res.groups.privilege">
+        <field name="name">Comerciales</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">80</field>
+    </record>
+    <record id="group_08_menu_de_comerciales" model="res.groups">
+        <field name="name">Comerciales</field>
+        <field name="sequence">80</field>
+        <field name="privilege_id" ref="privilege_08_menu_de_comerciales"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('perm_menu_of001')),
+            Command.link(ref('perm_oc01pr')),
+            Command.link(ref('group_09_informes_estadisticos_menu_of002')),
+        ]"/>
+    </record>
+
+    <record id="privilege_10_direccion" model="res.groups.privilege">
+        <field name="name">Dirección</field>
+        <field name="category_id" ref="module_category_todopintura"/>
+        <field name="sequence">100</field>
+    </record>
+    <record id="group_10_direccion" model="res.groups">
+        <field name="name">Dirección</field>
+        <field name="sequence">100</field>
+        <field name="privilege_id" ref="privilege_10_direccion"/>
+        <field name="implied_ids" eval="[
+            Command.link(ref('group_todopintura_restricted')),
+            Command.link(ref('group_01_gestion_de_pedidos')),
+            Command.link(ref('group_02_pedidos_de_y_para_tiendas')),
+            Command.link(ref('group_03_gestion_de_entradas_de_proveedor')),
+            Command.link(ref('group_04_ventas_de_almacen_central')),
+            Command.link(ref('group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie')),
+            Command.link(ref('group_06_ventas_de_tiendas')),
+            Command.link(ref('group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie')),
+            Command.link(ref('group_08_menu_de_comerciales')),
+            Command.link(ref('group_09_informes_estadisticos_menu_of002')),
+        ]"/>
+    </record>
+</odoo>
