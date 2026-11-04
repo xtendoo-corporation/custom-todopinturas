@@ -21,7 +21,7 @@ class StockOperationsCase(OperationsCase):
                 "list_price": 20,
                 "standard_price": 8,
                 "property_stock_inventory": cls.env["stock.location"]
-                .search([("usage", "=", "inventory")], limit=1)
+                .create({"name": "Ajuste de inventario e2e", "usage": "inventory"})
                 .id,
             }
         )

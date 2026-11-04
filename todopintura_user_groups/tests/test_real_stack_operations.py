@@ -52,6 +52,13 @@ class PosOperationsCase(OperationsCase):
         session.action_pos_session_open()
         return session
 
+    def pricelist_for(self, config):
+        return (
+            config.pricelist_id
+            or config.available_pricelist_ids[:1]
+            or self.env["product.pricelist"].search([], limit=1)
+        )
+
     def cash_method(self, config):
         methods = config.payment_method_ids
         return methods.filtered(lambda m: m.type == "cash")[:1] or methods[:1]
@@ -65,7 +72,7 @@ class PosOperationsCase(OperationsCase):
             .create(
                 {
                     "session_id": session.id,
-                    "pricelist_id": session.config_id.pricelist_id.id,
+                    "pricelist_id": self.pricelist_for(session.config_id).id,
                     "partner_id": partner.id if partner else False,
                     "amount_tax": 0,
                     "amount_total": price,
@@ -175,7 +182,7 @@ class TestPosCredit(PosOperationsCase):
             .create(
                 {
                     "session_id": session.id,
-                    "pricelist_id": session.config_id.pricelist_id.id,
+                    "pricelist_id": self.pricelist_for(session.config_id).id,
                     "partner_id": partner.id,
                     "amount_tax": 0,
                     "amount_total": 10,
