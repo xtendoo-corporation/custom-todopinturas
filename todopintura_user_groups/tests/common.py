@@ -7,7 +7,6 @@ on a copy of the customer's database.
 """
 
 import datetime
-import time
 from unittest import SkipTest
 
 from lxml import etree
@@ -118,8 +117,8 @@ class OperationsCase(TransactionCase):
             {
                 "uid": user.id,
                 "user": user,
-                "time": time,
-                "datetime": datetime,
+                "time": safe_time,
+                "datetime": safe_datetime,
                 "context_today": datetime.date.today,
             },
         )
