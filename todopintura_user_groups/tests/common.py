@@ -36,16 +36,32 @@ PROFILES = (
 X2MANY = ("one2many", "many2many")
 
 
-class OperationsCase(TransactionCase):
+class TodopinturaTestCase(TransactionCase):
+    """Base for every test: copes with the stack's own business rules."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # The customer's sale workflow refuses customers without credit sales
+        # enabled; the default keeps ordinary test partners valid.
+        if "pos_credit_sale_enabled" in cls.env["res.partner"]._fields:
+            cls.env["ir.default"].set("res.partner", "pos_credit_sale_enabled", True)
+
+    @classmethod
+    def on_full_stack(cls):
+        installed = cls.env["ir.module.module"].search(
+            [("name", "in", STACK_MODULES), ("state", "=", "installed")]
+        )
+        return len(installed) == len(STACK_MODULES)
+
+
+class OperationsCase(TodopinturaTestCase):
     """Base class: profile users plus a web-client-like menu opener."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        installed = cls.env["ir.module.module"].search(
-            [("name", "in", STACK_MODULES), ("state", "=", "installed")]
-        )
-        if len(installed) != len(STACK_MODULES):
+        if not cls.on_full_stack():
             raise SkipTest("Needs the customer's full POS stack")
 
     # ---- users ----------------------------------------------------------

@@ -24,6 +24,7 @@ MODULE = "todopintura_user_groups"
 LEGACY_FIELD = "x_warehouse_ids"
 NEW_FIELD = "allowed_warehouse_ids"
 WAREHOUSE_REF = re.compile(r"ref\('(\w+)'\)")
+GROUP_REF = re.compile(r"ref\('([\w.]+)'\)")
 
 
 def pre_init_hook(env):
@@ -299,3 +300,58 @@ def migrate_legacy_warehouse_field(env):
         user.allowed_warehouse_ids = user[LEGACY_FIELD]
     _logger.info("Copied %s into %s for %d users", LEGACY_FIELD, NEW_FIELD, len(users))
     legacy.unlink()
+
+
+def reset_declared_implied_groups(env):
+    """Make the implied groups of the module groups match security.xml.
+
+    ``Command.link`` only adds on update, so an implication removed from the
+    data file would otherwise survive. Users that kept a granular permission
+    only because of a stale implication lose it too.
+    """
+    root = _parse("security/security.xml")
+    for record in root.iter("record"):
+        node = record.find("field[@name='implied_ids']")
+        if record.get("model") != "res.groups" or node is None:
+            continue
+        if "." in record.get("id"):  # standard group extended by the module
+            continue
+        group = env.ref(f"{MODULE}.{record.get('id')}", raise_if_not_found=False)
+        if not group:
+            continue
+        refs = GROUP_REF.findall(node.get("eval") or "")
+        implied = env["res.groups"].browse(
+            env.ref(ref if "." in ref else f"{MODULE}.{ref}").id for ref in refs
+        )
+        group.implied_ids = [Command.set(implied.ids)]
+    _strip_unreachable_permissions(env)
+
+
+def _strip_unreachable_permissions(env):
+    """Remove granular groups that no profile of the user implies any more."""
+    data = env["ir.model.data"].search(
+        [("module", "=", MODULE), ("model", "=", "res.groups")]
+    )
+    module_groups = env["res.groups"].browse(data.mapped("res_id"))
+    profiles = module_groups.filtered(
+        lambda group: re.match(
+            r"group_\d{2}_", group.get_external_id()[group.id].split(".")[1]
+        )
+    )
+    granular = (
+        module_groups - profiles - env.ref(f"{MODULE}.group_todopintura_restricted")
+    )
+    granular -= env.ref(f"{MODULE}.group_cost_viewer")
+    for user in (
+        env["res.users"]
+        .with_context(active_test=False)
+        .search([("group_ids", "in", profiles.ids)])
+    ):
+        held = user.group_ids & profiles
+        reachable = held | held.all_implied_ids
+        stale = (user.group_ids & granular) - reachable
+        if stale:
+            user.group_ids = [Command.unlink(group.id) for group in stale]
+            _logger.info(
+                "%s loses stale permissions %s", user.login, stale.mapped("name")
+            )

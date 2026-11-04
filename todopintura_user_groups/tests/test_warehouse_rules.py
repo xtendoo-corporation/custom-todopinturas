@@ -2,13 +2,14 @@
 from odoo import Command
 from odoo.exceptions import AccessError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
+
+from .common import TodopinturaTestCase
 
 MODULE = "todopintura_user_groups"
 
 
 @tagged("post_install", "-at_install", "todopintura_user_groups")
-class TestWarehouseRules(TransactionCase):
+class TestWarehouseRules(TodopinturaTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -78,6 +79,16 @@ class TestWarehouseRules(TransactionCase):
         self.assertIn(order_a, visible)
         self.assertNotIn(order_b, visible)
 
+    def _pricelist(self, config):
+        return self.env["product.pricelist"].search(
+            [("company_id", "in", [False, config.company_id.id])], limit=1
+        ) or self.env["product.pricelist"].create({"name": "Tarifa reglas"})
+
+    def _authorize(self, user, config):
+        """Authorize a till when the conventional till filter is installed."""
+        if "allowed_pos_config_ids" in user._fields:
+            user.allowed_pos_config_ids = [Command.link(config.id)]
+
     def test_pos_sessions_limited_to_allowed_warehouses(self):
         sessions = self.env["pos.session"]
         configs = {}
@@ -88,6 +99,8 @@ class TestWarehouseRules(TransactionCase):
                     "picking_type_id": warehouse.pos_type_id.id,
                 }
             )
+            if warehouse == self.wh_a:
+                self._authorize(self.user_a, configs[warehouse])
             sessions |= self.env["pos.session"].create(
                 {"config_id": configs[warehouse].id}
             )
@@ -107,10 +120,14 @@ class TestWarehouseRules(TransactionCase):
                     "picking_type_id": warehouse.pos_type_id.id,
                 }
             )
+            if warehouse == self.wh_a:
+                self._authorize(self.user_a, config)
             session = self.env["pos.session"].create({"config_id": config.id})
             orders[warehouse] = self.env["pos.order"].create(
                 {
                     "session_id": session.id,
+                    "pricelist_id": self._pricelist(config).id,
+                    "partner_id": self.partner.id,
                     "amount_tax": 0,
                     "amount_total": 0,
                     "amount_paid": 0,

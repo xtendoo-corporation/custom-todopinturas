@@ -80,6 +80,60 @@ class TestAdoption(TransactionCase):
         hooks.adopt_manual_records(self.env)
         self.assertFalse(self.env.ref(f"{MODULE}.perm_va01", raise_if_not_found=False))
 
+    def test_stale_implied_group_is_removed(self):
+        store = self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas")
+        stale = self.env.ref(f"{MODULE}.perm_va05")
+        store.implied_ids = [Command.link(stale.id)]
+        self.assertIn(stale, store.implied_ids)
+        hooks.reset_declared_implied_groups(self.env)
+        self.assertNotIn(stale, store.implied_ids)
+        self.assertIn(self.env.ref(f"{MODULE}.perm_va01"), store.implied_ids)
+
+    def test_reset_keeps_standard_groups_extended_by_the_module(self):
+        hooks.reset_declared_implied_groups(self.env)
+        self.assertIn(
+            self.env.ref(f"{MODULE}.group_cost_viewer"),
+            self.env.ref("base.group_system").implied_ids,
+        )
+
+    def test_user_loses_permissions_no_profile_implies_any_more(self):
+        store = self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas")
+        stale = self.env.ref(f"{MODULE}.perm_va05")
+        store.implied_ids = [Command.link(stale.id)]
+        user = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Stale",
+                    "login": "stale_user",
+                    "group_ids": [Command.set(store.ids)],
+                }
+            )
+        )
+        self.assertIn(stale, user.group_ids)
+        hooks.reset_declared_implied_groups(self.env)
+        self.assertNotIn(stale, user.group_ids)
+        self.assertIn(self.env.ref(f"{MODULE}.perm_va01"), user.group_ids)
+
+    def test_reset_is_idempotent_and_keeps_manual_users_untouched(self):
+        manual = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Manual",
+                    "login": "manual_user",
+                    "group_ids": [Command.set(self.env.ref(f"{MODULE}.perm_va05").ids)],
+                }
+            )
+        )
+        before = self.env["res.groups"].search_count([])
+        hooks.reset_declared_implied_groups(self.env)
+        hooks.reset_declared_implied_groups(self.env)
+        self.assertEqual(self.env["res.groups"].search_count([]), before)
+        self.assertIn(self.env.ref(f"{MODULE}.perm_va05"), manual.group_ids)
+
     def test_adoption_is_idempotent(self):
         before = self.env["ir.model.data"].search_count([("module", "=", MODULE)])
         hooks.adopt_manual_records(self.env)

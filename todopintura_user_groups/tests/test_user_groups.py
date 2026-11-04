@@ -2,9 +2,9 @@
 from odoo import Command
 from odoo.exceptions import AccessError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 from ._expected import EXPECTED_ACCESS, EXPECTED_MENUS, MODELS
+from .common import TodopinturaTestCase
 
 MODULE = "todopintura_user_groups"
 
@@ -20,7 +20,7 @@ FORBIDDEN_MENUS = [
 
 
 @tagged("post_install", "-at_install", "todopintura_user_groups")
-class TestTodopinturaUserGroups(TransactionCase):
+class TestTodopinturaUserGroups(TodopinturaTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -105,7 +105,13 @@ class TestTodopinturaUserGroups(TransactionCase):
         self.assertIn(group, central.all_implied_ids)
 
     # ---- matriz de accesos ------------------------------------------------
+    def _exact_acl_only(self):
+        """The exact matrix only holds without the customer's extra ACLs."""
+        if self.on_full_stack():
+            self.skipTest("Exact ACL matrix is checked on the standard stack")
+
     def test_01_model_access_matrix(self):
+        self._exact_acl_only()
         for block_xmlid, expected in EXPECTED_ACCESS.items():
             user = self._user(block_xmlid)
             for model in MODELS:
@@ -611,6 +617,7 @@ class TestTodopinturaUserGroups(TransactionCase):
         self.assertEqual(leaves, set(EXPECTED_MENUS[block_xmlid]), block_xmlid)
 
     def test_30_bloque_mas_grupos_de_administrador(self):
+        self._exact_acl_only()
         extra = self.env["res.groups"]
         for xmlid in (
             "sales_team.group_sale_manager",
@@ -624,6 +631,7 @@ class TestTodopinturaUserGroups(TransactionCase):
             self._check_block_with_extra_groups(block_xmlid, extra)
 
     def test_31_bloque_mas_grupos_de_usuario_real(self):
+        self._exact_acl_only()
         real = self.env["res.users"].search([("login", "=", "roque")], limit=1)
         if not real:
             self.skipTest("No existe el usuario 'roque' en esta base")
