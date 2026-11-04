@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Global rules (no groups): they only restrict users with allowed_warehouse_ids set. -->
+    <record id="rule_stock_picking_allowed_warehouses" model="ir.rule">
+        <field name="name">Todopintura: traspasos de los almacenes permitidos</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="domain_force">[(1, '=', 1)] if not user.allowed_warehouse_ids else [
+            '|', '|',
+            ('picking_type_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+            ('location_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+            ('location_dest_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+        ]</field>
+    </record>
+
+    <record id="rule_sale_order_allowed_warehouses" model="ir.rule">
+        <field name="name">Todopintura: pedidos de venta de los almacenes permitidos</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="domain_force">[(1, '=', 1)] if not user.allowed_warehouse_ids else [
+            ('warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+        ]</field>
+    </record>
+
+    <record id="rule_pos_order_allowed_warehouses" model="ir.rule">
+        <field name="name">Todopintura: pedidos de TPV de los almacenes permitidos</field>
+        <field name="model_id" ref="point_of_sale.model_pos_order"/>
+        <field name="domain_force">[(1, '=', 1)] if not user.allowed_warehouse_ids else [
+            ('config_id.picking_type_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+        ]</field>
+    </record>
+
+    <record id="rule_pos_session_allowed_warehouses" model="ir.rule">
+        <field name="name">Todopintura: sesiones de TPV de los almacenes permitidos</field>
+        <field name="model_id" ref="point_of_sale.model_pos_session"/>
+        <field name="domain_force">[(1, '=', 1)] if not user.allowed_warehouse_ids else [
+            ('config_id.picking_type_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+        ]</field>
+    </record>
+</odoo>
