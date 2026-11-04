@@ -11,12 +11,14 @@ class ResPartner(models.Model):
         compute='_compute_pos_order_credit_deposit_count'
     )
     def _compute_pos_order_credit_deposit_count(self):
+        # Only counters: sudo so users without access to POS orders can still open the partner.
+        orders = self.env['pos.order'].sudo()
         for partner in self:
-            partner.pos_order_credit_count = self.env['pos.order'].search_count([
+            partner.pos_order_credit_count = orders.search_count([
                 ('partner_id', '=', partner.id),
                 ('state', '=', 'linked')
             ])
-            partner.pos_order_deposit_count = self.env['pos.order'].search_count([
+            partner.pos_order_deposit_count = orders.search_count([
                 ('partner_id', '=', partner.id),
                 ('state', '=', 'deposit')
             ])
