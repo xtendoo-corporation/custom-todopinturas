@@ -161,7 +161,7 @@
                 <div class="alert alert-warning mb-2"
                     name="credit_alert_container"
                     role="alert"
-                    invisible="not partner_id">
+                    invisible="not partner_id or (not partner_requires_voucher and not partner_pickup_persons_display and not partner_credit_warning_message and partner_current_total_due == 0 and partner_credit_limit_amount == 0)">
 
                     <!-- Fila 1: Vale y Autorizados -->
                     <div class="d-flex align-items-center gap-3"
