@@ -53,11 +53,11 @@
                         <span class="fa fa-info-circle" title="Información de crédito" />
                         <div class="text-nowrap"
                             invisible="partner_credit_limit_amount == 0 and partner_current_total_due == 0 and partner_total_due_after_order == 0 and not partner_credit_warning_message">
-                            <span class="fw-semibold text-warning-emphasis">Estado de Crédito:</span>
-                            Deuda <field name="partner_current_total_due" readonly="1" nolabel="1" /> ·
-                            Límite <field name="partner_credit_limit_amount" readonly="1" nolabel="1" />
+                            <span class="fw-bold text-warning-emphasis">Estado de Crédito:</span>
+                            <span class="fw-bold">Deuda:</span> <field name="partner_current_total_due" readonly="1" nolabel="1" /> ·
+                            <span class="fw-bold">Límite:</span> <field name="partner_credit_limit_amount" readonly="1" nolabel="1" />
                             <span invisible="partner_total_due_after_order == partner_current_total_due">
-                                · Proyectada <field name="partner_total_due_after_order" readonly="1" nolabel="1" />
+                                · <span class="fw-bold">Proyectada:</span> <field name="partner_total_due_after_order" readonly="1" nolabel="1" />
                             </span>
                         </div>
                         <div class="text-nowrap fw-bold" invisible="not partner_credit_warning_message">

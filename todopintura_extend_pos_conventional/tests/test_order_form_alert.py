@@ -42,7 +42,14 @@ class TestOrderFormAlertBanner(TransactionCase):
         for model in ("pos.order", "sale.order"):
             arch = self._form_arch(model)
             root = etree.fromstring(arch)
-            for label in ("Vale Requerido:", "Autorizados:"):
+            for label in (
+                "Vale Requerido:",
+                "Autorizados:",
+                "Estado de Crédito:",
+                "Deuda:",
+                "Límite:",
+                "Proyectada:",
+            ):
                 spans = [
                     span
                     for span in root.iter("span")
