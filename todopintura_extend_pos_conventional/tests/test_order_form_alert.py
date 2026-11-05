@@ -28,6 +28,24 @@ class TestOrderFormAlertBanner(TransactionCase):
         context = dict(self.NO_INFO, **values)
         return bool(eval(self.expression, {}, context))  # noqa: S307
 
+    def test_labels_use_title_case_and_bold(self):
+        for model in ("pos.order", "sale.order"):
+            arch = self.env[model].get_view(view_type="form")["arch"]
+            root = etree.fromstring(arch)
+            for label in ("Vale Requerido:", "Autorizados:"):
+                spans = [
+                    span
+                    for span in root.iter("span")
+                    if (span.xpath("string()") or "").strip() == label
+                ]
+                self.assertTrue(spans, f"{model}: falta {label}")
+                for span in spans:
+                    classes = span.get("class", "").split()
+                    self.assertIn("fw-bold", classes, f"{model}: {label}")
+                    self.assertNotIn("text-uppercase", classes, f"{model}: {label}")
+            self.assertNotIn("VALE REQUERIDO", arch)
+            self.assertNotIn("AUTORIZADOS", arch)
+
     def test_banner_exists_in_the_form(self):
         self.assertTrue(self.expression)
 
