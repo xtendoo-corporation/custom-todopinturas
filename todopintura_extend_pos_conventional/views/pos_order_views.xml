@@ -144,6 +144,8 @@
                 <field name="partner_current_total_due" invisible="1" />
                 <field name="partner_credit_limit_amount" invisible="1" />
                 <field name="partner_total_due_after_order" invisible="1" />
+                <field name="partner_credit_remaining_amount" invisible="1" />
+                <field name="partner_credit_excess_amount" invisible="1" />
                 <field name="partner_credit_available" invisible="1" />
                 <field name="partner_credit_cashier_warning" invisible="1" />
                 <field name="partner_requires_voucher" invisible="1" />
@@ -196,13 +198,19 @@
                          name="credit_info_row"
                          invisible="partner_credit_warning_message == False and partner_current_total_due == 0 and partner_credit_limit_amount == 0">
                         <span class="fa fa-info-circle" title="Información de crédito" />
-                        <div class="text-nowrap"
-                            invisible="partner_credit_limit_amount == 0 and partner_current_total_due == 0 and partner_total_due_after_order == 0 and not partner_credit_warning_message">
-                            <span class="fw-bold text-warning-emphasis">Estado de Crédito:</span>
-                            <span class="fw-bold">Deuda:</span> <field name="partner_current_total_due" readonly="1" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" /> ·
-                            <span class="fw-bold">Límite:</span> <field name="partner_credit_limit_amount" readonly="1" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" />
-                            <span invisible="partner_total_due_after_order == partner_current_total_due">
-                                · <span class="fw-bold">Proyectada:</span> <field name="partner_total_due_after_order" readonly="1" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" />
+                        <div class="text-nowrap" name="credit_summary">
+                            <span class="fw-bold" invisible="partner_credit_limit_amount &lt;= 0 or partner_credit_excess_amount &gt; 0">
+                                Crédito disponible: <field name="partner_credit_remaining_amount" readonly="1" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" />
+                            </span>
+                            <span class="fw-bold text-danger" invisible="partner_credit_excess_amount &lt;= 0">
+                                Supera el límite en <field name="partner_credit_excess_amount" readonly="1" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" /> con este pedido
+                            </span>
+                            <span class="fw-bold" invisible="partner_credit_limit_amount &gt; 0 or partner_total_due_after_order == 0">
+                                Deuda pendiente: <field name="partner_total_due_after_order" readonly="1" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" />
+                            </span>
+                            <span invisible="partner_credit_limit_amount &lt;= 0">
+                                (límite <field name="partner_credit_limit_amount" readonly="1" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" />,
+                                deuda <field name="partner_total_due_after_order" readonly="1" nolabel="1" widget="monetary" options="{'currency_field': 'currency_id'}" />)
                             </span>
                         </div>
                         <div class="text-nowrap fw-bold" invisible="not partner_credit_warning_message">

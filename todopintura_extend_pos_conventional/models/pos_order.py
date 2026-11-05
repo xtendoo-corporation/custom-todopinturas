@@ -256,6 +256,16 @@ class PosOrder(models.Model):
         compute="_compute_partner_credit_policy",
         currency_field="currency_id",
     )
+    partner_credit_remaining_amount = fields.Monetary(
+        string="Crédito disponible tras el pedido",
+        compute="_compute_partner_credit_policy",
+        currency_field="currency_id",
+    )
+    partner_credit_excess_amount = fields.Monetary(
+        string="Exceso sobre el límite",
+        compute="_compute_partner_credit_policy",
+        currency_field="currency_id",
+    )
     partner_credit_warning_message = fields.Text(
         string="Aviso de crédito",
         compute="_compute_partner_credit_policy",
@@ -406,6 +416,8 @@ class PosOrder(models.Model):
             order.partner_current_total_due = 0.0
             order.partner_credit_limit_amount = 0.0
             order.partner_total_due_after_order = 0.0
+            order.partner_credit_remaining_amount = 0.0
+            order.partner_credit_excess_amount = 0.0
             order.partner_credit_warning_message = False
             order.partner_credit_available = False
             order.partner_credit_cashier_warning = False
@@ -422,6 +434,10 @@ class PosOrder(models.Model):
             order.partner_current_total_due = policy["current_due"]
             order.partner_credit_limit_amount = policy["credit_limit"]
             order.partner_total_due_after_order = policy["total_after"]
+            if policy["credit_limit"] > 0:
+                margin = policy["credit_limit"] - policy["total_after"]
+                order.partner_credit_remaining_amount = max(margin, 0.0)
+                order.partner_credit_excess_amount = max(-margin, 0.0)
             order.partner_credit_warning_message = policy["warning_message"]
             order.partner_credit_available = bool(
                 policy["credit_sale_allowed"] and policy["location_allowed"]

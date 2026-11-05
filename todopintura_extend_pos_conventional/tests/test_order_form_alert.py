@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from lxml import etree
 
 from odoo.tests import tagged
@@ -42,14 +44,7 @@ class TestOrderFormAlertBanner(TransactionCase):
         for model in ("pos.order", "sale.order"):
             arch = self._form_arch(model)
             root = etree.fromstring(arch)
-            for label in (
-                "Vale Requerido:",
-                "Autorizados:",
-                "Estado de Crédito:",
-                "Deuda:",
-                "Límite:",
-                "Proyectada:",
-            ):
+            for label in ("Vale Requerido:", "Autorizados:"):
                 spans = [
                     span
                     for span in root.iter("span")
@@ -64,6 +59,8 @@ class TestOrderFormAlertBanner(TransactionCase):
             self.assertNotIn("AUTORIZADOS", arch)
             self.assertNotIn("REVISAR CRÉDITO", arch)
             self.assertIn("Revisar Crédito del Cliente", arch)
+            for old in ("Estado de Crédito", "Proyectada"):
+                self.assertNotIn(old, self._form_arch("pos.order"))
 
     def test_banner_exists_in_the_form(self):
         self.assertTrue(self.expression)
@@ -88,3 +85,67 @@ class TestOrderFormAlertBanner(TransactionCase):
 
     def test_visible_when_the_customer_has_a_credit_limit(self):
         self.assertFalse(self._hidden(partner_credit_limit_amount=500.0))
+
+
+@tagged("post_install", "-at_install")
+class TestCreditSummary(TransactionCase):
+    """Natural-language credit summary of the POS order notice."""
+
+    POLICY = {
+        "current_location_name": False,
+        "allowed_location_names": False,
+        "pickup_people": False,
+        "requires_voucher": False,
+        "voucher_reference": False,
+        "current_due": 0.0,
+        "credit_limit": 0.0,
+        "total_after": 0.0,
+        "warning_message": False,
+        "credit_sale_allowed": True,
+        "location_allowed": True,
+    }
+
+    def _order(self, **policy):
+        partner = self.env["res.partner"].create({"name": "Cliente resumen"})
+        order = self.env["pos.order"].new({"partner_id": partner.id})
+        data = dict(self.POLICY, **policy)
+        with patch.object(
+            type(order), "_get_conventional_credit_policy_data", return_value=data
+        ):
+            order._compute_partner_credit_policy()
+        return order
+
+    def test_available_credit_without_debt(self):
+        order = self._order(credit_limit=500.0, total_after=0.0)
+        self.assertEqual(order.partner_credit_remaining_amount, 500.0)
+        self.assertEqual(order.partner_credit_excess_amount, 0.0)
+
+    def test_available_credit_counts_the_current_order(self):
+        order = self._order(credit_limit=500.0, current_due=80.0, total_after=200.0)
+        self.assertEqual(order.partner_credit_remaining_amount, 300.0)
+
+    def test_exceeding_the_limit_shows_the_excess(self):
+        order = self._order(credit_limit=500.0, total_after=540.0)
+        self.assertEqual(order.partner_credit_remaining_amount, 0.0)
+        self.assertEqual(order.partner_credit_excess_amount, 40.0)
+
+    def test_exactly_at_the_limit_is_not_an_excess(self):
+        order = self._order(credit_limit=500.0, total_after=500.0)
+        self.assertEqual(order.partner_credit_remaining_amount, 0.0)
+        self.assertEqual(order.partner_credit_excess_amount, 0.0)
+
+    def test_without_limit_there_is_no_available_amount(self):
+        order = self._order(credit_limit=0.0, current_due=70.0, total_after=70.0)
+        self.assertEqual(order.partner_credit_remaining_amount, 0.0)
+        self.assertEqual(order.partner_credit_excess_amount, 0.0)
+
+    def test_without_customer_everything_is_zero(self):
+        order = self.env["pos.order"].new({})
+        order._compute_partner_credit_policy()
+        self.assertEqual(order.partner_credit_remaining_amount, 0.0)
+
+    def test_view_uses_the_new_wording(self):
+        arch = self.env["pos.order"].get_view(view_type="form")["arch"]
+        for text in ("Crédito disponible:", "Supera el límite en", "Deuda pendiente:"):
+            self.assertIn(text, arch)
+        self.assertIn("partner_credit_remaining_amount", arch)
