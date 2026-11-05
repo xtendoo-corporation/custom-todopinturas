@@ -61,7 +61,7 @@
                             </span>
                         </div>
                         <div class="text-nowrap fw-bold" invisible="not partner_credit_warning_message">
-                            <span class="fa fa-exclamation-triangle me-1" />REVISAR CRÉDITO DEL CLIENTE:
+                            <span class="fa fa-exclamation-triangle me-1" />Revisar Crédito del Cliente:
                             <field name="partner_credit_warning_message" readonly="1" nolabel="1" class="ms-1" />
                         </div>
                     </div>

@@ -55,6 +55,8 @@ class TestOrderFormAlertBanner(TransactionCase):
                     self.assertNotIn("text-uppercase", classes, f"{model}: {label}")
             self.assertNotIn("VALE REQUERIDO", arch)
             self.assertNotIn("AUTORIZADOS", arch)
+            self.assertNotIn("REVISAR CRÉDITO", arch)
+            self.assertIn("Revisar Crédito del Cliente", arch)
 
     def test_banner_exists_in_the_form(self):
         self.assertTrue(self.expression)
