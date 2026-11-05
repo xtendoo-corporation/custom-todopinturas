@@ -30,8 +30,12 @@ class TestOrderFormAlertBanner(TransactionCase):
 
     def _form_arch(self, model):
         if model == "sale.order":
-            view = self.env.ref("sale.view_order_form")
-            return self.env[model].get_view(view_id=view.id, view_type="form")["arch"]
+            # The sale order notice view is shipped inactive: read its source.
+            view = self.env.ref(
+                "todopintura_extend_pos_conventional."
+                "view_sale_order_form_inherit_pos_observations"
+            )
+            return f"<form>{view.arch}</form>"
         return self.env[model].get_view(view_type="form")["arch"]
 
     def test_labels_use_title_case_and_bold(self):
