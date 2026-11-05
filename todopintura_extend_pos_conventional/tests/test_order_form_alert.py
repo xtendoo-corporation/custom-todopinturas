@@ -28,9 +28,15 @@ class TestOrderFormAlertBanner(TransactionCase):
         context = dict(self.NO_INFO, **values)
         return bool(eval(self.expression, {}, context))  # noqa: S307
 
+    def _form_arch(self, model):
+        if model == "sale.order":
+            view = self.env.ref("sale.view_order_form")
+            return self.env[model].get_view(view_id=view.id, view_type="form")["arch"]
+        return self.env[model].get_view(view_type="form")["arch"]
+
     def test_labels_use_title_case_and_bold(self):
         for model in ("pos.order", "sale.order"):
-            arch = self.env[model].get_view(view_type="form")["arch"]
+            arch = self._form_arch(model)
             root = etree.fromstring(arch)
             for label in ("Vale Requerido:", "Autorizados:"):
                 spans = [
