@@ -172,14 +172,14 @@
                             <div class="row">
                                 <div class="col-12 col-md-6" invisible="not partner_requires_voucher">
                                     <div class="d-flex align-items-baseline gap-2">
-                                        <span class="text-uppercase fw-bold"><span class="fa fa-ticket me-1" title="Vale" />VALE REQUERIDO:</span>
+                                        <span class="fw-bold"><span class="fa fa-ticket me-1" title="Vale" />Vale Requerido:</span>
                                         <field name="partner_voucher_reference" readonly="1" nolabel="1" class="fw-bold text-warning-emphasis" />
                                         <span class="fw-bold" invisible="partner_voucher_reference">(pendiente)</span>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6 border-start border-warning-subtle" invisible="not partner_pickup_persons_display">
                                     <div class="d-flex align-items-baseline gap-2">
-                                        <span class="text-uppercase fw-bold"><span class="fa fa-users me-1" title="Personas autorizadas" />AUTORIZADOS:</span>
+                                        <span class="fw-bold"><span class="fa fa-users me-1" title="Personas autorizadas" />Autorizados:</span>
                                         <field name="partner_pickup_persons_inline" readonly="1" nolabel="1" class="fw-bold" />
                                     </div>
                                 </div>
