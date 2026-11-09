@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Runs after the menus are loaded: each menu gets its own window action so that
+         a reload or a link never opens another app (see models/ir_ui_menu.py). -->
+    <function model="ir.ui.menu" name="_split_shared_actions"/>
+</odoo>

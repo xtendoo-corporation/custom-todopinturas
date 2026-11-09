@@ -661,3 +661,21 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         )
         for block_xmlid in EXPECTED_ACCESS:
             self._check_block_with_extra_groups(block_xmlid, extra)
+
+    def test_02g_every_menu_has_its_own_action(self):
+        """No window action is shared by two menus (nor with a standard app), so a
+        reload or a link can never open another app."""
+        links = self.env["ir.model.data"].search(
+            [("module", "=", MODULE), ("model", "=", "ir.ui.menu")]
+        )
+        Menu = self.env["ir.ui.menu"].with_context(active_test=False)
+        for link in links:
+            menu = Menu.browse(link.res_id)
+            if not menu.action or menu.action._name != "ir.actions.act_window":
+                continue
+            sharing = Menu.search([("action", "=", f"ir.actions.act_window,{menu.action.id}")])
+            self.assertEqual(sharing, menu, f"{link.name} shares its action")
+            self.assertEqual(
+                menu.action.get_external_id().get(menu.action.id),
+                f"{MODULE}.action_{link.name}",
+            )
