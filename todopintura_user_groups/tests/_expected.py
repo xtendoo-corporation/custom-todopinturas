@@ -211,11 +211,13 @@ TRANSFER_MENUS = {
     "menu_vc_transfers_offers",
     "menu_vc_transfers_pending",
     "menu_vc_transfers_print",
+    "menu_vc_transfers_pickup",
+    "menu_vc_transfers_credit",
 }
 STORE_TRANSFER_MENUS = {
     name.replace("menu_vc_", "menu_vt_")
     for name in TRANSFER_MENUS
-    if name != "menu_vc_transfers_offers"
+    if name not in {"menu_vc_transfers_offers", "menu_vc_transfers_pickup"}
 }
 STATISTICAL_MENUS = {
     "menu_co_report_sales_by_customer",
@@ -230,6 +232,7 @@ STATISTICAL_MENUS = {
     "menu_co_routes_config",
     "menu_co_customer_maintenance",
     "menu_co_outlet_offers",
+    "menu_co_prices",
     "menu_co_stock",
     "menu_co_customers",
 }
@@ -251,6 +254,7 @@ STORE_SALES_MENUS = {
     "menu_vt_credit_sales_query",
     "menu_vt_credit_sales_list",
     "menu_vt_customers",
+    "menu_vt_transfers_pickup",
 } | STORE_TRANSFER_MENUS
 COMMERCIAL_MENUS = {"menu_co_offers", "menu_co_orders"} | STATISTICAL_MENUS
 CUSTOMER_ORDER_MENUS = {
