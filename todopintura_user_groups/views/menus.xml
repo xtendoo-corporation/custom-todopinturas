@@ -4,7 +4,7 @@
          Restricted users only see these menus (see models/ir_ui_menu.py). -->
 
     <!-- Pedidos de clientes -->
-    <menuitem id="menu_pc_root" name="Pedidos de clientes" sequence="10" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_01_gestion_de_pedidos"/>
+    <menuitem id="menu_pc_root" name="Pedidos de clientes" sequence="300" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_01_gestion_de_pedidos"/>
     <menuitem id="menu_pc_sales_entry" name="Grabación de ventas" parent="menu_pc_root" sequence="10" action="sale.action_quotations_with_onboarding" groups="perm_v01alm"/>
     <menuitem id="menu_pc_offers" name="Consulta de ofertas" parent="menu_pc_root" sequence="20" action="action_offers_consult" groups="perm_of01"/>
     <menuitem id="menu_pc_prices" name="Consulta de precios" parent="menu_pc_root" sequence="30" action="sale.product_template_action" groups="perm_m02p"/>
@@ -13,7 +13,7 @@
     <menuitem id="menu_pc_customers" name="Consulta de clientes" parent="menu_pc_root" sequence="60" action="action_partners_consult" groups="perm_m01pro"/>
 
     <!-- Pedidos de y para tiendas -->
-    <menuitem id="menu_pt_root" name="Pedidos de y para tiendas" sequence="20" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_02_pedidos_de_y_para_tiendas"/>
+    <menuitem id="menu_pt_root" name="Pedidos de y para tiendas" sequence="310" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_02_pedidos_de_y_para_tiendas"/>
     <menuitem id="menu_pt_weekly_replenishment" name="Listado de reposición semanal de tiendas" parent="menu_pt_root" sequence="10" action="stock.action_orderpoint_replenish" groups="perm_gs10ped"/>
     <menuitem id="menu_pt_movement_entry" name="Grabación de partes de movimiento de almacén" parent="menu_pt_root" sequence="20" action="stock.action_picking_tree_internal" groups="perm_a01"/>
     <!-- PENDING with the customer: physical inventory adjustment. -->
@@ -22,7 +22,7 @@
     <menuitem id="menu_pt_branch_transfers" name="Listado de traspasos entre sucursales" parent="menu_pt_root" sequence="50" action="action_internal_transfers_list" groups="perm_e1717"/>
 
     <!-- Entradas de proveedor -->
-    <menuitem id="menu_ep_root" name="Entradas de proveedor" sequence="30" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_03_gestion_de_entradas_de_proveedor"/>
+    <menuitem id="menu_ep_root" name="Entradas de proveedor" sequence="320" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_03_gestion_de_entradas_de_proveedor"/>
     <menuitem id="menu_ep_purchase_entry" name="Grabación de pedidos a proveedores" parent="menu_ep_root" sequence="10" action="purchase.purchase_rfq" groups="perm_ar01"/>
     <menuitem id="menu_ep_purchase_review" name="Listado repaso de pedidos a proveedores" parent="menu_ep_root" sequence="20" action="purchase.purchase_form_action" groups="perm_ar02"/>
     <menuitem id="menu_ep_pending_orders" name="Vuelco a pedidos pendientes y carta de pedido" parent="menu_ep_root" sequence="30" action="purchase.purchase_rfq" groups="perm_ar03"/>
@@ -34,7 +34,7 @@
     <menuitem id="menu_ep_pricelists" name="Mantenimiento de precios y tarifas" parent="menu_ep_root" sequence="90" action="product.product_pricelist_action2" groups="perm_pricelist_maintenance"/>
 
     <!-- Ventas de almacén central -->
-    <menuitem id="menu_vc_root" name="Ventas de almacén central" sequence="40" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_04_ventas_de_almacen_central,group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <menuitem id="menu_vc_root" name="Ventas de almacén central" sequence="330" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_04_ventas_de_almacen_central,group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
     <menuitem id="menu_vc_sales_entry" name="Grabación de ventas" parent="menu_vc_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_v01"/>
     <menuitem id="menu_vc_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vc_root" sequence="20" action="point_of_sale.action_pos_session" groups="perm_v03"/>
     <menuitem id="menu_vc_prices" name="Consulta de precios" parent="menu_vc_root" sequence="30" action="sale.product_template_action" groups="perm_m02p_almacen_central"/>
@@ -48,7 +48,7 @@
     <menuitem id="menu_vc_transfers_print" name="Impresión de partes de almacén" parent="menu_vc_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
 
     <!-- Ventas de POS (stores) -->
-    <menuitem id="menu_vt_root" name="Ventas de POS" sequence="50" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_06_ventas_de_tiendas,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <menuitem id="menu_vt_root" name="Ventas de POS" sequence="340" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_06_ventas_de_tiendas,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
     <menuitem id="menu_vt_sales_entry" name="Grabación de ventas" parent="menu_vt_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_va01"/>
     <menuitem id="menu_vt_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vt_root" sequence="20" action="point_of_sale.action_pos_session" groups="perm_va03"/>
     <menuitem id="menu_vt_cash_listing" name="Listado de cuadre de caja" parent="menu_vt_root" sequence="30" action="point_of_sale.action_pos_session" groups="perm_va0303"/>
@@ -67,7 +67,7 @@
     <menuitem id="menu_vt_customers" name="Consulta de clientes" parent="menu_vt_misc" sequence="10" action="action_partners_consult" groups="perm_consulta_de_clientes"/>
 
     <!-- Comerciales (also entry point of the "Informes estadísticos" profile) -->
-    <menuitem id="menu_co_root" name="Comerciales" sequence="60" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_08_menu_de_comerciales,group_09_informes_estadisticos_menu_of002"/>
+    <menuitem id="menu_co_root" name="Comerciales" sequence="350" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_08_menu_de_comerciales,group_09_informes_estadisticos_menu_of002"/>
     <menuitem id="menu_co_offers" name="Gestión de ofertas" parent="menu_co_root" sequence="10" action="sale.action_quotations_with_onboarding" groups="perm_menu_of001"/>
     <menuitem id="menu_co_orders" name="Consulta de ofertas realizadas por compras" parent="menu_co_root" sequence="20" action="sale.action_orders" groups="perm_oc01pr"/>
     <menuitem id="menu_co_reports" name="Informes estadísticos" parent="menu_co_root" sequence="30" groups="group_09_informes_estadisticos_menu_of002"/>
