@@ -5,6 +5,20 @@ MODULE = "todopintura_user_groups"
 
 # Modelos "de infraestructura" que cualquier flujo de Odoo necesita escribir
 # (mensajes, adjuntos, preferencias...). No forman parte de los permisos de negocio.
+# Modelos que los perfiles bloqueados (ver commercial_lock.py) solo pueden consultar:
+# clientes, productos, tarifas, precios de proveedor y condiciones/modos de pago.
+LOCKED_MODELS = frozenset({
+    "res.partner",
+    "product.template",
+    "product.product",
+    "product.pricelist",
+    "product.pricelist.item",
+    "product.supplierinfo",
+    "account.payment.term",
+    "account.payment.term.line",
+    "account.payment.mode",
+})
+
 INFRA_PREFIXES = ("mail.", "ir.", "bus.", "base.", "res.users", "res.device", "web.", "digest.")
 
 
@@ -56,10 +70,13 @@ class IrModelAccess(models.Model):
             return frozenset(
                 m for m in allowed if m in granted or m not in self._todopintura_controlled_read()
             )
-        return frozenset(
+        result = frozenset(
             m
             for m in allowed
             if m in granted
             or m.startswith(INFRA_PREFIXES)
             or (m in self.env and self.env[m]._transient)
         )
+        if user.has_group(f"{MODULE}.group_todopintura_commercial_editor"):
+            return result
+        return result - LOCKED_MODELS

@@ -7,6 +7,17 @@
         <field name="sequence">1</field>
     </record>
 
+    <!-- Without it, the Todopintura profiles cannot change prices, discounts, payment
+         terms/modes, customers or products. Implied by Dirección and administrators. -->
+    <record id="group_todopintura_commercial_editor" model="res.groups">
+        <field name="name">Todopintura: modificar precios, descuentos, condiciones y modos de pago, clientes y productos</field>
+        <field name="sequence">3</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[Command.link(ref('group_todopintura_commercial_editor'))]"/>
+    </record>
+
     <!-- Costs, vendor prices and margins are hidden from everybody else. -->
     <record id="group_cost_viewer" model="res.groups">
         <field name="name">Todopintura: ver costes, precios de proveedor y márgenes</field>
@@ -573,6 +584,7 @@
             Command.link(ref('group_08_menu_de_comerciales')),
             Command.link(ref('group_09_informes_estadisticos_menu_of002')),
             Command.link(ref('perm_commission_rates')),
+            Command.link(ref('group_todopintura_commercial_editor')),
             Command.link(ref('sales_team.group_sale_salesman_all_leads')),
         ]"/>
     </record>

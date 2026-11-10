@@ -222,14 +222,13 @@ class TestPurchasingOperations(StockOperationsCase):
 
     def test_maintain_barcode_price_and_pricelist(self):
         template = self.product.product_tmpl_id.with_user(self.user)
-        template.write({"barcode": "E2E-BARCODE-1", "list_price": 25})
-        self.assertEqual(self.product.barcode, "E2E-BARCODE-1")
-        pricelist = (
-            self.env["product.pricelist"]
-            .with_user(self.user)
-            .create({"name": "Tarifa e2e"})
-        )
-        pricelist.write({"name": "Tarifa e2e editada"})
+        # perfil bloqueado: ni codigos de barras, ni precios, ni tarifas
+        with self.assertRaises(AccessError):
+            template.write({"barcode": "E2E-BARCODE-1", "list_price": 25})
+        with self.assertRaises(AccessError):
+            self.env["product.pricelist"].with_user(self.user).create(
+                {"name": "Tarifa e2e"}
+            )
 
     def test_cost_and_vendor_price_are_visible_to_the_buyer(self):
         arch = (
@@ -298,17 +297,17 @@ class TestSalesOperations(StockOperationsCase):
 
     def test_commercial_creates_customer_route_and_reads_reports(self):
         seller = self.make_user("group_08_menu_de_comerciales", "e2e_seller_c")
-        partner = (
-            self.env["res.partner"]
-            .with_user(seller)
-            .create({"name": "Cliente nuevo e2e"})
-        )
+        with self.assertRaises(AccessError):
+            self.env["res.partner"].with_user(seller).create({"name": "Cliente e2e"})
+        partner = self.env["res.partner"].create({"name": "Cliente nuevo e2e"})
         route = (
             self.env["todopintura.route"]
             .with_user(seller)
             .create({"name": "Ruta e2e", "user_id": seller.id})
         )
-        partner.with_user(seller).write(
+        with self.assertRaises(AccessError):
+            partner.with_user(seller).write({"route_id": route.id})
+        partner.write(
             {
                 "route_id": route.id,
                 "visit_day_ids": [

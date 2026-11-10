@@ -1,3 +1,4 @@
+from . import commercial_lock
 from . import commission
 from . import ir_model_access
 from . import ir_ui_menu

@@ -32,10 +32,21 @@ Ajustes): `models/ir_ui_menu.py` filtra los menús por los grupos Todopintura de
 
 ## Permisos transversales
 
-* **Crear/modificar clientes**: Comerciales, Ventas de POS y Dirección. El resto, solo consulta
-  (vistas de solo lectura en `views/actions.xml`).
-* **Códigos de barras, precios y tarifas**: solo Entradas de proveedor y Dirección
-  (`perm_m020` y `perm_pricelist_maintenance`).
+* **Perfiles bloqueados** (los 9 perfiles, no Dirección ni administradores): no pueden
+  modificar clientes, productos, tarifas, precios de proveedor, plazos/modos de pago, ni el
+  precio unitario y descuento de las líneas, ni las condiciones/modo de pago de pedidos y
+  facturas. Se desbloquea con el grupo `Todopintura: modificar precios, descuentos, condiciones
+  y modos de pago, clientes y productos` (lo implican Dirección y `base.group_system`).
+  Capas (`models/commercial_lock.py`, `models/ir_model_access.py`):
+  1. ACL: se quita write/create/unlink de `LOCKED_MODELS` a los bloqueados.
+  2. `write` de `sale.order(.line)` y `account.move(.line)`: se descartan `price_unit`,
+     `discount`, `payment_term_id` y `payment_mode_id` (el ORM los recalcula); en pedidos
+     también al crear. No afecta a procesos `sudo` ni a la creación de facturas/anticipos.
+  3. Vista de pedido de venta: esos campos en solo lectura (`todopintura_locked`).
+  4. TPV: el usuario bloqueado carga con rol `minimal` (sin descuento manual, cambio de
+     precio ni cambio de signo). Cajeros de `pos_hr` sin usuario vinculado no están cubiertos.
+* **Códigos de barras, precios y tarifas**: solo Dirección y administradores (los ACL
+  `perm_m020`, `perm_pricelist_maintenance` y `perm_m01com` quedan anulados por el bloqueo).
 * **Costes, precios de proveedor y márgenes**: solo quien tiene el grupo
   `Todopintura: ver costes, precios de proveedor y márgenes` (Entradas de proveedor, Dirección y
   administradores). Se oculta en las vistas de producto, variantes, proveedor, valoración de

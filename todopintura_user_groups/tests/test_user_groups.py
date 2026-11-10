@@ -361,8 +361,9 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         )
         po.button_confirm()
         self.assertEqual(po.state, "purchase")
-        # mantenimiento de codigos de barras (M020)
-        self.product.with_user(user).write({"barcode": "TESTGRP0001"})
+        # ya no puede mantener productos ni codigos de barras (perfiles bloqueados)
+        with self.assertRaises(AccessError):
+            self.product.with_user(user).write({"barcode": "TESTGRP0001"})
         with self.assertRaises(AccessError):
             self.env["sale.order"].with_user(user).create(
                 {"partner_id": self.partner.id}
@@ -431,10 +432,10 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         partners = self.env["res.partner"].with_user(seller_a).search([])
         self.assertLessEqual(self.partner | other_partner, partners)
 
-    def test_13c_only_commercials_stores_and_direccion_edit_customers(self):
+    def test_13c_only_direccion_edits_customers(self):
         editors = {
-            "group_08_menu_de_comerciales": True,
-            "group_06_ventas_de_tiendas": True,
+            "group_08_menu_de_comerciales": False,
+            "group_06_ventas_de_tiendas": False,
             "group_10_direccion": True,
             "group_01_gestion_de_pedidos": False,
             "group_03_gestion_de_entradas_de_proveedor": False,
@@ -446,9 +447,10 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
     def test_14_informes_estadisticos(self):
         user = self._user("group_09_informes_estadisticos_menu_of002")
         self.env["sale.report"].with_user(user).search_count([])
-        self.env["res.partner"].with_user(user).create(
-            {"name": "Cliente nuevo (M01COM)"}
-        )
+        with self.assertRaises(AccessError):
+            self.env["res.partner"].with_user(user).create(
+                {"name": "Cliente nuevo (M01COM)"}
+            )
         with self.assertRaises(AccessError):
             self.env["sale.order"].with_user(user).create(
                 {"partner_id": self.partner.id}
@@ -486,9 +488,9 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
             with self.assertRaises(AccessError):
                 self.env["pos.order"].with_user(user).search_count([])
 
-    def test_16b_barcodes_and_prices_only_for_suppliers_and_direccion(self):
+    def test_16b_barcodes_and_prices_only_for_direccion(self):
         editors = {
-            "group_03_gestion_de_entradas_de_proveedor": True,
+            "group_03_gestion_de_entradas_de_proveedor": False,
             "group_10_direccion": True,
             "group_01_gestion_de_pedidos": False,
             "group_02_pedidos_de_y_para_tiendas": False,
@@ -679,3 +681,61 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
                 menu.action.get_external_id().get(menu.action.id),
                 f"{MODULE}.action_{link.name}",
             )
+
+    # ---- bloqueo de precios, descuentos, condiciones y modos de pago --------
+    def test_10_locked_profiles_cannot_edit_commercial_data(self):
+        """Los 9 perfiles quedan bloqueados; Dirección y administradores no."""
+        profiles = [
+            xmlid
+            for xmlid in EXPECTED_ACCESS
+            if xmlid.startswith("group_") and not xmlid.startswith("group_10")
+        ]
+        for xmlid in profiles:
+            user = self._user(xmlid)
+            self.assertTrue(user._todopintura_is_locked(), xmlid)
+            for model in (
+                "res.partner",
+                "product.template",
+                "product.product",
+                "product.pricelist",
+                "product.pricelist.item",
+                "account.payment.term",
+            ):
+                for mode in ("write", "create", "unlink"):
+                    self.assertFalse(
+                        self.env[model].with_user(user).has_access(mode),
+                        f"{xmlid} {model} {mode}",
+                    )
+        director = self._user("group_10_direccion")
+        self.assertFalse(director._todopintura_is_locked())
+        self.assertTrue(self.env["res.partner"].with_user(director).has_access("write"))
+        self.assertFalse(self.env.ref("base.user_admin")._todopintura_is_locked())
+
+    def test_11_locked_user_cannot_change_price_discount_or_terms(self):
+        user = self._user("group_01_gestion_de_pedidos")
+        director = self._user("group_10_direccion")
+        partner = self.env["res.partner"].create({"name": "Cliente lock"})
+        product = self.env["product.product"].create({"name": "Prod lock", "list_price": 10})
+        term = self.env.ref("account.account_payment_term_30days")
+        order = (
+            self.env["sale.order"]
+            .create(
+                {
+                    "partner_id": partner.id,
+                    "user_id": user.id,
+                    "order_line": [Command.create({"product_id": product.id, "product_uom_qty": 1})],
+                }
+            )
+            .sudo()
+        )
+        line = order.order_line
+        base_price, base_term = line.price_unit, order.payment_term_id
+        line.with_user(user).write({"price_unit": 1.0, "discount": 50.0})
+        order.with_user(user).write({"payment_term_id": term.id})
+        self.assertEqual(line.price_unit, base_price)
+        self.assertEqual(line.discount, 0.0)
+        self.assertEqual(order.payment_term_id, base_term)
+        # Dirección sí puede
+        line.with_user(director).write({"price_unit": 1.0, "discount": 50.0})
+        self.assertEqual(line.price_unit, 1.0)
+        self.assertEqual(line.discount, 50.0)

@@ -15,6 +15,7 @@
         "stock",
         "purchase",
         "account",
+        "account_payment_sale",
         "point_of_sale",
         "todopintura_administration",
     ],
