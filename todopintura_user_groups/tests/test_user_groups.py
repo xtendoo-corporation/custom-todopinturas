@@ -739,3 +739,39 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         line.with_user(director).write({"price_unit": 1.0, "discount": 50.0})
         self.assertEqual(line.price_unit, 1.0)
         self.assertEqual(line.discount, 50.0)
+
+    def test_12_price_consult_wizard(self):
+        user = self._user("group_01_gestion_de_pedidos")
+        product = self.env["product.product"].create({"name": "Prod consulta", "list_price": 100})
+        discounted = self.env["product.pricelist"].create(
+            {
+                "name": "Tarifa -10%",
+                "item_ids": [
+                    Command.create(
+                        {
+                            "applied_on": "3_global",
+                            "compute_price": "percentage",
+                            "percent_price": 10,
+                        }
+                    )
+                ],
+            }
+        )
+        plain = self.env["product.pricelist"].create({"name": "Tarifa plana"})
+        partner_disc = self.env["res.partner"].create(
+            {"name": "Cliente con dto", "property_product_pricelist": discounted.id}
+        )
+        partner_plain = self.env["res.partner"].create(
+            {"name": "Cliente sin dto", "property_product_pricelist": plain.id}
+        )
+        Wizard = self.env["todopintura.price.consult"].with_user(user)
+        empty = Wizard.create({"partner_id": partner_disc.id})
+        self.assertFalse(empty.ready)
+        wiz = Wizard.create({"partner_id": partner_disc.id, "product_id": product.id})
+        self.assertTrue(wiz.ready)
+        self.assertEqual(wiz.original_price, 100)
+        self.assertAlmostEqual(wiz.discount, 10)
+        self.assertAlmostEqual(wiz.customer_price, 90)
+        wiz = Wizard.create({"partner_id": partner_plain.id, "product_id": product.id})
+        self.assertEqual(wiz.discount, 0)
+        self.assertEqual(wiz.customer_price, wiz.original_price)

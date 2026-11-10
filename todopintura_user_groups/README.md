@@ -70,6 +70,14 @@ globales (`security/ir_rule.xml`) limitan:
 
 Un usuario no puede ampliar sus propios almacenes (solo administradores).
 
+## Consulta de precios
+
+Los menús *Consulta de precios* abren el asistente `todopintura.price.consult`
+(`models/price_consult.py`): se elige cliente y producto y muestra el precio original (PVP), el
+descuento del cliente y el precio para ese cliente. Como en pedidos y TPV, el descuento es lo que
+la tarifa del cliente rebaja sobre el PVP; el precio final solo aparece si difiere del original.
+Los precios son sin impuestos y para cantidad 1.
+
 ## Datos
 
 * `data/pos_config.xml` (noupdate): 9 almacenes (central + 8 tiendas) y sus 10 TPV (central

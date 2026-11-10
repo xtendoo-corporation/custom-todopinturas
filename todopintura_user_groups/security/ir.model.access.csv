@@ -217,3 +217,6 @@ access_stock_warehouse_orderpoint_gs10ped,stock.warehouse.orderpoint gs10ped,sto
 access_stock_warehouse_orderpoint_gs11,stock.warehouse.orderpoint gs11,stock.model_stock_warehouse_orderpoint,perm_gs11,1,0,0,0
 access_stock_warehouse_orderpoint_v01,stock.warehouse.orderpoint v01,stock.model_stock_warehouse_orderpoint,perm_v01,1,0,0,0
 access_stock_warehouse_orderpoint_v01alm,stock.warehouse.orderpoint v01alm,stock.model_stock_warehouse_orderpoint,perm_v01alm,1,0,0,0
+access_todopintura_price_consult_m02p,todopintura.price.consult m02p,model_todopintura_price_consult,perm_m02p,1,1,1,1
+access_todopintura_price_consult_m02p_almacen_central,todopintura.price.consult m02p almacen central,model_todopintura_price_consult,perm_m02p_almacen_central,1,1,1,1
+access_todopintura_price_consult_va02p,todopintura.price.consult va02p,model_todopintura_price_consult,perm_va02p,1,1,1,1

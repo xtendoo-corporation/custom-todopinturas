@@ -3,6 +3,7 @@ from . import commission
 from . import ir_model_access
 from . import ir_ui_menu
 from . import pos_order
+from . import price_consult
 from . import res_partner
 from . import res_users
 from . import sale_order

@@ -76,6 +76,14 @@ class IrUiMenu(models.Model):
             own.write(
                 {"view_ids": [Command.create(v) for v in self._split_view_values(original)]}
             )
+            # El nombre es traducible: se copian todos los idiomas, no solo el actual.
+            own.update_field_translations(
+                "name",
+                {
+                    code: original.with_context(lang=code).name
+                    for code, _label in self.env["res.lang"].get_installed()
+                },
+            )
             menu.action = f"ir.actions.act_window,{own.id}"
 
     @api.model
@@ -83,6 +91,7 @@ class IrUiMenu(models.Model):
         values = {
             name: action[name]
             for name in (
+                "name",
                 "res_model",
                 "domain",
                 "context",

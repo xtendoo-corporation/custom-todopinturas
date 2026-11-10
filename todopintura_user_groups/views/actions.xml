@@ -142,6 +142,61 @@
         <field name="context">{'group_by': ['categ_id']}</field>
     </record>
 
+    <!-- Price consultation wizard: customer + product -> original price, discount, price -->
+    <record id="view_price_consult_form" model="ir.ui.view">
+        <field name="name">todopintura.price.consult.form</field>
+        <field name="model">todopintura.price.consult</field>
+        <field name="arch" type="xml">
+            <form string="Consulta de precios" create="0">
+                <group>
+                    <field name="partner_id" options="{'no_create': True, 'no_open': True}" placeholder="Seleccione un cliente..."/>
+                    <field name="product_id" options="{'no_create': True, 'no_open': True}" placeholder="Seleccione un producto..."/>
+                </group>
+                <field name="ready" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+                                <div invisible="ready" class="text-center text-muted py-5">
+                    <i class="fa fa-search fa-2x mb-2 d-block"/>
+                    Elija un cliente y un producto para ver su precio.
+                </div>
+                <div invisible="not ready" class="card border-0 bg-body-tertiary rounded-3 p-4 mt-2">
+                    <div class="text-center text-muted small text-uppercase mb-3">
+                        <i class="fa fa-tag me-1"/>Tarifa: <field name="pricelist_id" readonly="1" class="oe_inline fw-bold" options="{'no_open': True}"/>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-center align-items-center gap-4"
+                         style="font-size: 1.5rem; line-height: 2rem;">
+                        <div class="text-center" invisible="discount == 0">
+                            <div class="text-muted" style="font-size: 0.875rem; line-height: 1.25rem;">Precio original</div>
+                            <field name="original_price" readonly="1" class="text-muted text-decoration-line-through"/>
+                        </div>
+                        <div class="badge text-bg-success rounded-pill fw-normal d-inline-flex align-items-center justify-content-center"
+                             style="font-size: 1.5rem; line-height: 2rem; padding: 0.25rem 1rem;"
+                             invisible="discount == 0">
+                            <field name="discount_label" readonly="1"/>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-muted" style="font-size: 0.875rem; line-height: 1.25rem;">Precio para este cliente</div>
+                            <field name="customer_price" readonly="1" class="fw-bold text-success"/>
+                        </div>
+                    </div>
+                    <div invisible="discount != 0" class="text-center text-muted small mt-3">
+                        Este cliente no tiene descuento para este producto.
+                    </div>
+                    <div class="text-center text-muted small mt-3">Precios sin impuestos, cantidad 1.</div>
+                </div>
+                <footer>
+                    <button string="Cerrar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_price_consult" model="ir.actions.act_window">
+        <field name="name">Consulta de precios</field>
+        <field name="res_model">todopintura.price.consult</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
     <!-- Pricing -->
     <record id="action_pricelist_outlet" model="ir.actions.act_window">
         <field name="name">Ofertas clientes/outlets</field>
