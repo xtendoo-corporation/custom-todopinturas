@@ -834,3 +834,19 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         with self.assertRaises(UserError):
             own.with_user(commercial).action_confirm()
         self.assertEqual(own.state, "draft")
+
+    def test_14c_offers_by_purchasing_show_commercial_quotes(self):
+        """«Consulta de ofertas realizadas por compras»: mismos presupuestos de comerciales."""
+        commercial = self._user("group_09_informes_estadisticos_menu_of002")
+        commercial.is_commercial = True
+        partner = self.env["res.partner"].create({"name": "Cliente compras"})
+        quote = self.env["sale.order"].create({"partner_id": partner.id, "user_id": commercial.id})
+        for xmlid in ("group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie",):
+            user = self._user(xmlid)
+            self.assertEqual(
+                self.env["sale.order"].with_user(user).search([("id", "=", quote.id)]), quote, xmlid
+            )
+        for xmlid in ("menu_vc_transfers_offers", "menu_co_orders"):
+            action = self.env.ref(f"{MODULE}.{xmlid}").action
+            self.assertEqual(action.res_model, "sale.order")
+            self.assertIn("is_commercial", action.domain)

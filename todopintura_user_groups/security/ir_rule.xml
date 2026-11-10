@@ -61,17 +61,17 @@
         <field name="model_id" ref="sale.model_sale_order_line"/>
         <field name="domain_force">[(1, '=', 1)] if (not user.is_commercial or user.has_group('base.group_system')) else [('order_id.user_id', '=', user.id)]</field>
     </record>
-    <!-- «Consulta de ofertas»: the quotations made by commercials are readable. -->
+    <!-- «Consulta de ofertas» y «…realizadas por compras»: the quotations made by commercials are readable. -->
     <record id="rule_sale_order_offers_of_commercials" model="ir.rule">
         <field name="name">Todopintura: consulta de presupuestos de comerciales</field>
         <field name="model_id" ref="sale.model_sale_order"/>
         <field name="domain_force">[('user_id.is_commercial', '=', True), ('state', 'in', ('draft', 'sent'))]</field>
-        <field name="groups" eval="[Command.link(ref('perm_of01'))]"/>
+        <field name="groups" eval="[Command.link(ref('perm_of01')), Command.link(ref('perm_oc01pt')), Command.link(ref('perm_oc01pr'))]"/>
     </record>
     <record id="rule_sale_order_line_offers_of_commercials" model="ir.rule">
         <field name="name">Todopintura: líneas de presupuestos de comerciales</field>
         <field name="model_id" ref="sale.model_sale_order_line"/>
         <field name="domain_force">[('order_id.user_id.is_commercial', '=', True), ('order_id.state', 'in', ('draft', 'sent'))]</field>
-        <field name="groups" eval="[Command.link(ref('perm_of01'))]"/>
+        <field name="groups" eval="[Command.link(ref('perm_of01')), Command.link(ref('perm_oc01pt')), Command.link(ref('perm_oc01pr'))]"/>
     </record>
 </odoo>

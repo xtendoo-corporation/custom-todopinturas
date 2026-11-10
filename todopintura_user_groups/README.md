@@ -77,7 +77,7 @@ comercial: solo ve sus propios presupuestos y pedidos (reglas globales en `secur
 los administradores, `base.group_system`, ven todo) y **no puede confirmar** un presupuesto a pedido
 de venta, solo enviarlo al cliente (`action_confirm` bloqueado y botón oculto; los procesos `sudo`,
 como la firma del portal, no se ven afectados).
-*Consulta de ofertas* (perfil Pedidos de clientes) lista únicamente presupuestos (borrador/enviado)
+*Consulta de ofertas* (perfil Pedidos de clientes) y *Consulta de ofertas realizadas por compras* (Ventas de almacén central y Comerciales) listan únicamente presupuestos (borrador/enviado)
 de usuarios marcados como comerciales, y ese permiso (`perm_of01`) los hace legibles aunque no sean
 del propio usuario.
 

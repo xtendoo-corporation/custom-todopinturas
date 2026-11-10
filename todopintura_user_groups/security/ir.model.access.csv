@@ -222,3 +222,7 @@ access_todopintura_price_consult_m02p_almacen_central,todopintura.price.consult 
 access_todopintura_price_consult_va02p,todopintura.price.consult va02p,model_todopintura_price_consult,perm_va02p,1,1,1,1
 access_todopintura_stock_consult_m02nc,todopintura.stock.consult m02nc,model_todopintura_stock_consult,perm_m02nc,1,1,1,1
 access_todopintura_stock_consult_line_m02nc,todopintura.stock.consult.line m02nc,model_todopintura_stock_consult_line,perm_m02nc,1,1,1,1
+access_sale_order_oc01pt,sale.order oc01pt,sale.model_sale_order,perm_oc01pt,1,0,0,0
+access_sale_order_line_oc01pt,sale.order.line oc01pt,sale.model_sale_order_line,perm_oc01pt,1,0,0,0
+access_sale_order_oc01pr,sale.order oc01pr,sale.model_sale_order,perm_oc01pr,1,0,0,0
+access_sale_order_line_oc01pr,sale.order.line oc01pr,sale.model_sale_order_line,perm_oc01pr,1,0,0,0

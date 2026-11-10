@@ -52,7 +52,7 @@
     <menuitem id="menu_vc_transfers" name="Traspasos y ventas de otras tiendas" parent="menu_vc_root" sequence="60" groups="perm_menu_va80"/>
     <menuitem id="menu_vc_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_vc_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
     <menuitem id="menu_vc_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_vc_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
-    <menuitem id="menu_vc_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vc_transfers" sequence="30" action="sale.action_orders" groups="perm_oc01pt"/>
+    <menuitem id="menu_vc_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vc_transfers" sequence="30" action="action_offers_by_purchasing" groups="perm_oc01pt"/>
     <menuitem id="menu_vc_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_vc_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
     <menuitem id="menu_vc_transfers_print" name="Impresión de partes de almacén" parent="menu_vc_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
     <menuitem id="menu_vc_transfers_pickup" name="Grabación de ventas con recogida en otra tienda + traspasos" parent="menu_vc_transfers" sequence="60" action="sale.action_quotations_with_onboarding" groups="perm_va01pas1"/>
@@ -86,7 +86,7 @@
     <menuitem id="menu_co_consult_group" name="Consultas" parent="menu_co_root" sequence="60" groups="group_08_menu_de_comerciales,group_09_informes_estadisticos_menu_of002"/>
     <menuitem id="menu_co_offers_group" name="Ofertas" parent="menu_co_root" sequence="10" groups="group_08_menu_de_comerciales,group_09_informes_estadisticos_menu_of002"/>
     <menuitem id="menu_co_offers" name="Gestión de ofertas" parent="menu_co_offers_group" sequence="10" action="sale.action_quotations_with_onboarding" groups="perm_menu_of001"/>
-    <menuitem id="menu_co_orders" name="Consulta de ofertas realizadas por compras" parent="menu_co_consult_group" sequence="10" action="sale.action_orders" groups="perm_oc01pr"/>
+    <menuitem id="menu_co_orders" name="Consulta de ofertas realizadas por compras" parent="menu_co_consult_group" sequence="10" action="action_offers_by_purchasing" groups="perm_oc01pr"/>
     <menuitem id="menu_co_reports" name="Informes estadísticos" parent="menu_co_root" sequence="30" groups="group_09_informes_estadisticos_menu_of002"/>
     <menuitem id="menu_co_report_sales_by_customer" name="Ventas por clientes" parent="menu_co_reports" sequence="10" action="action_report_sales_by_customer" groups="perm_of10"/>
     <menuitem id="menu_co_report_year_comparison" name="Comparativa de ventas de clientes entre dos años" parent="menu_co_reports" sequence="20" action="action_report_sales_year_comparison" groups="perm_of11"/>
