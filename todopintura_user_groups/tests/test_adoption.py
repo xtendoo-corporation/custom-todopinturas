@@ -42,11 +42,11 @@ class TestAdoption(TransactionCase):
         self.assertEqual(self.env.ref(f"{MODULE}.menu_vt_prices"), menu)
 
     def test_same_menu_name_under_other_root_is_not_confused(self):
-        menu = self._strip_xmlid("menu_vc_prices")
+        menu = self._strip_xmlid("menu_pc_prices")
         hooks.adopt_manual_records(self.env)
-        self.assertEqual(self.env.ref(f"{MODULE}.menu_vc_prices"), menu)
+        self.assertEqual(self.env.ref(f"{MODULE}.menu_pc_prices"), menu)
         self.assertNotEqual(
-            self.env.ref(f"{MODULE}.menu_vc_prices"),
+            self.env.ref(f"{MODULE}.menu_pc_prices"),
             self.env.ref(f"{MODULE}.menu_vt_prices"),
         )
 

@@ -134,12 +134,12 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
             visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
             leaves = {
                 xmlid.split(".", 1)[1]
-                for xmlid in visible.filtered("action").get_external_id().values()
+                for xmlid in visible.filtered(lambda m: m.action and not m.child_id).get_external_id().values()
                 if xmlid.startswith(f"{MODULE}.")
             }
             self.assertEqual(leaves, set(expected), block_xmlid)
             self.assertEqual(
-                len(visible.filtered("action")), len(expected), block_xmlid
+                len(visible.filtered(lambda m: m.action and not m.child_id)), len(expected), block_xmlid
             )
             visible_xmlids = set(visible.get_external_id().values())
             for forbidden in FORBIDDEN_MENUS:
@@ -158,7 +158,7 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
             visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
             models = {
                 menu.action.res_model
-                for menu in visible.filtered("action")
+                for menu in visible.filtered(lambda m: m.action and not m.child_id)
                 if menu.action._name == "ir.actions.act_window"
             }
             self.assertFalse(
@@ -169,7 +169,7 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
 
     def test_02a2_central_sales_entry_is_the_pos(self):
         """Grabación de ventas of the central warehouse opens the POS dashboard."""
-        menu = self.env.ref(f"{MODULE}.menu_vc_sales_entry")
+        menu = self.env.ref(f"{MODULE}.menu_vt_sales_entry")
         self.assertEqual(menu.action.res_model, "pos.config")
         group = self._user_with_group("perm_v01")
         for model in ("pos.config", "pos.session", "pos.order"):
@@ -200,7 +200,7 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
             .browse(data.mapped("res_id"))
             .filtered(lambda menu: not menu.parent_id)
         )
-        self.assertEqual(len(roots), 6)
+        self.assertEqual(len(roots), 5)
         for root in roots:
             self.assertEqual(root.web_icon, icon, root.name)
         self.assertTrue(
@@ -245,7 +245,6 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
                 "Pedidos de clientes",
                 "Pedidos de y para tiendas",
                 "Entradas de proveedor",
-                "Ventas de almacén central",
                 "Ventas de POS",
                 "Comerciales",
             },
@@ -635,7 +634,7 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
         leaves = {
             xmlid.split(".", 1)[1]
-            for xmlid in visible.filtered("action").get_external_id().values()
+            for xmlid in visible.filtered(lambda m: m.action and not m.child_id).get_external_id().values()
             if xmlid.startswith(f"{MODULE}.")
         }
         self.assertEqual(leaves, set(EXPECTED_MENUS[block_xmlid]), block_xmlid)
@@ -850,7 +849,7 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
             self.assertEqual(
                 self.env["sale.order"].with_user(user).search([("id", "=", quote.id)]), quote, xmlid
             )
-        for xmlid in ("menu_vc_transfers_offers", "menu_co_orders", "menu_co_offers"):
+        for xmlid in ("menu_vt_transfers_offers", "menu_co_orders", "menu_co_offers"):
             action = self.env.ref(f"{MODULE}.{xmlid}").action
             self.assertEqual(action.res_model, "sale.order")
             self.assertIn("is_commercial", action.domain)
@@ -953,7 +952,7 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         other_quote = Order.create({"partner_id": partner.id, "user_id": self.env.user.id})
         cases = {
             "menu_pc_offers": "group_01_gestion_de_pedidos",
-            "menu_vc_transfers_offers": "group_04_ventas_de_almacen_central",
+            "menu_vt_transfers_offers": "group_04_ventas_de_almacen_central",
             "menu_co_orders": "group_08_menu_de_comerciales",
             "menu_co_offers": "group_08_menu_de_comerciales",
         }
@@ -980,3 +979,59 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         for editor in (self._user("group_10_direccion"), self.env.ref("base.user_admin")):
             role = self.env["res.users"]._load_pos_data_read(editor, config)[0]["_role"]
             self.assertNotEqual(role, "minimal", editor.login)
+
+    # ---- «Transferencias internas» (xtendoo_stock_barcode) -------------------------
+    def test_24_store_and_supplier_apps_open_transferencias_internas(self):
+        Menu = self.env["ir.ui.menu"]
+        for menu_xmlid, profile in (
+            ("menu_pt_root", "group_02_pedidos_de_y_para_tiendas"),
+            ("menu_ep_root", "group_03_gestion_de_entradas_de_proveedor"),
+        ):
+            menu = self.env.ref(f"{MODULE}.{menu_xmlid}")
+            self.assertEqual(menu.action._name, "ir.actions.client", menu_xmlid)
+            self.assertEqual(menu.action.tag, "xtendoo_stock_barcode_main_menu", menu_xmlid)
+            user = self._user(profile)
+            self.assertIn(menu.id, Menu.with_user(user)._visible_menu_ids(), menu_xmlid)
+            # lo que hace la pantalla al abrirse y al escanear
+            Picking = self.env["stock.picking"].with_user(user)
+            self.assertIn("groups", Picking.action_xt_barcode_get_main_menu_data())
+            Picking.action_xt_barcode_scan_from_main_menu("CODIGO-INEXISTENTE-123")
+            # los submenús de cada perfil siguen colgando de la misma aplicación
+            self.assertTrue(menu.child_id, menu_xmlid)
+
+    def test_25_transfer_users_only_see_pedidos_de_y_para_tiendas(self):
+        """Usuarios de traspasos (perfiles 02, 05 y 07): sin la aplicación «Ventas de POS»."""
+        Menu = self.env["ir.ui.menu"]
+        user = self.env["res.users"].with_context(no_reset_password=True).create(
+            {
+                "name": "Usuario traspasos",
+                "login": "test_traspasos",
+                "group_ids": [
+                    Command.set(
+                        [
+                            self.env.ref(f"{MODULE}.group_02_pedidos_de_y_para_tiendas").id,
+                            self.env.ref(
+                                f"{MODULE}.group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"
+                            ).id,
+                            self.env.ref(
+                                f"{MODULE}.group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"
+                            ).id,
+                        ]
+                    )
+                ],
+            }
+        )
+        visible = Menu.browse(Menu.with_user(user)._visible_menu_ids())
+        roots = visible.filtered(lambda m: not m.parent_id)
+        self.assertEqual(
+            set(roots.get_external_id().values()),
+            {f"{MODULE}.menu_pt_root"}
+            | {x for x in roots.get_external_id().values() if not x.startswith(f"{MODULE}.")},
+        )
+        self.assertNotIn(self.env.ref(f"{MODULE}.menu_vt_root"), visible)
+        self.assertIn(self.env.ref(f"{MODULE}.menu_pt_transfers_send"), visible)
+        # los perfiles de venta no ven la aplicación de traspasos solo por eso
+        seller = self._user("group_06_ventas_de_tiendas")
+        seller_visible = Menu.browse(Menu.with_user(seller)._visible_menu_ids())
+        self.assertIn(self.env.ref(f"{MODULE}.menu_vt_root"), seller_visible)
+        self.assertNotIn(self.env.ref(f"{MODULE}.menu_pt_root"), seller_visible)

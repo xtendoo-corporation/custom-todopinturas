@@ -18,6 +18,7 @@
         "account_payment_sale",
         "point_of_sale",
         "todopintura_administration",
+        "xtendoo_stock_barcode",
     ],
     "data": [
         "data/res_groups_category.xml",

@@ -14,7 +14,7 @@
     <menuitem id="menu_pc_customers" name="Consulta de clientes" parent="menu_pc_consult_group" sequence="40" action="action_partners_consult" groups="perm_m01pro"/>
 
     <!-- Pedidos de y para tiendas -->
-    <menuitem id="menu_pt_root" name="Pedidos de y para tiendas" sequence="310" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_02_pedidos_de_y_para_tiendas"/>
+    <menuitem id="menu_pt_root" name="Pedidos de y para tiendas" sequence="310" web_icon="todopintura_user_groups,static/description/icon.png" action="xtendoo_stock_barcode.action_xtendoo_stock_barcode_main_menu" groups="group_02_pedidos_de_y_para_tiendas,group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
     <menuitem id="menu_pt_parts_group" name="Partes de almacén" parent="menu_pt_root" sequence="10" groups="group_02_pedidos_de_y_para_tiendas"/>
     <menuitem id="menu_pt_lists_group" name="Listados" parent="menu_pt_root" sequence="20" groups="group_02_pedidos_de_y_para_tiendas"/>
     <menuitem id="menu_pt_weekly_replenishment" name="Listado de reposición semanal de tiendas" parent="menu_pt_lists_group" sequence="10" action="stock.action_orderpoint_replenish" groups="perm_gs10ped"/>
@@ -23,9 +23,20 @@
     <menuitem id="menu_pt_stock_update" name="Actualización de existencias y adición a histórico" parent="menu_pt_parts_group" sequence="30" action="stock.action_view_inventory_tree" groups="perm_a03"/>
     <menuitem id="menu_pt_movement_reprint" name="Reimpresión de partes de almacén" parent="menu_pt_parts_group" sequence="20" action="stock.action_picking_tree_all" groups="perm_a0707"/>
     <menuitem id="menu_pt_branch_transfers" name="Listado de traspasos entre sucursales" parent="menu_pt_lists_group" sequence="20" action="action_internal_transfers_list" groups="perm_e1717"/>
+    <!-- Transfer profiles (almacén central / tiendas): their menus live in this app, not in the sales apps. -->
+    <menuitem id="menu_pt_transfers" name="Traspasos y ventas de otras tiendas" parent="menu_pt_root" sequence="60" groups="group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <menuitem id="menu_pt_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_pt_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
+    <menuitem id="menu_pt_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_pt_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
+    <menuitem id="menu_pt_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_pt_transfers" sequence="30" action="action_offers_by_purchasing" groups="group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <menuitem id="menu_pt_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_pt_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
+    <menuitem id="menu_pt_transfers_print" name="Impresión de partes de almacén" parent="menu_pt_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
+    <menuitem id="menu_pt_transfers_pickup" name="Grabación de ventas con recogida en otra tienda + traspasos" parent="menu_pt_transfers" sequence="60" action="sale.action_quotations_with_onboarding" groups="group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <menuitem id="menu_pt_transfers_credit" name="Grabación de ACUENTAS de otra tienda" parent="menu_pt_transfers" sequence="70" action="action_credit_sales" groups="perm_va01pas2"/>
+    <menuitem id="menu_pt_misc" name="Consultas" parent="menu_pt_root" sequence="30" groups="group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
+    <menuitem id="menu_pt_customers" name="Consulta de clientes" parent="menu_pt_misc" sequence="40" action="action_partners_consult" groups="perm_consulta_de_clientes"/>
 
     <!-- Entradas de proveedor -->
-    <menuitem id="menu_ep_root" name="Entradas de proveedor" sequence="320" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_03_gestion_de_entradas_de_proveedor"/>
+    <menuitem id="menu_ep_root" name="Entradas de proveedor" sequence="320" web_icon="todopintura_user_groups,static/description/icon.png" action="xtendoo_stock_barcode.action_xtendoo_stock_barcode_main_menu" groups="group_03_gestion_de_entradas_de_proveedor"/>
     <menuitem id="menu_ep_maint_group" name="Mantenimiento" parent="menu_ep_root" sequence="40" groups="group_03_gestion_de_entradas_de_proveedor"/>
     <menuitem id="menu_ep_lists_group" name="Listados" parent="menu_ep_root" sequence="30" groups="group_03_gestion_de_entradas_de_proveedor"/>
     <menuitem id="menu_ep_consult_group" name="Consultas" parent="menu_ep_root" sequence="20" groups="group_03_gestion_de_entradas_de_proveedor"/>
@@ -40,45 +51,31 @@
     <menuitem id="menu_ep_below_minimum" name="Listado de artículos bajo mínimos + precio de proveedor" parent="menu_ep_lists_group" sequence="20" action="stock.action_orderpoint" groups="perm_gs11"/>
     <menuitem id="menu_ep_pricelists" name="Mantenimiento de precios y tarifas" parent="menu_ep_maint_group" sequence="20" action="product.product_pricelist_action2" groups="perm_pricelist_maintenance"/>
 
-    <!-- Ventas de almacén central -->
-    <menuitem id="menu_vc_root" name="Ventas de almacén central" sequence="330" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_04_ventas_de_almacen_central,group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
-    <menuitem id="menu_vc_cash_group" name="Caja" parent="menu_vc_root" sequence="20" groups="group_04_ventas_de_almacen_central"/>
-    <menuitem id="menu_vc_consult_group" name="Consultas" parent="menu_vc_root" sequence="30" groups="group_04_ventas_de_almacen_central"/>
-    <menuitem id="menu_vc_sales_entry" name="Grabación de ventas" parent="menu_vc_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_v01"/>
-    <menuitem id="menu_vc_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vc_cash_group" sequence="10" action="point_of_sale.action_pos_session" groups="perm_v03"/>
-    <menuitem id="menu_vc_prices" name="Consulta de precios" parent="menu_vc_consult_group" sequence="10" action="action_price_consult" groups="perm_m02p_almacen_central"/>
-    <menuitem id="menu_vc_stock" name="Consulta de existencias" parent="menu_vc_consult_group" sequence="20" action="action_stock_consult" groups="perm_m02nc"/>
-    <menuitem id="menu_vc_reprint" name="Reimpresión de documentos" parent="menu_vc_consult_group" sequence="30" action="account.action_move_out_invoice_type" groups="perm_v08"/>
-    <menuitem id="menu_vc_transfers" name="Traspasos y ventas de otras tiendas" parent="menu_vc_root" sequence="60" groups="perm_menu_va80"/>
-    <menuitem id="menu_vc_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_vc_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
-    <menuitem id="menu_vc_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_vc_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
-    <menuitem id="menu_vc_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vc_transfers" sequence="30" action="action_offers_by_purchasing" groups="perm_oc01pt"/>
-    <menuitem id="menu_vc_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_vc_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
-    <menuitem id="menu_vc_transfers_print" name="Impresión de partes de almacén" parent="menu_vc_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
-    <menuitem id="menu_vc_transfers_pickup" name="Grabación de ventas con recogida en otra tienda + traspasos" parent="menu_vc_transfers" sequence="60" action="sale.action_quotations_with_onboarding" groups="perm_va01pas1"/>
-    <menuitem id="menu_vc_transfers_credit" name="Grabación de ACUENTAS de otra tienda" parent="menu_vc_transfers" sequence="70" action="action_credit_sales" groups="perm_va01pas2"/>
-
-    <!-- Ventas de POS (stores) -->
-    <menuitem id="menu_vt_root" name="Ventas de POS" sequence="340" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_06_ventas_de_tiendas,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
-    <menuitem id="menu_vt_lists_group" name="Listados" parent="menu_vt_root" sequence="40" groups="group_06_ventas_de_tiendas,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
-    <menuitem id="menu_vt_misc" name="Consultas" parent="menu_vt_root" sequence="30" groups="perm_menu_va20"/>
-    <menuitem id="menu_vt_cash_group" name="Caja" parent="menu_vt_root" sequence="20" groups="group_06_ventas_de_tiendas,group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
-    <menuitem id="menu_vt_sales_entry" name="Grabación de ventas" parent="menu_vt_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_va01"/>
-    <menuitem id="menu_vt_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vt_cash_group" sequence="10" action="point_of_sale.action_pos_session" groups="perm_va03"/>
+    <!-- Ventas de POS: single app for the central warehouse and the store profiles; each leaf is
+         gated by its own permission, so every profile only sees what it is entitled to. -->
+    <menuitem id="menu_vt_root" name="Ventas de POS" sequence="340" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_04_ventas_de_almacen_central,group_06_ventas_de_tiendas"/>
+    <menuitem id="menu_vt_lists_group" name="Listados" parent="menu_vt_root" sequence="40" groups="group_06_ventas_de_tiendas"/>
+    <menuitem id="menu_vt_misc" name="Consultas" parent="menu_vt_root" sequence="30" groups="perm_menu_va20,group_04_ventas_de_almacen_central"/>
+    <menuitem id="menu_vt_cash_group" name="Caja" parent="menu_vt_root" sequence="20" groups="group_04_ventas_de_almacen_central,group_06_ventas_de_tiendas"/>
+    <menuitem id="menu_vt_sales_entry" name="Grabación de ventas" parent="menu_vt_root" sequence="10" action="point_of_sale.action_pos_config_kanban" groups="perm_va01,perm_v01"/>
+    <menuitem id="menu_vt_cash_closing" name="Cuadre de caja y cierre diario de caja" parent="menu_vt_cash_group" sequence="10" action="point_of_sale.action_pos_session" groups="perm_va03,perm_v03"/>
     <menuitem id="menu_vt_cash_listing" name="Listado de cuadre de caja" parent="menu_vt_cash_group" sequence="20" action="point_of_sale.action_pos_session" groups="perm_va0303"/>
-    <menuitem id="menu_vt_prices" name="Consulta de precios" parent="menu_vt_misc" sequence="10" action="action_price_consult" groups="perm_va02p"/>
+    <menuitem id="menu_vt_prices" name="Consulta de precios" parent="menu_vt_misc" sequence="10" action="action_price_consult" groups="perm_va02p,perm_m02p_almacen_central"/>
     <menuitem id="menu_vt_stock" name="Consulta de existencias" parent="menu_vt_misc" sequence="20" action="action_stock_consult" groups="perm_m02nc"/>
-    <menuitem id="menu_vt_reprint" name="Reimpresión de documentos" parent="menu_vt_misc" sequence="30" action="point_of_sale.action_pos_pos_form" groups="perm_va08"/>
+    <menuitem id="menu_vt_reprint" name="Reimpresión de tickets" parent="menu_vt_misc" sequence="30" action="point_of_sale.action_pos_pos_form" groups="perm_va08"/>
+    <menuitem id="menu_vt_reprint_invoices" name="Reimpresión de documentos" parent="menu_vt_misc" sequence="35" action="account.action_move_out_invoice_type" groups="perm_v08"/>
     <menuitem id="menu_vt_cumulative_sales" name="Listado de ventas acumulado" parent="menu_vt_lists_group" sequence="10" action="point_of_sale.action_pos_sale_graph" groups="perm_va14"/>
     <menuitem id="menu_vt_credit_sales_query" name="Consulta de ventas a cuenta" parent="menu_vt_misc" sequence="50" action="action_credit_sales" groups="perm_va10"/>
     <menuitem id="menu_vt_credit_sales_list" name="Listado de ventas a cuenta" parent="menu_vt_lists_group" sequence="20" action="action_credit_sales" groups="perm_va11"/>
     <menuitem id="menu_vt_transfers" name="Traspasos y ventas de otras tiendas" parent="menu_vt_root" sequence="60" groups="perm_menu_va80"/>
     <menuitem id="menu_vt_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_vt_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
     <menuitem id="menu_vt_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_vt_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
+    <menuitem id="menu_vt_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vt_transfers" sequence="30" action="action_offers_by_purchasing" groups="group_04_ventas_de_almacen_central"/>
     <menuitem id="menu_vt_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_vt_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
     <menuitem id="menu_vt_transfers_print" name="Impresión de partes de almacén" parent="menu_vt_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
     <menuitem id="menu_vt_transfers_pickup" name="Grabación de ventas con recogida en otra tienda + traspasos" parent="menu_vt_transfers" sequence="60" action="point_of_sale.action_pos_config_kanban" groups="perm_va01"/>
     <menuitem id="menu_vt_transfers_credit" name="Grabación de ACUENTAS de otra tienda" parent="menu_vt_transfers" sequence="70" action="action_credit_sales" groups="perm_va01pas2"/>
+    <menuitem id="menu_vt_transfers_pickup_quotes" name="Grabación de ventas con recogida en otra tienda + traspasos" parent="menu_vt_transfers" sequence="65" action="sale.action_quotations_with_onboarding" groups="group_04_ventas_de_almacen_central"/>
     <menuitem id="menu_vt_customers" name="Consulta de clientes" parent="menu_vt_misc" sequence="40" action="action_partners_consult" groups="perm_consulta_de_clientes"/>
 
     <!-- Comerciales (also entry point of the "Informes estadísticos" profile) -->
@@ -105,4 +102,31 @@
     <menuitem id="menu_co_prices" name="Consulta de precios" parent="menu_co_consult_group" sequence="20" action="action_price_consult" groups="perm_m02p"/>
     <menuitem id="menu_co_stock" name="Consulta de existencias" parent="menu_co_consult_group" sequence="30" action="action_stock_consult" groups="perm_m02nc"/>
     <menuitem id="menu_co_customers" name="Consulta de clientes" parent="menu_co_consult_group" sequence="40" action="action_partners_consult" groups="perm_of002"/>
+
+    <!-- «groups» on a menuitem only adds groups. On already installed databases the
+         transfer profiles stay linked to the sales apps, so the groups are set explicitly. -->
+    <record id="menu_vt_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([ref('group_04_ventas_de_almacen_central'), ref('group_06_ventas_de_tiendas')])]"/>
+    </record>
+    <record id="menu_vt_lists_group" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([ref('group_06_ventas_de_tiendas')])]"/>
+    </record>
+    <record id="menu_vt_cash_group" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([ref('group_04_ventas_de_almacen_central'), ref('group_06_ventas_de_tiendas')])]"/>
+    </record>
+    <record id="menu_pt_root" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([ref('group_02_pedidos_de_y_para_tiendas'), ref('group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie'), ref('group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie')])]"/>
+    </record>
+    <record id="menu_pt_transfers_offers" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([ref('group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie')])]"/>
+    </record>
+    <record id="menu_pt_transfers_pickup" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([ref('group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie')])]"/>
+    </record>
+    <record id="menu_vt_transfers_offers" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([ref('group_04_ventas_de_almacen_central')])]"/>
+    </record>
+    <record id="menu_vt_transfers_pickup_quotes" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([ref('group_04_ventas_de_almacen_central')])]"/>
+    </record>
 </odoo>

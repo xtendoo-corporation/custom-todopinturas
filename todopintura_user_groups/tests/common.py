@@ -95,7 +95,7 @@ class OperationsCase(TodopinturaTestCase):
     def visible_leaf_menus(self, user):
         menu = self.env["ir.ui.menu"]
         visible = menu.browse(menu.with_user(user)._visible_menu_ids())
-        return visible.filtered("action").sorted("complete_name")
+        return visible.filtered(lambda m: m.action and not m.child_id).sorted("complete_name")
 
     def _spec(self, model, arch_node):
         """Fields spec like the web client sends to web_read/web_search_read."""

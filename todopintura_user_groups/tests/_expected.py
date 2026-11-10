@@ -205,19 +205,30 @@ EXPECTED_ACCESS = {
 }
 
 # Menús con acción (ids del módulo) que ve un usuario que solo tiene ese perfil
-TRANSFER_MENUS = {
-    "menu_vc_transfers_send",
-    "menu_vc_transfers_receive",
-    "menu_vc_transfers_offers",
-    "menu_vc_transfers_pending",
-    "menu_vc_transfers_print",
-    "menu_vc_transfers_pickup",
-    "menu_vc_transfers_credit",
+# «Ventas de POS» es una sola aplicación para almacén central y tiendas
+CENTRAL_TRANSFER_MENUS = {
+    "menu_vt_transfers_send",
+    "menu_vt_transfers_receive",
+    "menu_vt_transfers_offers",
+    "menu_vt_transfers_pending",
+    "menu_vt_transfers_print",
+    "menu_vt_transfers_pickup_quotes",
+    "menu_vt_transfers_credit",
 }
 STORE_TRANSFER_MENUS = {
-    name.replace("menu_vc_", "menu_vt_")
-    for name in TRANSFER_MENUS
-    if name not in {"menu_vc_transfers_offers", "menu_vc_transfers_pickup"}
+    "menu_vt_transfers_send",
+    "menu_vt_transfers_receive",
+    "menu_vt_transfers_pending",
+    "menu_vt_transfers_print",
+    "menu_vt_transfers_credit",
+}
+# Los perfiles de traspasos ven su submenú dentro de «Pedidos de y para tiendas»
+PT_TRANSFER_MENUS = {
+    name.replace("menu_vt_", "menu_pt_") for name in CENTRAL_TRANSFER_MENUS
+} - {"menu_pt_transfers_pickup_quotes"} | {"menu_pt_transfers_pickup"}
+PT_STORE_TRANSFER_MENUS = PT_TRANSFER_MENUS - {
+    "menu_pt_transfers_offers",
+    "menu_pt_transfers_pickup",
 }
 STATISTICAL_MENUS = {
     "menu_co_report_sales_by_customer",
@@ -237,12 +248,12 @@ STATISTICAL_MENUS = {
     "menu_co_customers",
 }
 CENTRAL_SALES_MENUS = {
-    "menu_vc_sales_entry",
-    "menu_vc_cash_closing",
-    "menu_vc_prices",
-    "menu_vc_stock",
-    "menu_vc_reprint",
-} | TRANSFER_MENUS
+    "menu_vt_sales_entry",
+    "menu_vt_cash_closing",
+    "menu_vt_prices",
+    "menu_vt_stock",
+    "menu_vt_reprint_invoices",
+} | CENTRAL_TRANSFER_MENUS
 STORE_SALES_MENUS = {
     "menu_vt_sales_entry",
     "menu_vt_cash_closing",
@@ -289,10 +300,10 @@ EXPECTED_MENUS = {
     "group_02_pedidos_de_y_para_tiendas": STORE_ORDER_MENUS,
     "group_03_gestion_de_entradas_de_proveedor": SUPPLIER_MENUS,
     "group_04_ventas_de_almacen_central": CENTRAL_SALES_MENUS,
-    "group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie": TRANSFER_MENUS,
+    "group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie": PT_TRANSFER_MENUS,
     "group_06_ventas_de_tiendas": STORE_SALES_MENUS,
     "group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie": (
-        STORE_TRANSFER_MENUS | {"menu_vt_customers"}
+        PT_STORE_TRANSFER_MENUS | {"menu_pt_customers"}
     ),
     "group_08_menu_de_comerciales": COMMERCIAL_MENUS,
     "group_09_informes_estadisticos_menu_of002": STATISTICAL_MENUS,
@@ -302,6 +313,8 @@ EXPECTED_MENUS = {
         | SUPPLIER_MENUS
         | CENTRAL_SALES_MENUS
         | STORE_SALES_MENUS
+        | PT_TRANSFER_MENUS
+        | {"menu_pt_customers"}
         | COMMERCIAL_MENUS
         | {"menu_co_commission_rates"}
     ),

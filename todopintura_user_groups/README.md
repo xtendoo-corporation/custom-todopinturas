@@ -15,10 +15,10 @@ implica los grupos granulares (uno por pantalla del menú del cliente), el grupo
 | Pedidos de clientes | Pedidos de clientes | Grabación de ventas, Consulta de ofertas, Consulta de precios, Consulta de existencias, Reimpresión de documentos, Consulta de clientes |
 | Pedidos de y para tiendas | Pedidos de y para tiendas | Reposición semanal, Partes de movimiento, Actualización de existencias (*), Reimpresión de partes, Traspasos entre sucursales |
 | Entradas de proveedor | Entradas de proveedor | Pedidos a proveedores, Repaso, Vuelco a pendientes, Existencias, Control de stock, Búsqueda de artículo, Códigos de barras, Bajo mínimos + precio de proveedor, Precios y tarifas |
-| Ventas de almacén central | Ventas de almacén central | Grabación de ventas (TPV, solo las cajas autorizadas del usuario), Cuadre de caja, Consulta de precios, Existencias, Reimpresión + submenú *Traspasos y ventas de otras tiendas* |
-| Traspasos y ventas de otras tiendas (almacén central) | Ventas de almacén central | Solo el submenú de traspasos |
+| Ventas de almacén central | Ventas de POS | Grabación de ventas (TPV, solo las cajas autorizadas del usuario), Cuadre de caja, Consulta de precios, Existencias, Reimpresión + submenú *Traspasos y ventas de otras tiendas* |
+| Traspasos y ventas de otras tiendas (almacén central) | Pedidos de y para tiendas | Solo el submenú de traspasos |
 | Ventas de POS | Ventas de POS | Solo TPV (sin presupuestos ni pedidos de venta): TPV, Cuadre de caja, Precios, Existencias, Reimpresión de tickets, Ventas acumuladas, Ventas a cuenta, submenú *Traspasos…* (sin ofertas por compras), *Consulta varias* |
-| Traspasos y ventas de otras tiendas (tiendas) | Ventas de POS | Submenú de traspasos y *Consulta varias* |
+| Traspasos y ventas de otras tiendas (tiendas) | Pedidos de y para tiendas | Submenú de traspasos y *Consulta de clientes* |
 | Comerciales | Comerciales | Gestión de ofertas, Ofertas por compras, Informes estadísticos, Mantenimiento de clientes, Rutas, Ofertas outlets, Existencias, Consulta de clientes |
 | Informes estadísticos | Comerciales | Todo lo de Comerciales salvo Gestión de ofertas y Ofertas por compras |
 | Dirección | Todos | Implica los nueve perfiles, ve todas las ventas y parametriza comisiones |
@@ -70,6 +70,21 @@ globales (`security/ir_rule.xml`) limitan:
 
 Un usuario no puede ampliar sus propios almacenes (solo administradores).
 
+## Transferencias internas
+
+Las aplicaciones *Pedidos de y para tiendas* y *Entradas de proveedor* abren la pantalla del módulo
+`xtendoo_stock_barcode` (*Transferencias internas*, acción `action_xtendoo_stock_barcode_main_menu`);
+sus submenús (consultas, listados...) siguen disponibles en la barra superior. Por eso el módulo
+depende de `xtendoo_stock_barcode`.
+
+*Ventas de almacén central* y *Ventas de POS* son **una sola aplicación** (*Ventas de POS*): cada
+perfil (almacén central o tiendas) ve solo las opciones de sus permisos, y en reimpresión hay
+*Reimpresión de tickets* (TPV) y *Reimpresión de documentos* (facturas, almacén central).
+Los perfiles de traspasos (*almacén central* y *tiendas*) no ven esa aplicación: su submenú *Traspasos y ventas de otras tiendas* (y *Consulta de clientes*
+en tiendas) cuelga de *Pedidos de y para tiendas*. Esas dos aplicaciones quedan solo para los perfiles
+de venta. Los menús se fijan con registros explícitos en `views/menus.xml` porque `groups` en un
+`menuitem` solo añade grupos y no quita los antiguos al actualizar.
+
 ## Comerciales
 
 El usuario tiene la casilla **¿Es comercial?** (`is_commercial`, pestaña *Derechos de acceso*). Un
@@ -81,7 +96,7 @@ Un comercial también solo ve sus clientes (el vendedor del cliente o de su cont
 más los contactos que el sistema necesita (el suyo, los de las compañías y los de otros usuarios):
 regla `rule_partner_commercial_own`. Para preparar presupuestos tiene lectura sobre movimientos
 de stock, traspasos, existencias y facturas (permiso *Gestión de ofertas*).
-*Gestión de ofertas* (Comerciales), *Consulta de ofertas* (perfil Pedidos de clientes) y *Consulta de ofertas realizadas por compras* (Ventas de almacén central y Comerciales) listan únicamente presupuestos (borrador/enviado)
+*Gestión de ofertas* (Comerciales), *Consulta de ofertas* (perfil Pedidos de clientes) y *Consulta de ofertas realizadas por compras* (Ventas de POS para el almacén central, y Comerciales) listan únicamente presupuestos (borrador/enviado)
 de usuarios marcados como comerciales, y ese permiso (`perm_of01`) los hace legibles aunque no sean
 del propio usuario.
 
