@@ -85,7 +85,7 @@
     <menuitem id="menu_co_root" name="Comerciales" sequence="350" web_icon="todopintura_user_groups,static/description/icon.png" groups="group_08_menu_de_comerciales,group_09_informes_estadisticos_menu_of002"/>
     <menuitem id="menu_co_consult_group" name="Consultas" parent="menu_co_root" sequence="60" groups="group_08_menu_de_comerciales,group_09_informes_estadisticos_menu_of002"/>
     <menuitem id="menu_co_offers_group" name="Ofertas" parent="menu_co_root" sequence="10" groups="group_08_menu_de_comerciales,group_09_informes_estadisticos_menu_of002"/>
-    <menuitem id="menu_co_offers" name="Gestión de ofertas" parent="menu_co_offers_group" sequence="10" action="sale.action_quotations_with_onboarding" groups="perm_menu_of001"/>
+    <menuitem id="menu_co_offers" name="Gestión de ofertas" parent="menu_co_offers_group" sequence="10" action="action_offers_management" groups="perm_menu_of001"/>
     <menuitem id="menu_co_orders" name="Consulta de ofertas realizadas por compras" parent="menu_co_consult_group" sequence="10" action="action_offers_by_purchasing" groups="perm_oc01pr"/>
     <menuitem id="menu_co_reports" name="Informes estadísticos" parent="menu_co_root" sequence="30" groups="group_09_informes_estadisticos_menu_of002"/>
     <menuitem id="menu_co_report_sales_by_customer" name="Ventas por clientes" parent="menu_co_reports" sequence="10" action="action_report_sales_by_customer" groups="perm_of10"/>

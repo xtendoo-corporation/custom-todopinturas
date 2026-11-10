@@ -74,4 +74,19 @@
         <field name="domain_force">[('order_id.user_id.is_commercial', '=', True), ('order_id.state', 'in', ('draft', 'sent'))]</field>
         <field name="groups" eval="[Command.link(ref('perm_of01')), Command.link(ref('perm_oc01pt')), Command.link(ref('perm_oc01pr'))]"/>
     </record>
+
+    <!-- Comerciales: in searches and lists they only get their own customers (salesperson),
+         plus the contacts the system needs (themselves, the companies, other users). -->
+    <record id="rule_partner_commercial_own" model="ir.rule">
+        <field name="name">Todopintura: contactos propios de los comerciales</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="domain_force">[(1, '=', 1)] if (not user.is_commercial or user.has_group('base.group_system')) else [
+            '|', '|', '|', '|',
+            ('user_id', '=', user.id),
+            ('commercial_partner_id.user_id', '=', user.id),
+            ('id', '=', user.partner_id.id),
+            ('id', 'in', user.company_ids.partner_id.ids),
+            ('user_ids', '!=', False),
+        ]</field>
+    </record>
 </odoo>

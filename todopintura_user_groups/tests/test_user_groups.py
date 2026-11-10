@@ -846,7 +846,52 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
             self.assertEqual(
                 self.env["sale.order"].with_user(user).search([("id", "=", quote.id)]), quote, xmlid
             )
-        for xmlid in ("menu_vc_transfers_offers", "menu_co_orders"):
+        for xmlid in ("menu_vc_transfers_offers", "menu_co_orders", "menu_co_offers"):
             action = self.env.ref(f"{MODULE}.{xmlid}").action
             self.assertEqual(action.res_model, "sale.order")
             self.assertIn("is_commercial", action.domain)
+
+    def test_14d_commercial_makes_quotes_and_only_sees_own_customers(self):
+        commercial = self._user("group_08_menu_de_comerciales")
+        commercial.is_commercial = True
+        Partner = self.env["res.partner"]
+        mine = Partner.create({"name": "Cliente mío", "user_id": commercial.id})
+        child = Partner.create({"name": "Contacto mío", "parent_id": mine.id, "type": "contact"})
+        foreign = Partner.create({"name": "Cliente ajeno"})
+        visible = Partner.with_user(commercial).search([("id", "in", (mine | child | foreign).ids)])
+        self.assertEqual(visible, mine | child)
+        # sus propios contactos y los del sistema siguen siendo legibles
+        self.assertTrue(Partner.with_user(commercial).browse(commercial.partner_id.id).name)
+        self.assertTrue(Partner.with_user(commercial).browse(self.env.company.partner_id.id).name)
+        # administrador: ve todo
+        admin_visible = Partner.with_user(self.env.ref("base.user_admin")).search(
+            [("id", "in", (mine | child | foreign).ids)]
+        )
+        self.assertEqual(admin_visible, mine | child | foreign)
+        # el comercial puede preparar un presupuesto y leer sus líneas (stock y facturas)
+        quote = self.env["sale.order"].with_user(commercial).create(
+            {
+                "partner_id": mine.id,
+                "user_id": commercial.id,
+                "order_line": [Command.create({"product_id": self.product.id, "product_uom_qty": 1})],
+            }
+        )
+        line_fields = [
+            name
+            for name, field in quote.order_line._fields.items()
+            if not field.groups and field.type != "binary"
+        ]
+        quote.order_line.read(line_fields)
+        quote.read(["invoice_ids", "picking_ids", "amount_total"])
+        # guardar desde el formulario envía invoice_lines: necesita leer los apuntes contables
+        quote.write(
+            {
+                "order_line": [
+                    Command.update(
+                        quote.order_line.id,
+                        {"product_uom_qty": 2, "invoice_lines": [Command.set([])]},
+                    )
+                ]
+            }
+        )
+        quote.action_quotation_send()

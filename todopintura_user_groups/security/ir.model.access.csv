@@ -226,3 +226,10 @@ access_sale_order_oc01pt,sale.order oc01pt,sale.model_sale_order,perm_oc01pt,1,0
 access_sale_order_line_oc01pt,sale.order.line oc01pt,sale.model_sale_order_line,perm_oc01pt,1,0,0,0
 access_sale_order_oc01pr,sale.order oc01pr,sale.model_sale_order,perm_oc01pr,1,0,0,0
 access_sale_order_line_oc01pr,sale.order.line oc01pr,sale.model_sale_order_line,perm_oc01pr,1,0,0,0
+access_stock_move_menu_of001,stock.move menu_of001,stock.model_stock_move,perm_menu_of001,1,0,0,0
+access_stock_move_line_menu_of001,stock.move.line menu_of001,stock.model_stock_move_line,perm_menu_of001,1,0,0,0
+access_stock_picking_menu_of001,stock.picking menu_of001,stock.model_stock_picking,perm_menu_of001,1,0,0,0
+access_stock_quant_menu_of001,stock.quant menu_of001,stock.model_stock_quant,perm_menu_of001,1,0,0,0
+access_account_move_menu_of001,account.move menu_of001,account.model_account_move,perm_menu_of001,1,0,0,0
+access_account_move_line_menu_of001,account.move.line menu_of001,account.model_account_move_line,perm_menu_of001,1,0,0,0
+access_stock_reference_menu_of001,stock.reference menu_of001,stock.model_stock_reference,perm_menu_of001,1,0,0,0
