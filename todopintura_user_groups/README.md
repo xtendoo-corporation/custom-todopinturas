@@ -70,6 +70,17 @@ globales (`security/ir_rule.xml`) limitan:
 
 Un usuario no puede ampliar sus propios almacenes (solo administradores).
 
+## Comerciales
+
+El usuario tiene la casilla **¿Es comercial?** (`is_commercial`, pestaña *Derechos de acceso*). Un
+comercial: solo ve sus propios presupuestos y pedidos (reglas globales en `security/ir_rule.xml`;
+los administradores, `base.group_system`, ven todo) y **no puede confirmar** un presupuesto a pedido
+de venta, solo enviarlo al cliente (`action_confirm` bloqueado y botón oculto; los procesos `sudo`,
+como la firma del portal, no se ven afectados).
+*Consulta de ofertas* (perfil Pedidos de clientes) lista únicamente presupuestos (borrador/enviado)
+de usuarios marcados como comerciales, y ese permiso (`perm_of01`) los hace legibles aunque no sean
+del propio usuario.
+
 ## Consulta de precios
 
 Los menús *Consulta de precios* abren el asistente `todopintura.price.consult`

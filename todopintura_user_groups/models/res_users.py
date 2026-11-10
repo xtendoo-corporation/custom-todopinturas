@@ -5,6 +5,12 @@ from odoo import fields, models
 class ResUsers(models.Model):
     _inherit = "res.users"
 
+    is_commercial = fields.Boolean(
+        string="¿Es comercial?",
+        copy=False,
+        help="Los comerciales solo ven sus propios presupuestos y pedidos y no pueden "
+        "confirmar un presupuesto a pedido de venta: solo enviarlo al cliente.",
+    )
     allowed_warehouse_ids = fields.Many2many(
         comodel_name="stock.warehouse",
         relation="res_users_allowed_warehouse_rel",

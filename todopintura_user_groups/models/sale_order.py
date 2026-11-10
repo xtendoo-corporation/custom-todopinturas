@@ -1,9 +1,33 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
-from odoo import models
+from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
+
+    todopintura_is_commercial = fields.Boolean(compute="_compute_todopintura_is_commercial")
+
+    @api.depends_context("uid")
+    def _compute_todopintura_is_commercial(self):
+        blocked = self._todopintura_commercial_blocked()
+        for order in self:
+            order.todopintura_is_commercial = blocked
+
+    @api.model
+    def _todopintura_commercial_blocked(self):
+        user = self.env.user
+        return not self.env.su and user.is_commercial and not user.has_group("base.group_system")
+
+    def action_confirm(self):
+        if self._todopintura_commercial_blocked():
+            raise UserError(
+                self.env._(
+                    "Los comerciales no pueden confirmar presupuestos: "
+                    "solo enviarlos al cliente."
+                )
+            )
+        return super().action_confirm()
 
     def action_open_purchase_history(self):
         """Customer purchase history built on the existing order lines (no copy)."""

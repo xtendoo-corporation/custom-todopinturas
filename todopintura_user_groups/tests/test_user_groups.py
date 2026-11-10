@@ -1,6 +1,6 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 from odoo import Command
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
 from odoo.tools import file_path
 
@@ -808,3 +808,29 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
             self.assertEqual(line.stock_qty, 7.0)
             self.assertEqual(line.prev_qty, 0.0)
             self.assertEqual(line.in_qty, 7.0)
+
+    def test_14b_commercials_own_orders_and_no_confirm(self):
+        commercial = self._user("group_08_menu_de_comerciales")
+        commercial.is_commercial = True
+        other_commercial = self._user("group_09_informes_estadisticos_menu_of002")
+        other_commercial.is_commercial = True
+        clerk = self._user("group_01_gestion_de_pedidos")
+        partner = self.env["res.partner"].create({"name": "Cliente ofertas"})
+        Order = self.env["sale.order"]
+        own = Order.create({"partner_id": partner.id, "user_id": commercial.id})
+        theirs = Order.create({"partner_id": partner.id, "user_id": other_commercial.id})
+        clerk_own = Order.create({"partner_id": partner.id, "user_id": clerk.id})
+        domain = [("id", "in", (own | theirs | clerk_own).ids)]
+        # un comercial solo ve lo suyo
+        self.assertEqual(Order.with_user(commercial).search(domain), own)
+        # el administrador lo ve todo
+        self.assertEqual(
+            Order.with_user(self.env.ref("base.user_admin")).search(domain),
+            own | theirs | clerk_own,
+        )
+        # Consulta de ofertas: el perfil no comercial ve los presupuestos de comerciales
+        self.assertEqual(Order.with_user(clerk).search(domain), own | theirs | clerk_own)
+        # un comercial no puede confirmar, pero el sistema sí
+        with self.assertRaises(UserError):
+            own.with_user(commercial).action_confirm()
+        self.assertEqual(own.state, "draft")
