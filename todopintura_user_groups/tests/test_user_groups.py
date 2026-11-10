@@ -1,4 +1,8 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
+from ast import literal_eval
+
+from lxml import etree
+
 from odoo import Command
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
@@ -895,3 +899,84 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
             }
         )
         quote.action_quotation_send()
+
+    # ---- vistas: botones y campos en solo lectura ---------------------------
+    def _form_nodes(self, user, model, xpath):
+        arch = self.env[model].with_user(user).get_view(view_type="form")["arch"]
+        return etree.fromstring(arch).xpath(xpath)
+
+    def test_20_confirm_buttons_are_hidden_for_commercials(self):
+        commercial = self._user("group_08_menu_de_comerciales")
+        commercial.is_commercial = True
+        clerk = self._user("group_01_gestion_de_pedidos")
+        buttons = self._form_nodes(commercial, "sale.order", "//button[@name='action_confirm']")
+        self.assertEqual(len(buttons), 2)
+        for button in buttons:
+            self.assertIn("todopintura_is_commercial", button.get("invisible"))
+        # la condición se evalúa por usuario: solo el comercial marcado queda bloqueado
+        Order = self.env["sale.order"]
+        self.assertTrue(Order.with_user(commercial).new({}).todopintura_is_commercial)
+        self.assertFalse(Order.with_user(clerk).new({}).todopintura_is_commercial)
+        self.assertFalse(
+            Order.with_user(self.env.ref("base.user_admin")).new({}).todopintura_is_commercial
+        )
+        # un administrador marcado como comercial tampoco queda bloqueado
+        admin = self.env.ref("base.user_admin")
+        admin.is_commercial = True
+        self.assertFalse(Order.with_user(admin).new({}).todopintura_is_commercial)
+
+    def test_21_locked_commercial_fields_are_readonly_in_views(self):
+        user = self._user("group_01_gestion_de_pedidos")
+        self.assertTrue(self.env["sale.order"].with_user(user).new({}).todopintura_locked)
+        for name in ("payment_term_id", "payment_mode_id"):
+            node = self._form_nodes(user, "sale.order", f"//field[@name='{name}']")[0]
+            self.assertIn("todopintura_locked", node.get("readonly"), name)
+        price = self._form_nodes(
+            user, "sale.order", "//field[@name='order_line']/list//field[@name='price_unit']"
+        )[0]
+        self.assertIn("parent.todopintura_locked", price.get("readonly"))
+        for name in ("invoice_payment_term_id", "payment_mode_id"):
+            node = self._form_nodes(user, "account.move", f"//field[@name='{name}']")[0]
+            self.assertIn("todopintura_locked", node.get("readonly"), name)
+        # Dirección y administradores no quedan bloqueados
+        for editor in (self._user("group_10_direccion"), self.env.ref("base.user_admin")):
+            self.assertFalse(self.env["sale.order"].with_user(editor).new({}).todopintura_locked)
+
+    # ---- menús de ofertas -----------------------------------------------------
+    def test_22_offer_menus_are_visible_and_list_only_commercial_quotes(self):
+        Menu = self.env["ir.ui.menu"]
+        commercial = self._user("group_09_informes_estadisticos_menu_of002")
+        commercial.is_commercial = True
+        partner = self.env["res.partner"].create({"name": "Cliente menús ofertas"})
+        Order = self.env["sale.order"]
+        commercial_quote = Order.create({"partner_id": partner.id, "user_id": commercial.id})
+        other_quote = Order.create({"partner_id": partner.id, "user_id": self.env.user.id})
+        cases = {
+            "menu_pc_offers": "group_01_gestion_de_pedidos",
+            "menu_vc_transfers_offers": "group_04_ventas_de_almacen_central",
+            "menu_co_orders": "group_08_menu_de_comerciales",
+            "menu_co_offers": "group_08_menu_de_comerciales",
+        }
+        users = {profile: self._user(profile) for profile in set(cases.values())}
+        for menu_xmlid, profile in cases.items():
+            user = users[profile]
+            menu = self.env.ref(f"{MODULE}.{menu_xmlid}")
+            self.assertIn(menu.id, Menu.with_user(user)._visible_menu_ids(), menu_xmlid)
+            self.assertEqual(menu.action.res_model, "sale.order", menu_xmlid)
+            domain = literal_eval(menu.action.domain)
+            found = Order.with_user(self.env.ref("base.user_admin")).search(
+                domain + [("id", "in", (commercial_quote | other_quote).ids)]
+            )
+            self.assertEqual(found, commercial_quote, menu_xmlid)
+
+    # ---- TPV ------------------------------------------------------------------
+    def test_23_pos_role_is_minimal_for_locked_profiles(self):
+        config = self.env["pos.config"].search([], limit=1)
+        if not config:
+            self.skipTest("Needs a POS config")
+        locked = self._user("group_06_ventas_de_tiendas")
+        role = self.env["res.users"]._load_pos_data_read(locked, config)[0]["_role"]
+        self.assertEqual(role, "minimal")
+        for editor in (self._user("group_10_direccion"), self.env.ref("base.user_admin")):
+            role = self.env["res.users"]._load_pos_data_read(editor, config)[0]["_role"]
+            self.assertNotEqual(role, "minimal", editor.login)
