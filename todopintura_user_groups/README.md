@@ -78,6 +78,20 @@ descuento del cliente y el precio para ese cliente. Como en pedidos y TPV, el de
 la tarifa del cliente rebaja sobre el PVP; el precio final solo aparece si difiere del original.
 Los precios son sin impuestos y para cantidad 1.
 
+## Consulta de existencias
+
+Los menús *Consulta de existencias* abren el asistente `todopintura.stock.consult`
+(`models/stock_consult.py`): se elige un producto y un periodo (*Año en curso* o *Completo*) y
+muestra una fila por almacén (todos, con sudo) con:
+
+* **Mínimo**: mínimo de las reglas de reabastecimiento del almacén.
+* **Ex. ant.**: existencias a 1 de enero (0 en periodo *Completo*, columna oculta).
+* **Entradas**: movimientos hechos que llegan al almacén desde fuera (proveedores, traspasos).
+* **Compras**: lo recibido en el almacén desde pedidos de compra.
+* **A cuenta**: unidades en pedidos de TPV en estado *En depósito*, por almacén de la tienda.
+* **Ventas**: salidas a clientes menos devoluciones.
+* **Existencias**: stock actual del almacén.
+
 ## Datos
 
 * `data/pos_config.xml` (noupdate): 9 almacenes (central + 8 tiendas) y sus 10 TPV (central

@@ -775,3 +775,36 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         wiz = Wizard.create({"partner_id": partner_plain.id, "product_id": product.id})
         self.assertEqual(wiz.discount, 0)
         self.assertEqual(wiz.customer_price, wiz.original_price)
+
+    def test_13_stock_consult_wizard(self):
+        user = self._user("group_01_gestion_de_pedidos")
+        product = self.env["product.product"].create(
+            {"name": "Prod existencias", "is_storable": True, "type": "consu"}
+        )
+        warehouse = self.env["stock.warehouse"].search([], limit=1)
+        # Recepción real de proveedor: genera el movimiento (hoy, no previo a enero).
+        move = self.env["stock.move"].create(
+            {
+                "product_id": product.id,
+                "product_uom_qty": 7.0,
+                "product_uom": product.uom_id.id,
+                "location_id": self.env.ref("stock.stock_location_suppliers").id,
+                "location_dest_id": warehouse.lot_stock_id.id,
+            }
+        )
+        move._action_confirm()
+        move.quantity = 7.0
+        move.picked = True
+        move._action_done()
+        Wizard = self.env["todopintura.stock.consult"].with_user(user)
+        self.assertFalse(Wizard.create({}).line_ids)
+        for period in ("year", "all"):
+            wiz = Wizard.create({"product_id": product.id, "period": period})
+            lines = wiz.line_ids
+            self.assertEqual(
+                len(lines), self.env["stock.warehouse"].search_count([])
+            )
+            line = lines.filtered(lambda line: line.warehouse_id == warehouse)
+            self.assertEqual(line.stock_qty, 7.0)
+            self.assertEqual(line.prev_qty, 0.0)
+            self.assertEqual(line.in_qty, 7.0)
