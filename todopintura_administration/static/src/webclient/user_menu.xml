@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-inherit="web.UserMenu" t-inherit-mode="extension">
+        <!-- Mostrar siempre el nombre (el estándar solo lo muestra en debug) -->
+        <xpath expr="//small[hasclass('oe_topbar_name')]" position="attributes">
+            <attribute name="class" add="d-lg-inline-block" separator=" "/>
+        </xpath>
+        <!-- Ocultar el nombre de la BD salvo en modo debug -->
+        <xpath expr="//mark[hasclass('font-monospace')]" position="attributes">
+            <attribute name="t-if">env.debug</attribute>
+        </xpath>
+    </t>
+</templates>

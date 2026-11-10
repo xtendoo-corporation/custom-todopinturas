@@ -10,6 +10,8 @@
     'assets': {
         'web.assets_backend': [
             'todopintura_administration/static/src/js/pricelist_line_filter.js',
+            'todopintura_administration/static/src/webclient/user_menu.xml',
+            'todopintura_administration/static/src/webclient/user_menu.scss',
         ],
     },
     "data": [
