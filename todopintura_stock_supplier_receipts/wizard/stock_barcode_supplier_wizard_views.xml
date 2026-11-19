@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stock_barcode_supplier_wizard_form" model="ir.ui.view">
+        <field name="name">stock.barcode.supplier.wizard.form</field>
+        <field name="model">stock.barcode.supplier.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Entradas de proveedor">
+                <field name="available_partner_ids" invisible="1"/>
+                <div class="alert alert-info" role="alert" invisible="not available_partner_ids">
+                    Elige el proveedor: se mostrarán solo las líneas de sus recepciones que estamos esperando recibir.
+                </div>
+                <div class="alert alert-warning" role="alert" invisible="available_partner_ids">
+                    No hay recepciones de proveedor pendientes de recibir.
+                </div>
+                <group>
+                    <field name="partner_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="pending_count" string="Recepciones pendientes" invisible="not partner_id"/>
+                </group>
+                <footer>
+                    <button name="action_continue" string="Continuar" type="object" class="btn-primary" invisible="not partner_id"/>
+                    <button name="action_open_list" string="Ver todas las entradas" type="object" class="btn-secondary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_stock_barcode_supplier_wizard" model="ir.actions.act_window">
+        <field name="name">Entradas de proveedor</field>
+        <field name="res_model">stock.barcode.supplier.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

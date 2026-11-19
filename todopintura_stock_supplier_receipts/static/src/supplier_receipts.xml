@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- PDA de entradas de un proveedor: aviso con sus recepciones pendientes. -->
+    <t t-name="todopintura_stock_supplier_receipts.PickingClientAction"
+       t-inherit="xtendoo_stock_barcode.PickingClientAction" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('card-header')]" position="before">
+            <div t-if="state.picking.tp_supplier_banner" class="alert alert-info mb-0 rounded-0">
+                <strong>Proveedor: <t t-esc="state.picking.tp_supplier_banner.supplier"/></strong>
+                · <t t-esc="state.picking.tp_supplier_banner.lines"/> producto(s) pendientes de recibir
+                <div class="small text-muted mt-1">
+                    Recepciones:
+                    <t t-foreach="state.picking.tp_supplier_banner.pickings" t-as="picking_name" t-key="picking_name">
+                        <span class="badge bg-secondary me-1"><t t-esc="picking_name"/></span>
+                    </t>
+                </div>
+            </div>
+        </xpath>
+    </t>
+</templates>
