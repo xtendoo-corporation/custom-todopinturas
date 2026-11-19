@@ -210,22 +210,25 @@ CENTRAL_TRANSFER_MENUS = {
     "menu_vt_transfers_send",
     "menu_vt_transfers_receive",
     "menu_vt_transfers_offers",
-    "menu_vt_transfers_pending",
     "menu_vt_transfers_print",
-    "menu_vt_transfers_pickup_quotes",
     "menu_vt_transfers_credit",
 }
 STORE_TRANSFER_MENUS = {
     "menu_vt_transfers_send",
     "menu_vt_transfers_receive",
-    "menu_vt_transfers_pending",
     "menu_vt_transfers_print",
     "menu_vt_transfers_credit",
 }
 # Los perfiles de traspasos ven su submenú dentro de «Pedidos de y para tiendas»
 PT_TRANSFER_MENUS = {
-    name.replace("menu_vt_", "menu_pt_") for name in CENTRAL_TRANSFER_MENUS
-} - {"menu_pt_transfers_pickup_quotes"} | {"menu_pt_transfers_pickup"}
+    "menu_pt_transfers_send",
+    "menu_pt_transfers_receive",
+    "menu_pt_transfers_offers",
+    "menu_pt_transfers_pending",
+    "menu_pt_transfers_print",
+    "menu_pt_transfers_credit",
+    "menu_pt_transfers_pickup",
+}
 PT_STORE_TRANSFER_MENUS = PT_TRANSFER_MENUS - {
     "menu_pt_transfers_offers",
     "menu_pt_transfers_pickup",
@@ -265,7 +268,6 @@ STORE_SALES_MENUS = {
     "menu_vt_credit_sales_query",
     "menu_vt_credit_sales_list",
     "menu_vt_customers",
-    "menu_vt_transfers_pickup",
 } | STORE_TRANSFER_MENUS
 COMMERCIAL_MENUS = {"menu_co_offers", "menu_co_orders"} | STATISTICAL_MENUS
 CUSTOMER_ORDER_MENUS = {

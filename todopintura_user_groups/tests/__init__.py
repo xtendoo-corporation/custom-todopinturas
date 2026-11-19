@@ -6,3 +6,4 @@ from . import test_real_stack_stock_sales
 from . import test_routes_commissions_history
 from . import test_user_groups
 from . import test_warehouse_rules
+from . import test_vt_menus

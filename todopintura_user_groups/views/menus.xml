@@ -71,11 +71,8 @@
     <menuitem id="menu_vt_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_vt_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
     <menuitem id="menu_vt_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_vt_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
     <menuitem id="menu_vt_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vt_transfers" sequence="30" action="action_offers_by_purchasing" groups="group_04_ventas_de_almacen_central"/>
-    <menuitem id="menu_vt_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_vt_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
     <menuitem id="menu_vt_transfers_print" name="Impresión de partes de almacén" parent="menu_vt_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
-    <menuitem id="menu_vt_transfers_pickup" name="Grabación de ventas con recogida en otra tienda + traspasos" parent="menu_vt_transfers" sequence="60" action="point_of_sale.action_pos_config_kanban" groups="perm_va01"/>
     <menuitem id="menu_vt_transfers_credit" name="Grabación de ACUENTAS de otra tienda" parent="menu_vt_transfers" sequence="70" action="action_credit_sales" groups="perm_va01pas2"/>
-    <menuitem id="menu_vt_transfers_pickup_quotes" name="Grabación de ventas con recogida en otra tienda + traspasos" parent="menu_vt_transfers" sequence="65" action="sale.action_quotations_with_onboarding" groups="group_04_ventas_de_almacen_central"/>
     <menuitem id="menu_vt_customers" name="Consulta de clientes" parent="menu_vt_misc" sequence="40" action="action_partners_consult" groups="perm_consulta_de_clientes"/>
 
     <!-- Comerciales (also entry point of the "Informes estadísticos" profile) -->
@@ -124,9 +121,6 @@
         <field name="group_ids" eval="[Command.set([ref('group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie')])]"/>
     </record>
     <record id="menu_vt_transfers_offers" model="ir.ui.menu">
-        <field name="group_ids" eval="[Command.set([ref('group_04_ventas_de_almacen_central')])]"/>
-    </record>
-    <record id="menu_vt_transfers_pickup_quotes" model="ir.ui.menu">
         <field name="group_ids" eval="[Command.set([ref('group_04_ventas_de_almacen_central')])]"/>
     </record>
 </odoo>
