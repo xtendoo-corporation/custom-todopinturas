@@ -50,10 +50,33 @@ class StockPicking(models.Model):
             texts.append(self.sale_id.pos_observations)
         return '\n\n'.join(dict.fromkeys(t.strip() for t in texts if t and t.strip()))
 
-    def _tp_report_copies(self):
-        """Etiquetas de cada copia a imprimir: interna y para el cliente."""
+    def _tp_is_internal_transfer(self):
+        """Traspaso entre almacenes/tiendas: no tiene cliente ni proveedor, su albarán
+        se simplifica. Es el envío (tipo interno) y también la recepción del envío
+        (tipo «Recepciones» con origen y destino en ubicaciones internas); las
+        recepciones de proveedor y las entregas a clientes no lo son."""
         self.ensure_one()
+        if self._tp_is_deposit_picking():
+            return False
+        if self.picking_type_code == 'internal':
+            return True
+        return bool(
+            self.picking_type_code == 'incoming'
+            and self.location_id.usage == 'internal'
+            and self.location_dest_id.usage == 'internal'
+        )
+
+    def _tp_report_copies(self):
+        """Etiquetas de cada copia a imprimir: interna y para el cliente (un traspaso
+        interno solo lleva una copia, sin etiqueta)."""
+        self.ensure_one()
+        if self._tp_is_internal_transfer():
+            return [False]
         return ['COPIA INTERNA', 'COPIA PARA EL CLIENTE']
+
+    def _tp_report_place_name(self, location):
+        """Almacén de una ubicación (o la propia ubicación si no pertenece a uno)."""
+        return location.warehouse_id.name or location.display_name or ''
 
     def _tp_is_deposit_picking(self):
         """Albarán de un pedido enviado a depósito (destino: ubicación virtual Depósito)."""

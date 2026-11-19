@@ -1,7 +1,7 @@
 {
     "name": "Todo Pintura Administration",
     "summary": "Administración de Todo Pintura",
-    "version": "19.0.1.0.1",
+    "version": "19.0.1.0.2",
     "description": "Administración de Todo Pintura",
     "company": "Xtendoo",
     "website": "http://www.xtendoo.es",

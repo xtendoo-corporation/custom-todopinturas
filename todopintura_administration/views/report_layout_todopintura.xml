@@ -29,7 +29,7 @@
                  La caja CLIENTE queda pegada a la tabla de datos del cuerpo. -->
             <img src="/todopintura_administration/static/img/fox.png" width="114" height="34"
                  style="position: absolute; left: 46%; bottom: 4px; width: 114px; height: 34px;"/>
-            <div class="tp_clientbox" style="position: absolute; right: 0; bottom: 0; width: 40%; height: 34px; line-height: 34px; box-sizing: border-box; padding: 0 10px; font-family: monospace; font-size: 12px; color: #1c2b5a;">
+            <div class="tp_clientbox" t-if="not (o and o._name == 'stock.picking' and len(o) == 1 and o._tp_is_internal_transfer())" style="position: absolute; right: 0; bottom: 0; width: 40%; height: 34px; line-height: 34px; box-sizing: border-box; padding: 0 10px; font-family: monospace; font-size: 12px; color: #1c2b5a;">
                 <strong>CLIENTE</strong>
                 <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.ref or ''" t-if="partner"/>
                 <span style="margin-left: 14px;" t-out="partner.commercial_partner_id.vat or ''" t-if="partner"/>
