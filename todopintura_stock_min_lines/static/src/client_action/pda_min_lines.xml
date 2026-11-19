@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- PDA de transferencias internas: aviso de carga y, en cada línea, existencias del
+         almacén destino, mínimo y cantidad a enviar. -->
+    <t t-name="todopintura_stock_min_lines.PickingClientAction"
+       t-inherit="xtendoo_stock_barcode.PickingClientAction" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('card-header')]" position="before">
+            <div t-if="state.picking.tp_banner" class="alert alert-warning mb-0 rounded-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong><t t-esc="state.picking.tp_banner.below_min"/> producto(s) bajo mínimos</strong>
+                        en <t t-esc="state.picking.tp_banner.warehouse"/> ·
+                        <t t-esc="state.picking.tp_banner.on_screen"/> en pantalla
+                        <span t-if="state.picking.tp_banner.picking" class="text-muted">(<t t-esc="state.picking.tp_banner.picking"/>)</span>
+                    </div>
+                    <div class="text-muted small">Datos de <t t-esc="state.picking.tp_banner.at"/></div>
+                </div>
+                <div t-if="state.picking.tp_banner.skipped_no_stock" class="small mt-1">
+                    <t t-esc="state.picking.tp_banner.skipped_no_stock"/> sin stock en el almacén central: no se cargan.
+                </div>
+                <div t-if="state.picking.tp_banner.hidden" class="small mt-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" t-on-click="tpToggleAll">
+                        <t t-if="state.tpShowAll">Ocultar las <t t-esc="state.picking.tp_banner.hidden"/> líneas que no están bajo mínimos</t>
+                        <t t-else="">Mostrar <t t-esc="state.picking.tp_banner.hidden"/> línea(s) que no están bajo mínimos</t>
+                    </button>
+                </div>
+            </div>
+        </xpath>
+        <!-- Con el aviso activo, la PDA muestra solo las líneas bajo mínimos (salvo que se pidan todas). -->
+        <xpath expr="//div[hasclass('list-group-item')]" position="attributes">
+            <attribute name="t-if">!state.picking.tp_banner or state.tpShowAll or line.tp_below_min</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('row') and hasclass('g-0') and hasclass('mb-3') and hasclass('align-items-center')]" position="after">
+            <div t-if="line.tp_has_min or line.tp_dest_qty" class="d-flex flex-wrap gap-2 mb-3">
+                <span class="badge bg-secondary-subtle text-secondary-emphasis fs-6 fw-normal">Existencias destino <strong><t t-esc="line.tp_dest_qty"/></strong></span>
+                <span class="badge bg-danger-subtle text-danger-emphasis fs-6 fw-normal" t-if="line.tp_has_min">Mínimo <strong><t t-esc="line.tp_min_qty"/></strong></span>
+                <span class="badge bg-success-subtle text-success-emphasis fs-6 fw-normal" t-if="line.tp_has_min">A enviar <strong><t t-esc="line.tp_to_send"/></strong></span>
+                <span class="badge bg-warning-subtle text-warning-emphasis fs-6 fw-normal" t-if="!line.tp_below_min">No está bajo mínimos</span>
+            </div>
+        </xpath>
+    </t>
+</templates>
