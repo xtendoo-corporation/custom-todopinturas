@@ -8,3 +8,4 @@ from . import test_quick_partner_pricelist
 from . import test_close_with_draft_orders
 from . import test_close_with_draft_orders_tour
 from . import test_leave_draft_order
+from . import test_employee_pin

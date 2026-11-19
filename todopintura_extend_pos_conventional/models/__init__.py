@@ -17,3 +17,8 @@ from . import pos_order_line_permissions
 from . import res_users
 from . import product_product
 from . import pos_session_closing_wizard
+from . import hr_employee
+from . import pos_session_pin_wizard
+from . import pos_order_employee
+from . import pos_config_pin
+from . import pos_employee_users

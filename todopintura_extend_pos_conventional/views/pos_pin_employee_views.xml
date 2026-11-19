@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- El PIN del TPV ya no se guarda en el usuario: es el PIN del empleado. -->
+    <record id="view_users_form_remove_pos_pin" model="ir.ui.view">
+        <field name="name">res.users.form.todopintura.remove.pos.pin</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='pos_conventional_pin']" position="replace">
+                <page string="Empleados del TPV" name="tp_pos_employees">
+                    <group>
+                        <field name="pos_employee_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_employee_form_pos_users" model="ir.ui.view">
+        <field name="name">hr.employee.form.todopintura.pos.users</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pin']" position="after">
+                <field name="pos_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_pos_session_pin_wizard_form_employee" model="ir.ui.view">
+        <field name="name">pos.session.pin.wizard.form.todopintura.employee</field>
+        <field name="model">pos.session.pin.wizard</field>
+        <field name="inherit_id" ref="pos_conventional_users_pin.view_pos_session_pin_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//strong" position="replace">
+                <strong>PIN de empleado</strong>
+            </xpath>
+            <xpath expr="//label[@for='pos_pin']" position="attributes">
+                <attribute name="string">PIN del empleado</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
