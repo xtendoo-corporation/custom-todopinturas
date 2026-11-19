@@ -95,11 +95,16 @@ class StockPicking(models.Model):
                         "company_id": picking.company_id.id,
                     }
                 )
-            elif not move.xt_barcode_scanned_qty and move.product_uom_qty != qty:
+            elif (
+                not move.tp_manual_line
+                and not move.xt_barcode_scanned_qty
+                and move.product_uom_qty != qty
+            ):
                 move.product_uom_qty = qty
         stale = picking.move_ids.filtered(
             lambda m: m.product_id not in wanted
             and m.state not in ("done", "cancel")
+            and not m.tp_manual_line
             and not m.xt_barcode_scanned_qty
         )
         if stale:
@@ -130,14 +135,21 @@ class StockPicking(models.Model):
             if warehouse and products
             else {}
         )
+        move_ids = [mid for line in lines for mid in (line.get("move_ids") or [line.get("id")]) if mid]
+        manual_ids = set(
+            self.env["stock.move"].sudo().browse(move_ids).filtered("tp_manual_line").ids
+        )
         for line in lines:
+            line["tp_manual"] = any(
+                mid in manual_ids for mid in (line.get("move_ids") or [line.get("id")])
+            )
             data = info.get(line.get("product_id"))
             line["tp_has_min"] = bool(data and data["min"])
             line["tp_dest_qty"] = data["on_hand"] if data else 0.0
             line["tp_min_qty"] = data["min"] if data else 0.0
             line["tp_to_send"] = data["to_send"] if data else 0.0
             line["tp_below_min"] = bool(data and data["below_min"])
-        shown = sum(1 for line in lines if line["tp_below_min"])
+        shown = sum(1 for line in lines if line["tp_below_min"] or line["tp_manual"])
         return shown, len(lines) - shown
 
     @api.model
@@ -208,7 +220,82 @@ class StockPicking(models.Model):
         )
 
     @api.model
+    def _tp_min_add_scanned_line(self, location_id, barcode):
+        """Si el producto escaneado no está en ningún traslado pendiente del almacén, se
+        añade como línea (cantidad 1) a su traslado de reposición, creándolo si hace falta."""
+        barcode = (barcode or "").strip()
+        product = self.env["product.product"].search([("barcode", "=", barcode)], limit=1)
+        location = self.env["stock.location"].browse(location_id)
+        warehouse = location.warehouse_id
+        if not product or not warehouse:
+            return False
+        pending = self.search(
+            [
+                "|",
+                ("location_id", "=", location_id),
+                ("location_dest_id", "=", location_id),
+                ("state", "not in", ("cancel", "done")),
+            ]
+        )
+        if pending.move_ids.filtered(
+            lambda m: m.product_id == product and m.state not in ("cancel", "done")
+        ):
+            return False
+        hub = warehouse._tp_min_get_hub()
+        if not hub or hub == warehouse:
+            return False
+        picking = self._tp_min_find_picking(hub, warehouse)
+        if not picking:
+            picking = self.sudo().create(
+                {
+                    "picking_type_id": hub.int_type_id.id,
+                    "location_id": hub.lot_stock_id.id,
+                    "location_dest_id": warehouse.lot_stock_id.id,
+                    "origin": _("Reposición bajo mínimos"),
+                    "tp_min_replenish": True,
+                    "company_id": hub.company_id.id,
+                }
+            )
+        self.env["stock.move"].sudo().create(
+            {
+                "picking_id": picking.id,
+                "product_id": product.id,
+                "product_uom_qty": 1.0,
+                "product_uom": product.uom_id.id,
+                "location_id": picking.location_id.id,
+                "location_dest_id": picking.location_dest_id.id,
+                "company_id": picking.company_id.id,
+                "tp_manual_line": True,
+            }
+        )
+        if picking.state == "draft":
+            picking.action_confirm()
+        if picking.state in ("confirmed", "waiting"):
+            picking.action_assign()
+        return True
+
+    def _create_barcode_move(self, product, location_id, location_dest_id, quantity):
+        move = super()._create_barcode_move(product, location_id, location_dest_id, quantity)
+        move.tp_manual_line = True  # creada al escanear un producto que no estaba
+        return move
+
+    def _check_barcode_excess_demand(self, product, quantity):
+        """En una línea añadida al escanear no hay demanda inicial que superar: crece sola."""
+        self.ensure_one()
+        moves = self.move_ids.filtered(
+            lambda m: m.product_id == product and m.state not in ("done", "cancel")
+        )
+        if moves and all(moves.mapped("tp_manual_line")):
+            demand = sum(moves.mapped("product_uom_qty"))
+            scanned = sum(moves.mapped("xt_barcode_scanned_qty"))
+            if scanned + quantity > demand:
+                moves[-1].product_uom_qty += scanned + quantity - demand
+            return False
+        return super()._check_barcode_excess_demand(product, quantity)
+
+    @api.model
     def action_xt_process_aggregated_barcode_scan(self, location_id, barcode, force_excess=False):
+        self._tp_min_add_scanned_line(location_id, barcode)
         result = super().action_xt_process_aggregated_barcode_scan(
             location_id, barcode, force_excess=force_excess
         )

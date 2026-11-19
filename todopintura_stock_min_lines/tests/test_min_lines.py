@@ -238,6 +238,80 @@ class TestMinLines(MinLinesCase):
         self.assertIn("No está bajo mínimos", result["message"])
         self.assertTrue(result["excess"])
 
+    # ---- producto escaneado que no está en ninguna línea ------------------------------------
+    def test_scanning_an_unknown_product_adds_it_as_a_line(self):
+        self._stock(self.hub, self.prod_free, 5)
+        self.Picking.tp_load_below_min_lines(self.shop.id)
+        location = self.shop.lot_stock_id.id
+        result = self.Picking.action_xt_process_aggregated_barcode_scan(location, "TPMIN0009")
+        self.assertTrue(result["success"], result)
+        move = self.env["stock.move"].search(
+            [("product_id", "=", self.prod_free.id), ("state", "not in", ("cancel", "done"))]
+        )
+        self.assertEqual(len(move), 1)
+        self.assertTrue(move.tp_manual_line)
+        self.assertEqual(move.picking_id.tp_min_replenish, True)
+        self.assertEqual(move.picking_id.location_dest_id, self.shop.lot_stock_id)
+        self.assertEqual(move.xt_barcode_scanned_qty, 1)
+        # Aparece en la PDA aunque no esté bajo mínimos
+        data = self.Picking.action_xt_get_aggregated_barcode_data(location)
+        line = next(l for l in data["lines"] if l["product_id"] == self.prod_free.id)
+        self.assertTrue(line["tp_manual"])
+        self.assertFalse(line["tp_below_min"])
+        self.assertEqual(data["tp_banner"]["hidden"], 0)
+        self.assertEqual(data["tp_banner"]["on_screen"], 2)  # prod_a + la añadida
+
+    def test_scanning_the_added_product_again_grows_the_line_without_excess_prompt(self):
+        self._stock(self.hub, self.prod_free, 5)
+        location = self.shop.lot_stock_id.id
+        for _i in range(3):
+            result = self.Picking.action_xt_process_aggregated_barcode_scan(
+                location, "TPMIN0009"
+            )
+            self.assertTrue(result["success"], result)
+            self.assertNotEqual(result.get("type"), "excess_confirmation")
+        move = self.env["stock.move"].search(
+            [("product_id", "=", self.prod_free.id), ("state", "not in", ("cancel", "done"))]
+        )
+        self.assertEqual(len(move), 1)
+        self.assertEqual(move.xt_barcode_scanned_qty, 3)
+        self.assertEqual(move.product_uom_qty, 3)
+
+    def test_added_lines_survive_the_refresh(self):
+        self._stock(self.hub, self.prod_free, 5)
+        self.Picking.action_xt_process_aggregated_barcode_scan(
+            self.shop.lot_stock_id.id, "TPMIN0009"
+        )
+        self.Picking.tp_load_below_min_lines(self.shop.id)
+        move = self.env["stock.move"].search(
+            [("product_id", "=", self.prod_free.id), ("state", "not in", ("cancel", "done"))]
+        )
+        self.assertTrue(move)
+
+    def test_unknown_product_in_the_central_warehouse_keeps_the_original_error(self):
+        result = self.Picking.action_xt_process_aggregated_barcode_scan(
+            self.hub.lot_stock_id.id, "TPMIN0009"
+        )
+        self.assertFalse(result["success"])
+
+    def test_scanning_an_unknown_barcode_does_not_create_anything(self):
+        before = self.Picking.search_count([("tp_min_replenish", "=", True)])
+        result = self.Picking.action_xt_process_aggregated_barcode_scan(
+            self.shop.lot_stock_id.id, "NO-EXISTE"
+        )
+        self.assertFalse(result["success"])
+        self.assertEqual(self.Picking.search_count([("tp_min_replenish", "=", True)]), before)
+
+    def test_single_picking_scan_flags_the_new_line_as_added(self):
+        summary = self.Picking.tp_load_below_min_lines(self.shop.id)
+        picking = self.Picking.browse(summary["picking_id"])
+        self._stock(self.hub, self.prod_free, 5)
+        result = picking.action_xt_process_barcode_scan("TPMIN0009")
+        self.assertTrue(result["success"], result)
+        data = picking.action_xt_get_barcode_data()
+        line = next(l for l in data["lines"] if l["product_id"] == self.prod_free.id)
+        self.assertTrue(line["tp_manual"])
+
     def test_scanning_a_below_min_product_has_no_warning(self):
         self.Picking.tp_load_below_min_lines(self.shop.id)
         result = self.Picking.action_xt_process_aggregated_barcode_scan(

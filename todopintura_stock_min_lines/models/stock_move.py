@@ -5,6 +5,11 @@ from odoo import fields, models
 class StockMove(models.Model):
     _inherit = "stock.move"
 
+    tp_manual_line = fields.Boolean(
+        string="Línea añadida al escanear",
+        copy=False,
+        help="Línea creada porque se escaneó un producto que no estaba en el traslado.",
+    )
     tp_dest_qty = fields.Float(
         string="Existencias destino",
         compute="_compute_tp_min_info",

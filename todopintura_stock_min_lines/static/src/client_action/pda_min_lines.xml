@@ -28,14 +28,15 @@
         </xpath>
         <!-- Con el aviso activo, la PDA muestra solo las líneas bajo mínimos (salvo que se pidan todas). -->
         <xpath expr="//div[hasclass('list-group-item')]" position="attributes">
-            <attribute name="t-if">!state.picking.tp_banner or state.tpShowAll or line.tp_below_min</attribute>
+            <attribute name="t-if">!state.picking.tp_banner or state.tpShowAll or line.tp_below_min or line.tp_manual</attribute>
         </xpath>
         <xpath expr="//div[hasclass('row') and hasclass('g-0') and hasclass('mb-3') and hasclass('align-items-center')]" position="after">
-            <div t-if="line.tp_has_min or line.tp_dest_qty" class="d-flex flex-wrap gap-2 mb-3">
+            <div t-if="line.tp_has_min or line.tp_dest_qty or line.tp_manual" class="d-flex flex-wrap gap-2 mb-3">
                 <span class="badge bg-secondary-subtle text-secondary-emphasis fs-6 fw-normal">Existencias destino <strong><t t-esc="line.tp_dest_qty"/></strong></span>
                 <span class="badge bg-danger-subtle text-danger-emphasis fs-6 fw-normal" t-if="line.tp_has_min">Mínimo <strong><t t-esc="line.tp_min_qty"/></strong></span>
                 <span class="badge bg-success-subtle text-success-emphasis fs-6 fw-normal" t-if="line.tp_has_min">A enviar <strong><t t-esc="line.tp_to_send"/></strong></span>
                 <span class="badge bg-warning-subtle text-warning-emphasis fs-6 fw-normal" t-if="!line.tp_below_min">No está bajo mínimos</span>
+                <span class="badge bg-info-subtle text-info-emphasis fs-6 fw-normal" t-if="line.tp_manual">Añadida al escanear</span>
             </div>
         </xpath>
     </t>
