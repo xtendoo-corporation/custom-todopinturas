@@ -97,17 +97,17 @@
     </record>
 
     <!-- Comerciales: in searches and lists they only get their own customers (salesperson),
-         plus the contacts the system needs (themselves, the companies, other users). -->
+         plus the two contacts the documents need (themselves and their companies).
+         Contacts without a salesperson, and the contacts of other users, are not visible. -->
     <record id="rule_partner_commercial_own" model="ir.rule">
         <field name="name">Todopintura: contactos propios de los comerciales</field>
         <field name="model_id" ref="base.model_res_partner"/>
         <field name="domain_force">[(1, '=', 1)] if (not user.is_commercial or user.has_group('base.group_system')) else [
-            '|', '|', '|', '|',
+            '|', '|', '|',
             ('user_id', '=', user.id),
             ('commercial_partner_id.user_id', '=', user.id),
             ('id', '=', user.partner_id.id),
             ('id', 'in', user.company_ids.partner_id.ids),
-            ('user_ids', '!=', False),
         ]</field>
     </record>
 </odoo>

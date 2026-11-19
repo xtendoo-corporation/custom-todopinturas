@@ -435,6 +435,57 @@ class TestTodopinturaUserGroups(TodopinturaTestCase):
         partners = self.env["res.partner"].with_user(seller_a).search([])
         self.assertLessEqual(self.partner | other_partner, partners)
 
+    def test_13b2_commercial_does_not_see_contacts_without_salesperson(self):
+        Partner = self.env["res.partner"]
+        group = self.env.ref(f"{MODULE}.group_08_menu_de_comerciales")
+        Users = self.env["res.users"].with_context(no_reset_password=True)
+        seller = Users.create(
+            {
+                "name": "Comercial Contactos",
+                "login": "comercial_contactos",
+                "is_commercial": True,
+                "group_ids": [Command.set(group.ids)],
+            }
+        )
+        colleague = Users.create(
+            {
+                "name": "Comercial Compañero",
+                "login": "comercial_companero",
+                "is_commercial": True,
+                "group_ids": [Command.set(group.ids)],
+            }
+        )
+        own = Partner.create({"name": "Cliente propio", "user_id": seller.id})
+        own_contact = Partner.create({"name": "Contacto propio", "parent_id": own.id})
+        others = Partner.create({"name": "Cliente del compañero", "user_id": colleague.id})
+        unassigned = Partner.create({"name": "Cliente sin comercial"})
+        unassigned_contact = Partner.create(
+            {"name": "Contacto sin comercial", "parent_id": unassigned.id}
+        )
+        visible = Partner.with_user(seller).search([])
+        # Sus clientes y los contactos de sus clientes, él mismo y su empresa.
+        self.assertLessEqual(own | own_contact, visible)
+        self.assertIn(seller.partner_id, visible)
+        self.assertLessEqual(seller.company_ids.partner_id, visible)
+        # Nada sin comercial asignado ni de otros comerciales (ni contactos de otros usuarios).
+        self.assertFalse((others | unassigned | unassigned_contact) & visible)
+        self.assertNotIn(colleague.partner_id, visible)
+        self.assertNotIn(self.env.ref("base.partner_admin"), visible)
+        self.assertFalse(
+            visible.filtered(
+                lambda p: not p.user_id
+                and not p.commercial_partner_id.user_id
+                and p != seller.partner_id
+                and p not in seller.company_ids.partner_id
+            )
+        )
+
+    def test_13b3_other_profiles_still_see_every_contact(self):
+        partner = self.env["res.partner"].create({"name": "Cliente sin comercial 2"})
+        for xmlid in ("group_10_direccion", "group_01_gestion_de_pedidos"):
+            user = self._user(xmlid)
+            self.assertIn(partner, self.env["res.partner"].with_user(user).search([]), xmlid)
+
     def test_13c_only_direccion_edits_customers(self):
         editors = {
             "group_08_menu_de_comerciales": False,
