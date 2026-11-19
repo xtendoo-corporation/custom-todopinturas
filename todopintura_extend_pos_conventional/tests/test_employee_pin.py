@@ -100,6 +100,34 @@ class TestEmployeePin(PosConventionalTestCommon):
         self.assertIn("Luis Cajero", str(error.exception))
         self.assertEqual(session.employee_id, self.ana)
 
+    def test_employee_linked_to_the_session_user_is_always_authorized(self):
+        """El empleado enlazado al usuario de la caja (ficha de RR. HH.) puede entrar
+        aunque el usuario no tenga empleados en «Empleados del TPV»."""
+        box = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create({"name": "Caja enlazada", "login": "caja_enlazada_pin"})
+        )
+        own = self.env["hr.employee"].create(
+            {"name": "Empleado de la caja", "pin": "4799", "user_id": box.id}
+        )
+        session = self._open_session()
+        session.user_id = box
+        self.assertFalse(box.pos_employee_ids)
+        self._wizard(session, "4799").action_validate_pin()
+        self.assertEqual(session.employee_id, own)
+        # Pero un empleado enlazado a OTRO usuario sigue sin estar autorizado.
+        other_box = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create({"name": "Otra caja enlazada", "login": "otra_caja_enlazada_pin"})
+        )
+        self.env["hr.employee"].create(
+            {"name": "Empleado de otra caja", "pin": "4798", "user_id": other_box.id}
+        )
+        with self.assertRaises(ValidationError):
+            self._wizard(session, "4798").action_validate_pin()
+
     def test_user_without_related_employees_admits_nobody(self):
         session = self._session(employees=self.env["hr.employee"])
         with self.assertRaises(ValidationError):

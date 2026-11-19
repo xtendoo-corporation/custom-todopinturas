@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Informe de venta diaria: ventas de cada método de pago, una detrás de otra, con su total. -->
+    <template id="report_saledetails_payments_by_method" inherit_id="point_of_sale.pos_session_sales_details">
+        <xpath expr="//div[@id='payments']" position="after">
+            <div t-if="payments_detail" id="payments_by_method">
+                <h6 class="bg-secondary p-1 fw-bold mt-3">Ventas por método de pago</h6>
+                <t t-foreach="payments_detail" t-as="method">
+                    <table class="table table-sm table-borderless mb-3 w-100" style="page-break-inside: avoid; width: 100%;">
+                        <thead>
+                            <tr class="border-bottom border-dark" style="background-color: #e9ecef;">
+                                <th colspan="4" class="ps-2 fw-bold fs-6" style="text-align: left; font-weight: bold; font-size: 14px;"><t t-out="method['name']"/></th>
+                            </tr>
+                            <tr class="text-muted">
+                                <th class="ps-2" style="width: 28%; text-align: left;">Pedido</th>
+                                <th style="width: 17%; text-align: left;">Fecha</th>
+                                <th style="text-align: left;">Cliente</th>
+                                <th style="width: 17%; text-align: right;">Importe</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="method['lines']" t-as="line">
+                                <td class="ps-2"><t t-out="line['order']"/></td>
+                                <td><t t-out="line['date']"/></td>
+                                <td><t t-out="line['partner']"/></td>
+                                <td class="text-end" style="text-align: right;">
+                                    <t t-if="currency['position']">
+                                        <span t-out="line['amount']" t-options="{'widget': 'float', 'precision': currency['precision']}"/><span t-out="currency['symbol']"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span t-out="currency['symbol']"/><span t-out="line['amount']" t-options="{'widget': 'float', 'precision': currency['precision']}"/>
+                                    </t>
+                                </td>
+                            </tr>
+                            <tr class="border-top border-dark" style="font-weight: bold;">
+                                <td colspan="3" class="ps-2" style="font-weight: bold;">
+                                    Total <t t-out="method['name']"/> (<t t-out="method['count']"/> pago<t t-if="method['count'] != 1">s</t>)
+                                </td>
+                                <td class="text-end" style="text-align: right;">
+                                    <t t-if="currency['position']">
+                                        <span t-out="method['total']" t-options="{'widget': 'float', 'precision': currency['precision']}"/><span t-out="currency['symbol']"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span t-out="currency['symbol']"/><span t-out="method['total']" t-options="{'widget': 'float', 'precision': currency['precision']}"/>
+                                    </t>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+                <table class="table table-sm table-borderless border-top border-dark w-100" style="page-break-inside: avoid; width: 100%;">
+                    <tr class="fs-5" style="font-weight: bold; font-size: 15px;">
+                        <td class="ps-2" style="text-align: left; font-weight: bold;">Total ventas (<t t-out="payments_detail_count"/> pagos)</td>
+                        <td class="text-end" style="text-align: right;">
+                            <t t-if="currency['position']">
+                                <span t-out="payments_detail_total" t-options="{'widget': 'float', 'precision': currency['precision']}"/><span t-out="currency['symbol']"/>
+                            </t>
+                            <t t-else="">
+                                <span t-out="currency['symbol']"/><span t-out="payments_detail_total" t-options="{'widget': 'float', 'precision': currency['precision']}"/>
+                            </t>
+                        </td>
+                    </tr>
+                </table>
+                <div class="oe_structure"></div>
+            </div>
+        </xpath>
+    </template>
+</odoo>

@@ -9,3 +9,4 @@ from . import test_close_with_draft_orders
 from . import test_close_with_draft_orders_tour
 from . import test_leave_draft_order
 from . import test_employee_pin
+from . import test_daily_sales_by_payment_method

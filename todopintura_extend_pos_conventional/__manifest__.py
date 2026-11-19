@@ -2,7 +2,7 @@
 {
     'name': 'Todopintura - Extend POS Conventional (Recogida entre tiendas)',
     'summary': 'Permite definir por línea la tienda de recogida en pedidos POS',
-    'version': '19.0.1.0.4',
+    'version': '19.0.1.0.6',
     'category': 'Point of Sale',
     'author': 'Xtendoo',
     'website': 'https://xtendoo.es',
@@ -41,6 +41,7 @@
         'views/pos_session_closing_wizard_views.xml',
         'views/pos_pin_employee_views.xml',
         'report/albaran_receipt.xml',
+        'report/report_sale_details_payments.xml',
         'report/report_factura_simplificada_inherit.xml',
     ],
     'assets': {

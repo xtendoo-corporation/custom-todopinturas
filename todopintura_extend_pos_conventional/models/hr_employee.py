@@ -30,8 +30,10 @@ class HrEmployee(models.Model):
 
     @api.model
     def _tp_find_by_pin(self, pin, company, user=None):
-        """Empleado de la empresa con ese PIN que esté relacionado con el usuario de
-        la caja (res.users.pos_employee_ids), o error."""
+        """Empleado de la empresa con ese PIN que esté autorizado en el usuario de la
+        caja, o error. Está autorizado si figura en «Empleados del TPV» del usuario
+        (res.users.pos_employee_ids) o si es el empleado enlazado a ese mismo usuario
+        en su ficha de RR. HH."""
         pin = (pin or "").strip()
         employee = self.env["hr.employee"]
         if pin:
@@ -43,7 +45,9 @@ class HrEmployee(models.Model):
             raise ValidationError(
                 _("PIN incorrecto. Compruebe su PIN de empleado e inténtelo de nuevo.")
             )
-        if user and employee not in user.sudo().pos_employee_ids:
+        if user and not (
+            employee in user.sudo().pos_employee_ids or employee.user_id == user
+        ):
             raise ValidationError(
                 _(
                     "%(employee)s no está autorizado en esta caja (usuario %(user)s).",
