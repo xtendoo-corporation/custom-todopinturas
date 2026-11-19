@@ -97,7 +97,8 @@ class PosOrderBarcodeFormCreditController extends originalBarcodeFormView.Contro
         }
 
         const record = this.model.root;
-        if (record?.data?.state === "draft" && !forceLeave) {
+        // Con «Permitir ventas en borrador» (ajuste del TPV) se puede salir sin pagar.
+        if (record?.data?.state === "draft" && !forceLeave && !record.data.allow_draft_orders) {
             const orderId = record.resId;
             if (orderId) {
                 try {

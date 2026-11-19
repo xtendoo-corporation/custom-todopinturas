@@ -16,3 +16,4 @@ from . import pos_order_line_permissions
 
 from . import res_users
 from . import product_product
+from . import pos_session_closing_wizard

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_session_closing_wizard_form_draft_orders" model="ir.ui.view">
+        <field name="name">pos.session.closing.wizard.form.todopintura.draft.orders</field>
+        <field name="model">pos.session.closing.wizard</field>
+        <field name="inherit_id" ref="pos_conventional_session_management.view_pos_session_closing_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='state']" position="after">
+                <field name="draft_order_count" invisible="1"/>
+                <field name="draft_order_names" invisible="1"/>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <div class="alert alert-warning" role="alert" invisible="not draft_order_count">
+                    <h4>Pedidos en borrador</h4>
+                    <p>
+                        Hay <field name="draft_order_count" class="fw-bold" readonly="1"/> pedido(s) en borrador sin finalizar:
+                        <field name="draft_order_names" readonly="1"/>.<br/>
+                        Para cerrar la caja hay que finalizarlos o borrarlos.
+                    </p>
+                </div>
+            </xpath>
+            <xpath expr="//button[@name='action_close_session'][@invisible=&quot;state != 'input'&quot;]" position="attributes">
+                <attribute name="invisible">state != 'input' or draft_order_count</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_open_cash_move_wizard']" position="before">
+                <button name="action_close_session_discarding_drafts" type="object" class="btn btn-danger"
+                        string="Borrar pedidos en borrador y cerrar caja"
+                        invisible="state != 'input' or not draft_order_count"
+                        confirm="Se borrarán los pedidos en borrador de esta caja y se cerrará. ¿Continuar?"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

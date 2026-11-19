@@ -14,6 +14,10 @@ class PosConfig(models.Model):
         readonly=True,
     )
 
+    # En Todopintura se permiten pedidos en borrador: se puede salir de un pedido sin
+    # pagarlo y al cerrar la caja se avisa de los que queden (ver pos_session.py).
+    allow_draft_orders = fields.Boolean(default=True)
+
     def _get_available_pricelists(self):
         self.ensure_one()
         load_all = self.env["ir.config_parameter"].sudo().get_param(
