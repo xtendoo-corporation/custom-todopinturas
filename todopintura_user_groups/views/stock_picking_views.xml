@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Internal transfers of restricted users start from their own warehouse (models/stock_picking.py). -->
+    <record id="view_picking_form_origin_locked" model="ir.ui.view">
+        <field name="name">stock.picking.form.todopintura.origin.locked</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='location_id'][@invisible=&quot;picking_type_code == 'incoming'&quot;]" position="attributes">
+                <attribute name="readonly">state == 'done' or todopintura_origin_locked</attribute>
+            </xpath>
+            <xpath expr="//field[@name='picking_type_id']" position="after">
+                <field name="todopintura_origin_locked" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

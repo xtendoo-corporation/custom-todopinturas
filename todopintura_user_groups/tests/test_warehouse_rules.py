@@ -1,6 +1,6 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 from odoo import Command
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import tagged
 
 from .common import TodopinturaTestCase
@@ -178,6 +178,75 @@ class TestWarehouseRules(TodopinturaTestCase):
         )
         with self.assertRaises(AccessError):
             picking.with_user(self.user_a).read(["name"])
+
+    # ---- internal transfers: the origin is the user's own warehouse ----------
+    def _defaults(self, user, picking_type):
+        return (
+            self.env["stock.picking"]
+            .with_user(user)
+            .with_context(default_picking_type_id=picking_type.id)
+            .default_get(["picking_type_id", "location_id"])
+        )
+
+    def test_internal_transfer_defaults_to_own_warehouse(self):
+        for picking_type in (self.wh_a.int_type_id, self.wh_b.int_type_id):
+            values = self._defaults(self.user_a, picking_type)
+            self.assertEqual(values["picking_type_id"], self.wh_a.int_type_id.id)
+            self.assertEqual(
+                self.env["stock.location"].browse(values["location_id"]).warehouse_id,
+                self.wh_a,
+            )
+
+    def test_other_operation_types_keep_their_defaults(self):
+        values = self._defaults(self.user_a, self.wh_b.out_type_id)
+        self.assertEqual(values["picking_type_id"], self.wh_b.out_type_id.id)
+
+    def test_user_without_restriction_keeps_the_default(self):
+        values = self._defaults(self.user_free, self.wh_b.int_type_id)
+        self.assertEqual(values["picking_type_id"], self.wh_b.int_type_id.id)
+
+    def test_origin_is_locked_only_with_a_single_warehouse(self):
+        internal = self._picking(self.wh_a, self.wh_a, self.wh_b)
+        outgoing = self._picking(self.wh_a, self.wh_a, self.wh_b)
+        outgoing.picking_type_id = self.wh_a.out_type_id
+        group = self.env.ref(f"{MODULE}.group_06_ventas_de_tiendas")
+        user_two = self._create_user(
+            "shop_two", group, self.wh_a | self.wh_b
+        )
+
+        def locked(user, picking):
+            return picking.with_user(user).todopintura_origin_locked
+
+        self.assertTrue(locked(self.user_a, internal))
+        self.assertFalse(locked(self.user_a, outgoing))
+        self.assertFalse(locked(self.user_free, internal))
+        self.assertFalse(locked(user_two, internal))
+
+    def test_form_makes_the_origin_readonly_when_locked(self):
+        arch = self.env["stock.picking"].get_view(
+            self.env.ref("stock.view_picking_form").id, "form"
+        )["arch"]
+        self.assertIn("todopintura_origin_locked", arch)
+        self.assertRegex(
+            arch,
+            r'name="location_id"[^>]*readonly="state == \'done\' or todopintura_origin_locked"',
+        )
+
+    def test_cannot_create_an_internal_transfer_from_another_warehouse(self):
+        vals = {
+            "picking_type_id": self.wh_a.int_type_id.id,
+            "location_id": self.wh_b.lot_stock_id.id,
+            "location_dest_id": self.wh_a.lot_stock_id.id,
+        }
+        Picking = self.env["stock.picking"]
+        with self.assertRaises(ValidationError):
+            Picking.with_user(self.user_a).create(vals)
+        # Own origin works; the system (sudo) and free users are not restricted.
+        own = dict(vals, location_id=self.wh_a.lot_stock_id.id,
+                   location_dest_id=self.wh_b.lot_stock_id.id)
+        self.assertTrue(Picking.with_user(self.user_a).create(own))
+        self.assertTrue(Picking.sudo().create(vals))
+        self.assertTrue(Picking.with_user(self.user_free).create(vals))
 
     def test_empty_field_means_no_restriction(self):
         foreign = self._picking(self.wh_b, self.wh_b, self.wh_b)

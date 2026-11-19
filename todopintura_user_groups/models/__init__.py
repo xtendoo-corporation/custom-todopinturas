@@ -8,4 +8,5 @@ from . import res_partner
 from . import res_users
 from . import sale_order
 from . import stock_consult
+from . import stock_picking
 from . import todopintura_route

@@ -2,7 +2,7 @@
 {
     "name": "Todopintura User Groups",
     "summary": "Perfiles, menús, reglas por almacén y TPV de Todopintura",
-    "version": "19.0.1.2.1",
+    "version": "19.0.1.2.2",
     "category": "Hidden",
     "author": "Xtendoo",
     "website": "http://www.xtendoo.es",
@@ -32,6 +32,7 @@
         "views/partner_route_views.xml",
         "views/commission_views.xml",
         "views/sale_order_views.xml",
+        "views/stock_picking_views.xml",
         "views/actions.xml",
         "views/cost_views.xml",
         "views/menus.xml",
