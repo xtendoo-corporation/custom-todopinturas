@@ -339,3 +339,118 @@ class TestSalesOperations(StockOperationsCase):
             .create({"user_id": user.id, "rate": 2})
         )
         self.assertTrue(rate)
+
+
+@tagged("post_install", "-at_install", "todopintura_user_groups")
+class TestRemotePickupSessionClose(StockOperationsCase):
+    """Sale in a store with pickup in the central warehouse, closed by the cashier.
+
+    The picking is typed/located in the central warehouse, which the cashier
+    cannot access: it must still be readable (never editable) for the till
+    closing, while other stores' pickings stay hidden.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.central = cls.warehouse("warehouse_central")
+        cls.lora = cls.warehouse("warehouse_lora_del_rio")
+        cls.config_lora = cls.config("pos_config_lora_del_rio")
+        cls.cash_pm = cls.config_lora.payment_method_ids.filtered("is_cash_count")[:1]
+        cls.customer = cls.env["res.partner"].create(
+            {"name": "Cliente recogida remota", "pos_credit_sale_enabled": True}
+        )
+        cls.cashier = cls.make_user(
+            "group_06_ventas_de_tiendas",
+            "e2e_cashier_lora",
+            warehouses=cls.lora,
+            configs=cls.config_lora,
+        )
+        cls.env["stock.quant"].sudo()._update_available_quantity(
+            cls.product, cls.central.lot_stock_id, 10
+        )
+
+    def _sell_with_remote_pickup(self):
+        if not self.cash_pm:
+            self.skipTest("The till needs a cash payment method")
+        user = self.cashier
+        pricelist = self.customer.with_user(user).property_product_pricelist
+        session = (
+            self.env["pos.session"]
+            .with_context(skip_auto_open=True)
+            .create({"config_id": self.config_lora.id, "user_id": user.id})
+        )
+        session.write({"state": "opened"})
+        as_user = self.env(user=user)
+        order = (
+            as_user["pos.order"]
+            .with_context(skip_completeness_check=True)
+            .create(
+                {
+                    "session_id": session.id,
+                    "config_id": self.config_lora.id,
+                    "pricelist_id": pricelist.id,
+                    "partner_id": self.customer.id,
+                    "amount_tax": 0,
+                    "amount_total": 0,
+                    "amount_paid": 0,
+                    "amount_return": 0,
+                }
+            )
+        )
+        values = order._prepare_order_line_vals(self.product, 1.0)
+        values["pickup_warehouse_id"] = self.central.id
+        as_user["pos.order.line"].create(values)
+        order.invalidate_recordset()
+        wizard = (
+            as_user["pos.make.payment.wizard"]
+            .with_context(active_id=order.id)
+            .create(
+                {
+                    "order_id": order.id,
+                    "payment_method_id": self.cash_pm.id,
+                    "amount_tendered": order.amount_total,
+                }
+            )
+        )
+        wizard.action_validate()
+        return session, order
+
+    def test_cashier_closes_till_with_pickup_in_central(self):
+        session, order = self._sell_with_remote_pickup()
+        pickings = order.sudo().picking_ids
+        self.assertTrue(pickings, "The sale must generate a picking")
+        self.assertEqual(pickings.picking_type_id.warehouse_id, self.central)
+        # Stock leaves the warehouse where the customer picks the goods up.
+        quant = self.env["stock.quant"].sudo()
+        self.assertEqual(
+            quant._get_available_quantity(self.product, self.central.lot_stock_id), 9
+        )
+        self.assertEqual(
+            quant._get_available_quantity(self.product, self.lora.lot_stock_id), 0
+        )
+        as_user = session.with_user(self.cashier)
+        # Readable for the closing...
+        self.assertEqual(as_user.picking_ids, pickings)
+        self.assertEqual(as_user.picking_ids.move_ids, pickings.move_ids)
+        # ...but never editable, and other stores' pickings stay hidden.
+        with self.assertRaises(AccessError):
+            pickings.with_user(self.cashier).write({"origin": "tampering"})
+        foreign = self.env["stock.picking"].sudo().search(
+            [
+                ("picking_type_id.warehouse_id", "=", self.central.id),
+                ("pos_session_id", "!=", session.id),
+            ],
+            limit=1,
+        )
+        if foreign:
+            self.assertFalse(
+                self.env["stock.picking"].with_user(self.cashier).search(
+                    [("id", "=", foreign.id)]
+                )
+            )
+        # The cashier closes the till without errors.
+        as_user.get_closing_control_data()
+        result = as_user.close_session_from_ui([])
+        self.assertTrue(result.get("successful"), result)
+        self.assertEqual(session.state, "closed")

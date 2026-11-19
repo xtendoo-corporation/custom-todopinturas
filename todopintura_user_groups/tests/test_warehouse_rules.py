@@ -138,6 +138,47 @@ class TestWarehouseRules(TodopinturaTestCase):
         self.assertIn(orders[self.wh_a], visible)
         self.assertNotIn(orders[self.wh_b], visible)
 
+    def _session_picking(self, session_wh, picking_wh):
+        """Picking born in a POS session of `session_wh` but typed/located in
+        `picking_wh` (pickup in another warehouse)."""
+        config = self.env["pos.config"].create(
+            {
+                "name": f"TPV {session_wh.code} {picking_wh.code}",
+                "picking_type_id": session_wh.pos_type_id.id,
+            }
+        )
+        session = self.env["pos.session"].create({"config_id": config.id})
+        picking = self.env["stock.picking"].create(
+            {
+                "picking_type_id": picking_wh.out_type_id.id,
+                "location_id": picking_wh.lot_stock_id.id,
+                "location_dest_id": self.env.ref("stock.stock_location_customers").id,
+                "pos_session_id": session.id,
+            }
+        )
+        return session, picking
+
+    def test_remote_pickup_picking_of_own_pos_session_is_readable_only(self):
+        """The cashier of store A closes the till with a line picked up in B:
+        that picking must be readable (not editable) by the cashier of A."""
+        session, picking = self._session_picking(self.wh_a, self.wh_b)
+        as_a = picking.with_user(self.user_a)
+        self.assertIn(picking, self.env["stock.picking"].with_user(self.user_a).search([]))
+        self.assertEqual(as_a.pos_session_id, session)
+        self.assertEqual(session.with_user(self.user_a).picking_ids, picking)
+        with self.assertRaises(AccessError):
+            as_a.write({"origin": "tampering"})
+        with self.assertRaises(AccessError):
+            as_a.unlink()
+
+    def test_pos_picking_of_another_store_session_stays_hidden(self):
+        _session, picking = self._session_picking(self.wh_b, self.wh_b)
+        self.assertNotIn(
+            picking, self.env["stock.picking"].with_user(self.user_a).search([])
+        )
+        with self.assertRaises(AccessError):
+            picking.with_user(self.user_a).read(["name"])
+
     def test_empty_field_means_no_restriction(self):
         foreign = self._picking(self.wh_b, self.wh_b, self.wh_b)
         order_b = self._order(self.wh_b, self.user_free)

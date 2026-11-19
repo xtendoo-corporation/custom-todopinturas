@@ -1,14 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Global rules (no groups): they only restrict users with allowed_warehouse_ids set. -->
+    <!-- Traslados: la lectura se amplía a los generados por las sesiones de TPV de
+         las tiendas permitidas (recogida en otro almacén: el traslado nace con el
+         tipo de operación del almacén de recogida y, sin esto, el cierre de caja
+         falla con «registros ultrasecretos»). Escribir/crear/borrar sigue limitado
+         a los almacenes permitidos. -->
     <record id="rule_stock_picking_allowed_warehouses" model="ir.rule">
         <field name="name">Todopintura: traspasos de los almacenes permitidos</field>
         <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="perm_read" eval="False"/>
         <field name="domain_force">[(1, '=', 1)] if not user.allowed_warehouse_ids else [
             '|', '|',
             ('picking_type_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
             ('location_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
             ('location_dest_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+        ]</field>
+    </record>
+
+    <record id="rule_stock_picking_allowed_warehouses_read" model="ir.rule">
+        <field name="name">Todopintura: lectura de traspasos de los almacenes permitidos y de sus ventas de TPV</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+        <field name="domain_force">[(1, '=', 1)] if not user.allowed_warehouse_ids else [
+            '|', '|', '|',
+            ('picking_type_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+            ('location_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+            ('location_dest_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
+            ('pos_session_id.config_id.picking_type_id.warehouse_id', 'in', user.allowed_warehouse_ids.ids),
         ]</field>
     </record>
 
