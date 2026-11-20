@@ -23,3 +23,4 @@ from . import pos_order_employee
 from . import pos_config_pin
 from . import pos_employee_users
 from . import report_sale_details
+from . import account_move
