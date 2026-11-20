@@ -2,7 +2,7 @@
 {
     "name": "Todopintura User Groups",
     "summary": "Perfiles, menús, reglas por almacén y TPV de Todopintura",
-    "version": "19.0.1.2.4",
+    "version": "19.0.1.5.0",
     "category": "Hidden",
     "author": "Xtendoo",
     "website": "http://www.xtendoo.es",
@@ -18,6 +18,7 @@
         "account_payment_sale",
         "point_of_sale",
         "todopintura_administration",
+        "todopintura_sales_report",
         "xtendoo_stock_barcode",
     ],
     "data": [
@@ -31,6 +32,9 @@
         "views/res_users_views.xml",
         "views/partner_route_views.xml",
         "views/commission_views.xml",
+        "views/customer_item_report_views.xml",
+        "views/profitability_report_views.xml",
+        "report/ticket_closing_report.xml",
         "views/sale_order_views.xml",
         "views/stock_picking_views.xml",
         "views/actions.xml",
@@ -40,5 +44,10 @@
     ],
     "pre_init_hook": "pre_init_hook",
     "post_init_hook": "post_init_hook",
+    "assets": {
+        "web.assets_tests": [
+            "todopintura_user_groups/static/tests/tours/**/*",
+        ],
+    },
     "installable": True,
 }

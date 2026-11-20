@@ -31,7 +31,7 @@
     <menuitem id="menu_pt_transfers_pending" name="Listado de traspasos pendientes de tiendas" parent="menu_pt_transfers" sequence="40" action="action_transfers_pending" groups="perm_va87"/>
     <menuitem id="menu_pt_transfers_print" name="Impresión de partes de almacén" parent="menu_pt_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
     <menuitem id="menu_pt_transfers_pickup" name="Grabación de ventas con recogida en otra tienda + traspasos" parent="menu_pt_transfers" sequence="60" action="sale.action_quotations_with_onboarding" groups="group_05_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
-    <menuitem id="menu_pt_transfers_credit" name="Grabación de ACUENTAS de otra tienda" parent="menu_pt_transfers" sequence="70" action="action_credit_sales" groups="perm_va01pas2"/>
+    <menuitem id="menu_pt_transfers_credit" name="Grabación depósito de otra tienda" parent="menu_pt_transfers" sequence="70" action="action_credit_sales" groups="perm_va01pas2"/>
     <menuitem id="menu_pt_misc" name="Consultas" parent="menu_pt_root" sequence="30" groups="group_07_gestion_de_pedidos_traspasos_y_ventas_de_otras_tie"/>
     <menuitem id="menu_pt_customers" name="Consulta de clientes" parent="menu_pt_misc" sequence="40" action="action_partners_consult" groups="perm_consulta_de_clientes"/>
 
@@ -66,13 +66,16 @@
     <menuitem id="menu_vt_reprint_invoices" name="Reimpresión de documentos" parent="menu_vt_misc" sequence="35" action="account.action_move_out_invoice_type" groups="perm_v08"/>
     <menuitem id="menu_vt_cumulative_sales" name="Listado de ventas acumulado" parent="menu_vt_lists_group" sequence="10" action="point_of_sale.action_pos_sale_graph" groups="perm_va14"/>
     <menuitem id="menu_vt_credit_sales_query" name="Consulta de ventas a cuenta" parent="menu_vt_misc" sequence="50" action="action_credit_sales" groups="perm_va10"/>
+    <menuitem id="menu_vt_customer_items" name="Listado acumulado de artículos por cliente" parent="menu_vt_lists_group" sequence="30" action="action_customer_item_report" groups="perm_va14_items"/>
+    <menuitem id="menu_vt_ticket_closing" name="Listado cierre de tickets" parent="menu_vt_lists_group" sequence="40" action="action_ticket_closing" groups="perm_va14_tickets"/>
+    <menuitem id="menu_vt_profitability" name="Listado de rentabilidad" parent="menu_vt_lists_group" sequence="50" action="action_profitability_report" groups="perm_va14_profit"/>
     <menuitem id="menu_vt_credit_sales_list" name="Listado de ventas a cuenta" parent="menu_vt_lists_group" sequence="20" action="action_credit_sales" groups="perm_va11"/>
     <menuitem id="menu_vt_transfers" name="Traspasos y ventas de otras tiendas" parent="menu_vt_root" sequence="60" groups="perm_menu_va80"/>
     <menuitem id="menu_vt_transfers_send" name="Grabación de envíos a otra tienda" parent="menu_vt_transfers" sequence="10" action="stock.action_picking_tree_internal" groups="perm_va83"/>
     <menuitem id="menu_vt_transfers_receive" name="Confirmación de recepción de artículos" parent="menu_vt_transfers" sequence="20" action="action_transfers_to_receive" groups="perm_va85"/>
     <menuitem id="menu_vt_transfers_offers" name="Consulta de ofertas realizadas por compras" parent="menu_vt_transfers" sequence="30" action="action_offers_by_purchasing" groups="group_04_ventas_de_almacen_central"/>
     <menuitem id="menu_vt_transfers_print" name="Impresión de partes de almacén" parent="menu_vt_transfers" sequence="50" action="stock.action_picking_tree_all" groups="perm_va88"/>
-    <menuitem id="menu_vt_transfers_credit" name="Grabación de ACUENTAS de otra tienda" parent="menu_vt_transfers" sequence="70" action="action_credit_sales" groups="perm_va01pas2"/>
+    <menuitem id="menu_vt_transfers_credit" name="Grabación depósito de otra tienda" parent="menu_vt_transfers" sequence="70" action="action_credit_sales" groups="perm_va01pas2"/>
     <menuitem id="menu_vt_customers" name="Consulta de clientes" parent="menu_vt_misc" sequence="40" action="action_partners_consult" groups="perm_consulta_de_clientes"/>
 
     <!-- Comerciales (also entry point of the "Informes estadísticos" profile) -->

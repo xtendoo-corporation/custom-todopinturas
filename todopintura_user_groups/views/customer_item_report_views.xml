@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Listado acumulado de artículos por cliente: filtros -->
+    <record id="view_customer_item_report_form" model="ir.ui.view">
+        <field name="name">todopintura.customer.item.report.form</field>
+        <field name="model">todopintura.customer.item.report</field>
+        <field name="arch" type="xml">
+            <form string="Listado acumulado de artículos por cliente" create="0">
+                <group>
+                    <group string="Qué mostrar">
+                        <field name="partner_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="Todos los clientes"/>
+                        <field name="supplier_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="Todos los proveedores" domain="[('supplier_rank', '&gt;', 0)]"/>
+                        <field name="warehouse_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="Todos los almacenes"/>
+                    </group>
+                    <group string="Fechas">
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_show" string="Ver listado" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button name="action_export_xlsx" string="Exportar a Excel" type="object" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_customer_item_report" model="ir.actions.act_window">
+        <field name="name">Listado acumulado de artículos por cliente</field>
+        <field name="res_model">todopintura.customer.item.report</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'dialog_size': 'large'}</field>
+    </record>
+
+    <!-- Listado: una fila por cliente (con sus totales) y debajo una por artículo -->
+    <record id="view_customer_item_report_line_list" model="ir.ui.view">
+        <field name="name">todopintura.customer.item.report.line.list</field>
+        <field name="model">todopintura.customer.item.report.line</field>
+        <field name="arch" type="xml">
+            <list string="Listado acumulado de artículos por cliente" create="0" edit="0" delete="0" open_form_view="0"
+                  default_order="sequence">
+                <field name="sequence" column_invisible="1"/>
+                <field name="kind" column_invisible="1"/>
+                <field name="customer_label" optional="hide"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="qty" sum="Total"/>
+                <field name="price_unit"/>
+                <field name="cost_unit" groups="todopintura_user_groups.group_cost_viewer"/>
+                <field name="margin_unit" groups="todopintura_user_groups.group_cost_viewer"/>
+                <field name="total_sale" sum="Total"/>
+                <field name="total_cost" sum="Total" groups="todopintura_user_groups.group_cost_viewer"/>
+                <field name="total_margin" sum="Total" groups="todopintura_user_groups.group_cost_viewer"/>
+                <field name="margin_percent" widget="float" groups="todopintura_user_groups.group_cost_viewer"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_customer_item_report_line_search" model="ir.ui.view">
+        <field name="name">todopintura.customer.item.report.line.search</field>
+        <field name="model">todopintura.customer.item.report.line</field>
+        <field name="arch" type="xml">
+            <search string="Listado acumulado de artículos por cliente">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="customer_label" string="Cliente"/>
+                <group>
+                    <filter name="group_customer" string="Cliente" context="{'group_by': 'customer_label'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Listado cierre de tickets: se pregunta el día y los almacenes y se imprime -->
+    <record id="view_ticket_closing_form" model="ir.ui.view">
+        <field name="name">todopintura.ticket.closing.form</field>
+        <field name="model">todopintura.ticket.closing</field>
+        <field name="arch" type="xml">
+            <form string="Listado cierre de tickets" create="0">
+                <group>
+                    <field name="date"/>
+                    <field name="warehouse_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="Todos los almacenes"/>
+                </group>
+                <footer>
+                    <button name="action_print" string="Imprimir" type="object" class="btn-primary" icon="fa-print" data-hotkey="q"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ticket_closing" model="ir.actions.act_window">
+        <field name="name">Listado cierre de tickets</field>
+        <field name="res_model">todopintura.ticket.closing</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

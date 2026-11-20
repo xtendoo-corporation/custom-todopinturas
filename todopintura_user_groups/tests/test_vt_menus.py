@@ -32,3 +32,12 @@ class TestVentasPosMenus(TodopinturaTestCase):
             "menu_vt_transfers_credit",
         ):
             self.assertTrue(self.env.ref(f"{MODULE}.{name}"), name)
+
+    def test_account_sales_of_another_store_is_called_deposit(self):
+        """«Grabación de ACUENTAS de otra tienda» pasa a «Grabación depósito de otra tienda»."""
+        for name in ("menu_vt_transfers_credit", "menu_pt_transfers_credit"):
+            menu = self.env.ref(f"{MODULE}.{name}")
+            self.assertEqual(menu.name, "Grabación depósito de otra tienda", name)
+        group = self.env.ref(f"{MODULE}.perm_va01pas2")
+        self.assertEqual(group.name, "Grabación depósito de otra tienda")
+        self.assertNotIn("ACUENTAS", menu.complete_name)

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Listado de rentabilidad: filtros -->
+    <record id="view_profitability_report_form" model="ir.ui.view">
+        <field name="name">todopintura.profitability.report.form</field>
+        <field name="model">todopintura.profitability.report</field>
+        <field name="arch" type="xml">
+            <form string="Listado de rentabilidad" create="0">
+                <group>
+                    <group string="Fechas">
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group string="Almacenes">
+                        <field name="warehouse_ids" widget="many2many_tags" options="{'no_create': True}" placeholder="Todos los almacenes"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_show" string="Ver listado" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button name="action_export_xlsx" string="Exportar a Excel" type="object" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_profitability_report" model="ir.actions.act_window">
+        <field name="name">Listado de rentabilidad</field>
+        <field name="res_model">todopintura.profitability.report</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_profitability_report_line_list" model="ir.ui.view">
+        <field name="name">todopintura.profitability.report.line.list</field>
+        <field name="model">todopintura.profitability.report.line</field>
+        <field name="arch" type="xml">
+            <list string="Listado de rentabilidad" create="0" edit="0" delete="0" open_form_view="0"
+                  default_order="sequence"
+                  decoration-danger="flag == '**'">
+                <field name="sequence" column_invisible="1"/>
+                <field name="warehouse_name" optional="show"/>
+                <field name="user_name" optional="show"/>
+                <field name="product_code"/>
+                <field name="product_name"/>
+                <field name="partner_code" optional="show"/>
+                <field name="partner_name"/>
+                <field name="date"/>
+                <field name="number"/>
+                <field name="qty" sum="Total"/>
+                <field name="cost_unit"/>
+                <field name="price_unit"/>
+                <field name="profit" sum="Total"/>
+                <field name="profit_percent"/>
+                <field name="flag"/>
+                <field name="doc_type"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_profitability_report_line_search" model="ir.ui.view">
+        <field name="name">todopintura.profitability.report.line.search</field>
+        <field name="model">todopintura.profitability.report.line</field>
+        <field name="arch" type="xml">
+            <search string="Listado de rentabilidad">
+                <field name="product_code"/>
+                <field name="product_name"/>
+                <field name="partner_name"/>
+                <field name="number"/>
+                <field name="user_name"/>
+                <filter name="low_margin" string="Menos del 30 % (**)" domain="[('flag', '=', '**')]"/>
+                <filter name="delivery_notes" string="Albaranes" domain="[('doc_type', '=', 'ALBARAN')]"/>
+                <filter name="cash" string="Contado" domain="[('doc_type', '=', 'Contado')]"/>
+                <group>
+                    <filter name="group_warehouse" string="Almacén" context="{'group_by': 'warehouse_name'}"/>
+                    <filter name="group_user" string="Comercial" context="{'group_by': 'user_name'}"/>
+                    <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_name'}"/>
+                    <filter name="group_doc" string="Documento" context="{'group_by': 'doc_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+</odoo>

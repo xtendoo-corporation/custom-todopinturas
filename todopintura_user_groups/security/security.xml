@@ -188,7 +188,7 @@
         <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('sales_team.group_sale_salesman')), Command.link(ref('stock.group_stock_user'))]"/>
     </record>
     <record id="perm_va01pas2" model="res.groups">
-        <field name="name">Grabación de ACUENTAS de otra tienda</field>
+        <field name="name">Grabación depósito de otra tienda</field>
         <field name="sequence">100</field>
         <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
     </record>
@@ -228,6 +228,22 @@
         <field name="name">Listado de ventas acumulado</field>
         <field name="sequence">100</field>
         <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va14_items" model="res.groups">
+        <field name="name">Listado acumulado de artículos por cliente</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <record id="perm_va14_tickets" model="res.groups">
+        <field name="name">Listado cierre de tickets</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user'))]"/>
+    </record>
+    <!-- Muestra costes y beneficios: solo Dirección (implica ver costes). -->
+    <record id="perm_va14_profit" model="res.groups">
+        <field name="name">Listado de rentabilidad</field>
+        <field name="sequence">100</field>
+        <field name="implied_ids" eval="[Command.link(ref('base.group_user')), Command.link(ref('group_cost_viewer'))]"/>
     </record>
     <record id="perm_va10" model="res.groups">
         <field name="name">Consulta de ventas a cuenta</field>
@@ -493,6 +509,8 @@
             Command.link(ref('perm_m02nc')),
             Command.link(ref('perm_va08')),
             Command.link(ref('perm_va14')),
+            Command.link(ref('perm_va14_items')),
+            Command.link(ref('perm_va14_tickets')),
             Command.link(ref('perm_va10')),
             Command.link(ref('perm_va11')),
             Command.link(ref('perm_menu_va80')),
@@ -584,6 +602,7 @@
             Command.link(ref('group_08_menu_de_comerciales')),
             Command.link(ref('group_09_informes_estadisticos_menu_of002')),
             Command.link(ref('perm_commission_rates')),
+            Command.link(ref('perm_va14_profit')),
             Command.link(ref('group_todopintura_commercial_editor')),
             Command.link(ref('sales_team.group_sale_salesman_all_leads')),
         ]"/>

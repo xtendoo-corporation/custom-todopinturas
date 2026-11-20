@@ -7,3 +7,6 @@ from . import test_routes_commissions_history
 from . import test_user_groups
 from . import test_warehouse_rules
 from . import test_vt_menus
+from . import test_customer_item_report
+from . import test_ticket_closing
+from . import test_profitability_report

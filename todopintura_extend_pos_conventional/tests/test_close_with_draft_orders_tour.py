@@ -121,3 +121,4 @@ class TestClosingPopupMethodsTour(PosConventionalTestCommon, HttpCase):
             "todopintura_closing_popup_methods",
             login=user.login,
         )
+

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_ticket_closing" model="report.paperformat">
+        <field name="name">Listado cierre de tickets</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">24</field>
+        <field name="margin_bottom">14</field>
+        <field name="margin_left">12</field>
+        <field name="margin_right">12</field>
+        <field name="header_spacing">12</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <template id="report_ticket_closing_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="data" t-value="o._get_data()"/>
+                <div class="header" style="font-family: monospace; font-size: 13px; color: #111;">
+                    <div style="text-align: right; padding-top: 6px;">
+                        LISTADO CIERRE DE TICKETS&#160;&#160;Fecha.-<span t-out="o.date.strftime('%d.%m.%y')"/>
+                        <br/>Pagina.- <span class="page"/>
+                    </div>
+                    <div style="border-bottom: 1px solid #999; margin-top: 2px;"/>
+                </div>
+                <div class="article" style="font-family: monospace; font-size: 12px; color: #111;">
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 4px;">
+                        <thead>
+                            <tr style="font-size: 12px;">
+                                <th style="text-align: left; width: 24%; padding: 6px 4px 2px;">N°TICKET</th>
+                                <th style="text-align: left; width: 11%; padding: 6px 4px 2px;">FECHA</th>
+                                <th style="text-align: left; padding: 6px 4px 2px;">N°CLIENTE</th>
+                                <th style="text-align: right; width: 14%; padding: 6px 4px 2px;">IMPORTE</th>
+                            </tr>
+                            <tr style="color: #999;">
+                                <td style="padding: 0 4px 8px;">- - - - - - - - -</td>
+                                <td style="padding: 0 4px 8px;">- - - - - -</td>
+                                <td style="padding: 0 4px 8px;">- - - - - - - - - - -</td>
+                                <td style="padding: 0 4px 8px; text-align: right;">- - - - - -</td>
+                            </tr>
+                        </thead>
+                    </table>
+                    <t t-if="not data['stores']">
+                        <p style="margin-top: 20px;">No hay tickets ni facturas en este día.</p>
+                    </t>
+                    <t t-foreach="data['stores']" t-as="store">
+                        <div style="font-size: 13px; margin: 10px 0 4px; page-break-after: avoid;">
+                            <t t-out="store['name']"/>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tbody>
+                                <tr t-foreach="store['rows']" t-as="row" style="page-break-inside: avoid;">
+                                    <td style="width: 24%; padding: 1px 4px; white-space: nowrap;">
+                                        <t t-if="row['kind'] == 'invoice'">FAC </t><t t-out="row['number']"/>
+                                    </td>
+                                    <td style="width: 11%; padding: 1px 4px;"><t t-out="o._format_date(row['when'])"/></td>
+                                    <td style="padding: 1px 4px;">
+                                        <span t-if="row['customer_code']" t-out="row['customer_code']" style="display: inline-block; min-width: 70px; text-align: right; margin-right: 6px;"/>
+                                        <t t-out="row['customer_name'] or 'SIN CLIENTE'"/>
+                                    </td>
+                                    <td style="width: 14%; padding: 1px 4px; text-align: right;">
+                                        <t t-out="row['amount']" t-options="{'widget': 'float', 'precision': 2}"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <table style="width: 100%; border-collapse: collapse; margin: 14px 0 8px; page-break-inside: avoid;">
+                            <tr>
+                                <td style="text-align: right; padding: 1px 4px;">TOTAL TICKETS.....</td>
+                                <td style="text-align: right; width: 14%; padding: 1px 4px;">
+                                    <t t-out="store['tickets_total']" t-options="{'widget': 'float', 'precision': 2}"/>
+                                </td>
+                            </tr>
+                            <tr t-if="store['has_invoices']">
+                                <td style="text-align: right; padding: 1px 4px;">TOTAL FACTURAS.....</td>
+                                <td style="text-align: right; width: 14%; padding: 1px 4px;">
+                                    <t t-out="store['invoices_total']" t-options="{'widget': 'float', 'precision': 2}"/>
+                                </td>
+                            </tr>
+                            <tr t-if="store['has_invoices']" style="font-weight: bold;">
+                                <td style="text-align: right; padding: 1px 4px;">TOTAL.....</td>
+                                <td style="text-align: right; width: 14%; padding: 1px 4px;">
+                                    <t t-out="store['total']" t-options="{'widget': 'float', 'precision': 2}"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </t>
+                    <t t-if="len(data['stores']) > 1">
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 8px; border-top: 1px solid #999; page-break-inside: avoid;">
+                            <tr style="font-weight: bold;">
+                                <td style="text-align: right; padding: 4px;">TOTAL GENERAL (<t t-out="data['count']"/>).....</td>
+                                <td style="text-align: right; width: 14%; padding: 4px;">
+                                    <t t-out="data['total']" t-options="{'widget': 'float', 'precision': 2}"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_ticket_closing" model="ir.actions.report">
+        <field name="name">Listado cierre de tickets</field>
+        <field name="model">todopintura.ticket.closing</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">todopintura_user_groups.report_ticket_closing_document</field>
+        <field name="report_file">todopintura_user_groups.report_ticket_closing_document</field>
+        <field name="print_report_name">'Cierre de tickets %s' % (object.date)</field>
+        <field name="paperformat_id" ref="paperformat_ticket_closing"/>
+    </record>
+</odoo>

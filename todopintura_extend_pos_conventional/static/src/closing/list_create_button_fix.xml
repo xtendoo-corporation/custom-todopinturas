@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- pos_conventional_core cambia la condición del botón «Nuevo» de TODAS las listas
+         (`resModel !== 'pos.order' or ...`) y se salta `activeActions.create`: las listas
+         de solo lectura (create="0") mostraban «Nuevo». Se restaura la condición estándar
+         para todos los modelos menos pos.order, que sigue la suya. -->
+    <t t-name="todopintura_extend_pos_conventional.ListView"
+       t-inherit="web.ListView" t-inherit-mode="extension">
+        <xpath expr="//t[@t-set-slot='control-panel-create-button']/button[hasclass('o_list_button_add')]" position="attributes">
+            <attribute name="t-if">props.resModel !== 'pos.order' ? (!editedRecord and activeActions.create and props.showButtons) : (state and state.showCloseButton)</attribute>
+        </xpath>
+    </t>
+</templates>

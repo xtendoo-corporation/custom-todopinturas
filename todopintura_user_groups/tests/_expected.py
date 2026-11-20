@@ -265,6 +265,8 @@ STORE_SALES_MENUS = {
     "menu_vt_stock",
     "menu_vt_reprint",
     "menu_vt_cumulative_sales",
+    "menu_vt_customer_items",
+    "menu_vt_ticket_closing",
     "menu_vt_credit_sales_query",
     "menu_vt_credit_sales_list",
     "menu_vt_customers",
@@ -319,5 +321,6 @@ EXPECTED_MENUS = {
         | {"menu_pt_customers"}
         | COMMERCIAL_MENUS
         | {"menu_co_commission_rates"}
+        | {"menu_vt_profitability"}
     ),
 }
