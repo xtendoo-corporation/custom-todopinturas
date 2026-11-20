@@ -193,6 +193,12 @@ class PosOrder(models.Model):
         factura simplificada al cobrar, lo que mandaba las facturas A4 al diario
         de simplificadas. Si el cajero eligió factura A4, se quita el flag antes
         de facturar para que se use el diario de facturas normal.
+
+        Además no se genera el PDF oficial de la factura dentro del cobro
+        (point_of_sale llama a _generate_and_send, que pasa por wkhtmltopdf y
+        costaba 2,5-5 s por cobro, también en los tickets, que no lo usan). El
+        PDF A4 se genera y guarda la primera vez que se imprime
+        (account.move._tp_get_a4_invoice_pdf) o al "Enviar e imprimir".
         """
         if "is_l10n_es_simplified_invoice" in self._fields:
             a4_simplified = self.filtered(
@@ -202,7 +208,10 @@ class PosOrder(models.Model):
                 a4_simplified.with_context(skip_completeness_check=True).write(
                     {"is_l10n_es_simplified_invoice": False}
                 )
-        return super()._generate_pos_order_invoice()
+        orders = self
+        if "generate_pdf" not in self.env.context:
+            orders = self.with_context(generate_pdf=False)
+        return super(PosOrder, orders)._generate_pos_order_invoice()
 
     is_a4_invoice = fields.Boolean(
         string="Factura A4",

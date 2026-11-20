@@ -7,8 +7,6 @@ from pypdf import PdfReader, PdfWriter
 from odoo import http
 from odoo.http import request
 
-A4_INVOICE_REPORT = "todopintura_administration.report_factura_todopintura_document"
-
 
 class TodopinturaExtendPosConventionalController(http.Controller):
     @http.route('/todopintura_extend_pos_conventional/user_permissions', type='json', auth='user', methods=['POST'])
@@ -29,13 +27,14 @@ class TodopinturaExtendPosConventionalController(http.Controller):
 
         A diferencia de /report/html, el PDF respeta los margenes, la cabecera y
         el pie fijos de la plantilla, y se sirve con un nombre de archivo legible.
+        Reutiliza el PDF oficial de la factura si ya existe (ver
+        account.move._tp_get_a4_invoice_pdf).
         """
         move = request.env['account.move'].browse(move_id).exists()
         if not move:
             return request.not_found()
         move.check_access('read')
-        report = request.env['ir.actions.report']._get_report_from_name(A4_INVOICE_REPORT)
-        pdf, _fmt = report._render_qweb_pdf(A4_INVOICE_REPORT, [move.id])
+        pdf = move._tp_get_a4_invoice_pdf()
         label = move.name if move.name and move.name != '/' else 'borrador'
         filename = re.sub(r'[\\/:*?"<>|]+', '-', 'Factura %s' % label).strip() + '.pdf'
         pdf = self._set_pdf_title(pdf, filename[:-len('.pdf')])
