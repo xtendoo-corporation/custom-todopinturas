@@ -2,7 +2,12 @@
 <odoo>
     <!-- Informe de venta diaria: ventas de cada método de pago, una detrás de otra, con su total. -->
     <template id="report_saledetails_payments_by_method" inherit_id="point_of_sale.pos_session_sales_details">
-        <xpath expr="//div[@id='payments']" position="after">
+        <!-- Se quita el listado inicial de productos por familia («Ventas»): lo sustituye
+             el desglose por método de pago de más abajo. -->
+        <xpath expr="//div[@id='sales']" position="replace"/>
+        <!-- El desglose por método va ANTES de las tablas de impuestos y pagos (con su total),
+             que así quedan al final del informe como cierre. -->
+        <xpath expr="//div[@id='taxe_sales']" position="before">
             <div t-if="payments_detail" id="payments_by_method">
                 <h6 class="bg-secondary p-1 fw-bold mt-3">Ventas por método de pago</h6>
                 <t t-foreach="payments_detail" t-as="method">
@@ -48,19 +53,6 @@
                         </tbody>
                     </table>
                 </t>
-                <table class="table table-sm table-borderless border-top border-dark w-100" style="page-break-inside: avoid; width: 100%;">
-                    <tr class="fs-5" style="font-weight: bold; font-size: 15px;">
-                        <td class="ps-2" style="text-align: left; font-weight: bold;">Total ventas (<t t-out="payments_detail_count"/> pagos)</td>
-                        <td class="text-end" style="text-align: right;">
-                            <t t-if="currency['position']">
-                                <span t-out="payments_detail_total" t-options="{'widget': 'float', 'precision': currency['precision']}"/><span t-out="currency['symbol']"/>
-                            </t>
-                            <t t-else="">
-                                <span t-out="currency['symbol']"/><span t-out="payments_detail_total" t-options="{'widget': 'float', 'precision': currency['precision']}"/>
-                            </t>
-                        </td>
-                    </tr>
-                </table>
                 <div class="oe_structure"></div>
             </div>
         </xpath>

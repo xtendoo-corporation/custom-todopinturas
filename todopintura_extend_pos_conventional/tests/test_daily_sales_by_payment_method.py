@@ -85,14 +85,35 @@ class TestDailySalesByPaymentMethod(PosConventionalTestCommon):
         self.assertIn("Ventas por método de pago", html)
         self.assertIn(f"Total {self.cash_pm.name}", html)
         self.assertIn(f"Total {self.card_pm.name}", html)
-        self.assertIn("Total ventas", html)
-        # Orden: efectivo/tarjeta cada uno con su bloque, y el total general al final
-        self.assertLess(
-            html.index(f"Total {self.cash_pm.name}"), html.index("Total ventas")
-        )
-        self.assertLess(
-            html.index(f"Total {self.card_pm.name}"), html.index("Total ventas")
-        )
+        # Orden: cada método con su bloque y, debajo, las tablas de impuestos y pagos
+        # (con el total) como cierre del informe.
+        payments_at = html.index('id="payments"')
+        self.assertLess(html.index(f"Total {self.cash_pm.name}"), html.index('id="taxe_sales"'))
+        self.assertLess(html.index(f"Total {self.card_pm.name}"), html.index('id="taxe_sales"'))
+        self.assertLess(html.index('id="taxe_sales"'), payments_at)
+        # El total es el de la tabla de pagos del informe estándar
+        total_paid = self.env["report.point_of_sale.report_saledetails"].get_sale_details(
+            session_ids=session.ids
+        )["currency"]["total_paid"]
+        self.assertAlmostEqual(total_paid, 35.5)
+        self.assertTrue("35.50" in html or "35,50" in html[payments_at:])
+
+    def test_initial_products_listing_is_removed_and_totals_close_the_report(self):
+        """Ya no se imprime el listado inicial de productos por familia («Ventas»); las
+        tablas de impuestos y pagos (con el total) quedan debajo del desglose."""
+        session = self._open_session()
+        order = self._paid_order(session, self.cash_pm, 10.0)
+        html = self.env["ir.actions.report"]._render_qweb_html(
+            "point_of_sale.report_saledetails", session.ids
+        )[0]
+        html = html.decode() if isinstance(html, bytes) else html
+        self.assertNotIn('id="sales"', html)
+        self.assertNotIn(order.lines.product_id.display_name, html)
+        breakdown_at = html.index("Ventas por método de pago")
+        self.assertLess(breakdown_at, html.index('id="taxe_sales"'))
+        self.assertLess(html.index('id="taxe_sales"'), html.index('id="payments"'))
+        self.assertNotIn("Total ventas", html)
+        self.assertIn('id="discounts"', html)  # el resto del informe se mantiene
 
     def test_no_sales_no_section(self):
         session = self._open_session()
