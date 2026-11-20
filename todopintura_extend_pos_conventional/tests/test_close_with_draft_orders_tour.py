@@ -65,3 +65,59 @@ class TestCloseWithDraftOrdersTour(PosConventionalTestCommon, HttpCase):
         )
         self.assertTrue(order.exists())
         self.assertNotEqual(session.state, "closed")
+
+
+@tagged("post_install", "-at_install")
+class TestClosingPopupMethodsTour(PosConventionalTestCommon, HttpCase):
+    """Popup de cierre: la tarjeta sin «Diferencia» y la cuenta de cliente como «Depósito»."""
+
+    def test_card_has_no_difference_and_account_is_called_deposit(self):
+        if "pos_can_edit_price" in self.env.user._fields:
+            self.env.user.pos_can_edit_price = True
+        user = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Cajero tour métodos",
+                    "login": "cajero_tour_metodos",
+                    "password": "cajero_tour_metodos",
+                    "group_ids": [
+                        Command.set(
+                            [
+                                self.env.ref("base.group_user").id,
+                                self.env.ref("point_of_sale.group_pos_manager").id,
+                            ]
+                        )
+                    ],
+                }
+            )
+        )
+        account_pm = self.env["pos.payment.method"].create(
+            {"name": "Cuenta cliente test", "journal_id": self.invoice_journal.id}
+        )
+        self.pos_config.write({"payment_method_ids": [Command.link(account_pm.id)]})
+        self.assertEqual(account_pm.type, "pay_later")
+        session = self._open_session()
+        for method, amount in (
+            (self.cash_pm, 10.0),
+            (self.card_pm, 20.0),
+            (account_pm, 5.0),
+        ):
+            order = self._make_draft_order(session, partner=self.partner)
+            self._add_line(order)
+            order.write({"amount_total": amount, "amount_paid": amount})
+            self._add_payment(order, method, amount)
+            order.action_pos_order_paid()
+        action = self.env["ir.actions.client"].create(
+            {
+                "name": "Cierre métodos tour",
+                "tag": "pos_conventional_closing_popup",
+                "context": str({"session_id": session.id}),
+            }
+        )
+        self.start_tour(
+            f"/odoo/action-{action.id}",
+            "todopintura_closing_popup_methods",
+            login=user.login,
+        )

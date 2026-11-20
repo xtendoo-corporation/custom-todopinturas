@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- Popup de cierre de caja: la tarjeta no muestra «Diferencia» y la cuenta de cliente
+         se llama «Depósito». -->
+    <t t-name="todopintura_extend_pos_conventional.ClosingPopup"
+       t-inherit="pos_conventional_session_management.ClosingPopup" t-inherit-mode="extension">
+        <xpath expr="(//div[@t-foreach='state.paymentMethods'])[1]//span[@t-esc='pm.name']" position="attributes">
+            <attribute name="t-esc">pm.type === 'pay_later' ? 'Depósito' : pm.name</attribute>
+        </xpath>
+        <xpath expr="(//div[@t-foreach='state.paymentMethods'])[1]/div[hasclass('border-start')]" position="attributes">
+            <attribute name="t-if">pm.type !== 'bank'</attribute>
+        </xpath>
+    </t>
+</templates>
