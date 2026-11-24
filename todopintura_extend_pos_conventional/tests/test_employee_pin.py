@@ -30,12 +30,8 @@ class TestEmployeePin(PosConventionalTestCommon):
         cls.ana = Employee.create({"name": "Ana Cajera", "pin": "4711"})
         cls.luis = Employee.create({"name": "Luis Cajero", "pin": "4712"})
 
-    def _session(self, employees=None):
-        session = self._open_session()
-        session.user_id.pos_employee_ids = [
-            Command.set((self.ana | self.luis if employees is None else employees).ids)
-        ]
-        return session
+    def _session(self):
+        return self._open_session()
 
     def _wizard(self, session, pin, **context):
         return (
@@ -61,19 +57,34 @@ class TestEmployeePin(PosConventionalTestCommon):
         self.assertEqual(session.employee_id, self.luis)
         self.assertEqual(session.user_id, user)
 
-    def test_new_order_flows_keep_the_session_user_and_set_the_employee(self):
+    def test_new_order_flows_use_the_logged_user_and_set_the_employee(self):
+        """El pedido lleva al usuario conectado (no al de la caja) y al empleado."""
         session = self._session()
-        user = session.user_id
+        box_user = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create({"name": "Usuario de la caja", "login": "usuario_caja_pin"})
+        )
+        session.user_id = box_user
+        logged = self.env.user
+        self.assertNotEqual(logged, box_user)
         action = self._wizard(
             session, "4712", force_new_order_flow=True
         ).action_validate_pin()
-        self.assertEqual(action["context"]["default_user_id"], user.id)
+        self.assertEqual(action["context"]["default_user_id"], logged.id)
         self.assertEqual(action["context"]["default_employee_id"], self.luis.id)
         action = self._wizard(
             session, "4711", switch_user_after_sale=True
         ).action_validate_pin()
-        self.assertEqual(action["params"]["default_user_id"], user.id)
+        self.assertEqual(action["params"]["default_user_id"], logged.id)
         self.assertEqual(action["params"]["default_employee_id"], self.ana.id)
+        self.assertEqual(session.user_id, box_user)
+
+    def test_order_form_shows_the_pin_employee(self):
+        arch = self.env["pos.order"].get_view(
+            self.env.ref("point_of_sale.view_pos_pos_form").id, "form"
+        )["arch"]
+        self.assertIn('name="employee_id"', arch)
 
     def test_wrong_empty_or_user_pins_are_rejected(self):
         session = self._session()
@@ -91,87 +102,31 @@ class TestEmployeePin(PosConventionalTestCommon):
         order = self._make_draft_order(session, partner=self.partner)
         self.assertEqual(order.employee_id, self.luis)
 
-    def test_pin_only_works_for_employees_related_to_the_session_user(self):
-        session = self._session(employees=self.ana)
+    def test_any_employee_can_enter_whatever_the_session_user(self):
+        """Ni «Empleados del TPV» ni el enlace de RR. HH. restringen el PIN."""
+        session = self._session()
         self._wizard(session, "4711").action_validate_pin()
         self.assertEqual(session.employee_id, self.ana)
-        with self.assertRaises(ValidationError) as error:
-            self._wizard(session, "4712").action_validate_pin()  # Luis no está
-        self.assertIn("Luis Cajero", str(error.exception))
-        self.assertEqual(session.employee_id, self.ana)
-
-    def test_employee_linked_to_the_session_user_is_always_authorized(self):
-        """El empleado enlazado al usuario de la caja (ficha de RR. HH.) puede entrar
-        aunque el usuario no tenga empleados en «Empleados del TPV»."""
-        box = (
-            self.env["res.users"]
-            .with_context(no_reset_password=True)
-            .create({"name": "Caja enlazada", "login": "caja_enlazada_pin"})
-        )
-        own = self.env["hr.employee"].create(
-            {"name": "Empleado de la caja", "pin": "4799", "user_id": box.id}
-        )
-        session = self._open_session()
-        session.user_id = box
-        self.assertFalse(box.pos_employee_ids)
-        self._wizard(session, "4799").action_validate_pin()
-        self.assertEqual(session.employee_id, own)
-        # Pero un empleado enlazado a OTRO usuario sigue sin estar autorizado.
         other_box = (
             self.env["res.users"]
             .with_context(no_reset_password=True)
-            .create({"name": "Otra caja enlazada", "login": "otra_caja_enlazada_pin"})
+            .create({"name": "Otra caja", "login": "otra_caja_enlazada_pin"})
         )
-        self.env["hr.employee"].create(
-            {"name": "Empleado de otra caja", "pin": "4798", "user_id": other_box.id}
+        linked = self.env["hr.employee"].create(
+            {"name": "De otra caja", "pin": "4798", "user_id": other_box.id}
         )
-        with self.assertRaises(ValidationError):
-            self._wizard(session, "4798").action_validate_pin()
+        self._wizard(session, "4798").action_validate_pin()
+        self.assertEqual(session.employee_id, linked)
 
-    def test_user_without_related_employees_admits_nobody(self):
-        session = self._session(employees=self.env["hr.employee"])
-        with self.assertRaises(ValidationError):
-            self._wizard(session, "4711").action_validate_pin()
-
-    def test_relation_is_editable_from_both_sides(self):
-        user = self.env["res.users"].with_context(no_reset_password=True).create(
-            {"name": "Caja relación", "login": "caja_relacion_pin"}
-        )
-        self.ana.pos_user_ids = [Command.link(user.id)]
-        self.assertIn(self.ana, user.pos_employee_ids)
-        user.pos_employee_ids = [Command.unlink(self.ana.id)]
-        self.assertNotIn(user, self.ana.pos_user_ids)
-
-    def test_one_employee_can_work_with_several_users(self):
-        Users = self.env["res.users"].with_context(no_reset_password=True)
-        box_a = Users.create({"name": "Caja A", "login": "caja_a_pin"})
-        box_b = Users.create({"name": "Caja B", "login": "caja_b_pin"})
-        self.ana.pos_user_ids = [Command.set((box_a | box_b).ids)]
-        self.assertEqual(self.ana.pos_user_ids, box_a | box_b)
-        self.assertIn(self.ana, box_a.pos_employee_ids)
-        self.assertIn(self.ana, box_b.pos_employee_ids)
-
-    def test_forms_expose_the_relation(self):
-        user_arch = self.env["res.users"].get_view(
-            self.env.ref("base.view_users_form").id, "form"
-        )["arch"]
-        self.assertIn("pos_employee_ids", user_arch)
-        employee_arch = self.env["hr.employee"].get_view(
-            self.env.ref("hr.view_employee_form").id, "form"
-        )["arch"]
-        self.assertIn("pos_user_ids", employee_arch)
-
-    def test_created_employees_are_not_linked_to_any_user(self):
-        """El alta de empleados no los vincula a ningún usuario: se hace a mano."""
-        hooks.create_pin_employees(self.env)
-        xtendoo = self.env.ref("todopintura_extend_pos_conventional.employee_pin_xtendoo")
-        self.assertFalse(xtendoo.pos_user_ids)
-        user = (
-            self.env["res.users"]
-            .with_context(no_reset_password=True)
-            .create({"name": "Caja sin empleados", "login": "caja_sin_empleados_pin"})
-        )
-        self.assertFalse(user.pos_employee_ids)
+    def test_forms_no_longer_expose_the_relation(self):
+        for model, view in (
+            ("res.users", "base.view_users_form"),
+            ("hr.employee", "hr.view_employee_form"),
+        ):
+            arch = self.env[model].get_view(self.env.ref(view).id, "form")["arch"]
+            self.assertNotIn("pos_employee_ids", arch)
+            self.assertNotIn("pos_user_ids", arch)
+            self.assertNotIn("Empleados del TPV", arch)
 
     def test_employee_pin_must_be_unique(self):
         with self.assertRaises(ValidationError):
@@ -261,7 +216,6 @@ class TestEmployeePinTour(PosConventionalTestCommon, HttpCase):
             )
         )
         session = self._open_session()
-        session.user_id.pos_employee_ids = [Command.link(employee.id)]
         action = self.env["ir.actions.act_window"].create(
             {
                 "name": "PIN empleado tour",

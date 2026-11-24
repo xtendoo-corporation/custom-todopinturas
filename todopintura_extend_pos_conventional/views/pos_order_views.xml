@@ -287,6 +287,7 @@
             <xpath expr="//page[@name='extra']//group[@name='other_information']" position="before">
                 <group string="Datos del pedido" name="order_data">
                     <field name="user_id" string="Usuario" readonly="1" force_save="1" />
+                    <field name="employee_id" string="Empleado" readonly="1" force_save="1" options="{'no_open': True}" />
                     <field name="session_id" readonly="1" force_save="1" />
                     <field name="origin_warehouse_id" readonly="1" options="{'no_open': True}" string="Almacén TPV"/>
                     <field name="amount_untaxed" widget="monetary" string="Importe base" />

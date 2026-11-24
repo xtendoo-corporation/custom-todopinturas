@@ -6,8 +6,9 @@ from odoo.exceptions import UserError
 class PosSessionPinWizard(models.TransientModel):
     """El PIN del TPV es siempre el de un empleado (hr.employee.pin).
 
-    Varios empleados comparten el usuario de la caja: la sesión conserva ese usuario
-    y el empleado queda como cajero (session.employee_id → pedido).
+    Varios empleados comparten el usuario de la caja: la sesión conserva ese usuario,
+    el pedido lleva al usuario conectado y el empleado queda como cajero
+    (session.employee_id → pedido).
     """
 
     _inherit = "pos.session.pin.wizard"
@@ -18,10 +19,11 @@ class PosSessionPinWizard(models.TransientModel):
         self.ensure_one()
         session = self.session_id
         employee = self.env["hr.employee"]._tp_find_by_pin(
-            self.pos_pin, session.company_id, user=session.user_id
+            self.pos_pin, session.company_id
         )
         session.sudo().write({"employee_id": employee.id})
-        user = session.user_id
+        # El pedido lo firma el usuario conectado; el cajero es el empleado del PIN.
+        user = self.env.user
 
         # Cambio de cajero tras una venta
         if self.env.context.get("switch_user_after_sale"):
