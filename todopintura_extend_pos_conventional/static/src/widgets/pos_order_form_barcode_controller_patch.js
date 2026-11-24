@@ -4,6 +4,9 @@ import { registry } from "@web/core/registry";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { onMounted, onPatched } from "@odoo/owl";
+// Garantiza que la vista base ya está registrada antes de parchearla (también en los
+// tests HOOT, que solo cargan los módulos que se importan).
+import "@pos_conventional_order_barcode/js/pos_order_form_barcode_controller";
 
 const viewRegistry = registry.category("views");
 const originalBarcodeFormView = viewRegistry.get("pos_order_barcode_form");
